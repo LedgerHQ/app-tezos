@@ -64,8 +64,6 @@ print_memory_layout(void)
     PRINTF("[SIZEOF] G_ux_os: %u\n", sizeof(G_ux_os));
     PRINTF("[PTR]    G_ux_params: 0x%p\n", &G_ux_params);
     PRINTF("[SIZEOF] G_ux_params: %u\n", sizeof(G_ux_params));
-    PRINTF("[PTR]    G_io_usb_ep_buffer: 0x%p\n", G_io_usb_ep_buffer);
-    PRINTF("[SIZEOF] G_io_usb_ep_buffer: %d\n", sizeof(G_io_usb_ep_buffer));
     PRINTF("[PTR]    G_io_app: 0x%p\n", &G_io_app);
     PRINTF("[SIZEOF] G_io_app: %d\n", sizeof(G_io_app));
 }
@@ -78,11 +76,6 @@ dispatch(command_t *cmd)
 
     if (cmd->cla != CLA) {
         TZ_FAIL(EXC_CLASS);
-    }
-
-    if (tz_ui_stream_get_cb_type() == SCREEN_QUIT) {
-        PRINTF("[ERROR] received instruction whilst on Quit screen\n");
-        TZ_FAIL(EXC_UNEXPECTED_STATE);
     }
 
     // clang-format off

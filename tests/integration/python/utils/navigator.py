@@ -30,6 +30,8 @@ from ragger.firmware.touch.positions import (
     STAX_BUTTON_ABOVE_LOWER_MIDDLE,
     FLEX_BUTTON_LOWER_LEFT,
     FLEX_BUTTON_ABOVE_LOWER_MIDDLE,
+    APEX_P_BUTTON_LOWER_LEFT,
+    APEX_P_BUTTON_ABOVE_LOWER_MIDDLE,
 )
 from ragger.firmware.touch.screen import MetaScreen
 from ragger.firmware.touch.use_cases import (
@@ -81,6 +83,10 @@ class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
         DeviceType.FLEX: Position(
             FLEX_BUTTON_LOWER_LEFT.x,
             FLEX_BUTTON_ABOVE_LOWER_MIDDLE.y
+        ),
+        DeviceType.APEX_P: Position(
+            APEX_P_BUTTON_LOWER_LEFT.x,
+            APEX_P_BUTTON_ABOVE_LOWER_MIDDLE.y
         )
     }
 
@@ -114,7 +120,8 @@ class UseCaseReview(OriginalUseCaseReview, metaclass=MetaScreen):
     # static positions below are defined for the test data.
     MORE_POSITIONS = {
         DeviceType.STAX: Position(200, 390),
-        DeviceType.FLEX: Position(240, 350)
+        DeviceType.FLEX: Position(240, 350),
+        DeviceType.APEX_P: Position(180, 270)
     }
 
     def __init__(self, client: BackendInterface, device: Device):

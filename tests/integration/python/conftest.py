@@ -32,7 +32,8 @@ DEVICES_LIST: List[Device] = [
     DeviceType.NANOSP,
     DeviceType.NANOX,
     DeviceType.STAX,
-    DeviceType.FLEX
+    DeviceType.FLEX,
+    DeviceType.APEX_P
 ]
 
 DEVICES: List[str] = list(map(lambda dev: Devices.get_by_type(dev).name, DEVICES_LIST))
@@ -42,7 +43,7 @@ def pytest_addoption(parser):
     parser.addoption("-D", "--device",
                      type=str,
                      choices=DEVICES,
-                     help="Device type: nanos | nanosp | nanox | stax | flex",
+                     help="Device type: nanos | nanosp | nanox | stax | flex | apex_p",
                      required=True)
     parser.addoption("-P", "--port",
                      type=int,
@@ -182,7 +183,7 @@ def use_only_on_device(request, device: Device):
         if dev == "nano":
             return ["nanos", "nanosp", "nanox"]
         if dev == "touch":
-            return ["stax", "flex"]
+            return ["stax", "flex", "apex_p"]
         return [dev]
 
     marker = request.node.get_closest_marker('use_on_device')

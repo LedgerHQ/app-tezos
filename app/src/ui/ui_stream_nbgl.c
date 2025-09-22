@@ -118,7 +118,7 @@ switch_to_blindsigning_on_error(void)
             ERROR_CODE_SIZE);
 
     // Show error msg and ask user to proceed to blindsign
-    nbgl_useCaseChoice(&C_Important_Circle_64px,
+    nbgl_useCaseChoice(&IMPORTANT_CIRCLE_ICON,
                        "The transaction cannot be decoded", blindsign_msg,
                        "Reject transaction", "Proceed to Blindsign",
                        blindsign_choice);
@@ -130,7 +130,7 @@ expert_mode_splash(void)
 {
     TZ_PREAMBLE(("void"));
 
-    nbgl_useCaseReviewStart(&C_Important_Circle_64px, "Expert mode",
+    nbgl_useCaseReviewStart(&IMPORTANT_CIRCLE_ICON, "Expert mode",
                             "Next screen requires careful review",
                             "Reject transaction", tz_ui_stream_start,
                             tz_reject_ui);
@@ -160,7 +160,7 @@ tz_enable_expert_mode_ui(void)
 {
     FUNC_LEAVE();
 
-    nbgl_useCaseChoice(&C_Important_Circle_64px,
+    nbgl_useCaseChoice(&IMPORTANT_CIRCLE_ICON,
                        "Enable expert mode to authorize this "
                        "transaction",
                        "", "Enable expert mode", "Reject transaction",

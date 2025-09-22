@@ -43,7 +43,7 @@ APPNAME = "Tezos Wallet"
 # Application version
 APPVERSION_M=3
 APPVERSION_N=0
-APPVERSION_P=8
+APPVERSION_P=9
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # COMMIT
@@ -78,6 +78,7 @@ ICON_NANOX = icons/nano-x-tezos.gif
 ICON_NANOSP = icons/nano-x-tezos.gif
 ICON_STAX = icons/stax_tezos.gif
 ICON_FLEX = icons/flex_tezos.gif
+ICON_APEX_P = icons/apex_tezos.png
 
 # Application allowed derivation curves.
 # Possibles curves are: secp256k1, secp256r1, ed25519 and bls12381g1

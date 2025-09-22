@@ -18,7 +18,7 @@ jobs:
     name: Build application
     strategy:
       matrix:
-        device: [nanos, nanosp, nanox, stax, flex]
+        device: [nanosp, nanox, stax, flex, apex_p]
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
@@ -72,7 +72,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        device: [nanos, nanosp, nanox, stax, flex]
+        device: [nanosp, nanox, stax, flex, apex_p]
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
 
@@ -163,7 +163,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        device: [nanos, nanosp, nanox]
+        device: [nanosp, nanox]
         type: [micheline, operations]
     container:
       image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest

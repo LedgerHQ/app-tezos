@@ -18,3 +18,8 @@
 
 tags
 __pycache__
+
+tests/fuzzing/build/
+tests/fuzzing/corpus/
+tests/fuzzing/out/
+tests/fuzzing/macros/generated/

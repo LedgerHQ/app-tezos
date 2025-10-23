@@ -18,7 +18,7 @@ set -x
 set -e
 
 usage() {
-    echo "Usage: ./scripts/test_swap.sh {build_app_tezos|build_app_ethereum|build_app_exchange|run_tests|run_tests_all|update} {nanos|nanosp|nanox|stax|flex}"
+    echo "Usage: ./scripts/test_swap.sh {build_app_tezos|build_app_ethereum|build_app_exchange|run_tests|run_tests_all|update} {nanos|nanosp|nanox|stax|flex|apex_p}"
 }
 
 _assert_tezos_repo() {
@@ -72,7 +72,7 @@ _assert_app_exchange_repo() {
     set -x
 }
 
-devices=("nanos" "nanosp" "nanox" "stax" "flex")
+devices=("nanos" "nanosp" "nanox" "stax" "flex" "apex_p")
 
 _assert_device() {
     set +x

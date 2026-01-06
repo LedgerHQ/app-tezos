@@ -210,7 +210,7 @@ class TezosNavigator(metaclass=MetaScreen):
                 TezosNavInsID.SKIP_CHOICE_CONFIRM: self._ignore_processing(self.review_tx.skip_choice.confirm),
                 TezosNavInsID.SKIP_CHOICE_REJECT: self.review_tx.skip_choice.reject,
                 TezosNavInsID.WARNING_CHOICE_SAFETY: self.review_tx.back_to_safety.confirm,
-                TezosNavInsID.WARNING_CHOICE_BLINDSIGN: self.review_tx.back_to_safety.reject,
+                TezosNavInsID.WARNING_CHOICE_BLINDSIGN: self._ignore_processing(self.review_tx.back_to_safety.reject),
             }
             self._navigator._callbacks.update(tezos_callbacks)
         self._root_dir = Path(__file__).resolve().parent.parent

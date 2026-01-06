@@ -7,5 +7,6 @@ pytezos==3.16.1
 GitPython
 pytest-xdist
 ledgered
-speculos>=0.25.5
+# Speculos 0.25.10: force the the derivation path to match the path of the app (`44'/1729'`) and would require tests changes.
+speculos==0.25.9
 ragger[tests,speculos,ledgerwallet]>=1.40.2

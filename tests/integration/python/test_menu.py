@@ -98,5 +98,7 @@ def test_quit(tezos_navigator: TezosNavigator, backend: TezosBackend):
             assert False, "Must have lost connection with speculos"
         except requests.exceptions.ConnectionError:
             pass
+        except requests.exceptions.ChunkedEncodingError:
+            pass
     else:
         tezos_navigator.home.quit()

@@ -1,7 +1,7 @@
 FROM ocaml/opam:ubuntu-24.04-ocaml-5.2
 
 # Setup a tezos environement
-COPY --chown=opam:opam tezos /opt/tezos
+COPY --chown=opam:opam deps/tezos /opt/tezos
 USER opam
 WORKDIR /opt/tezos
 

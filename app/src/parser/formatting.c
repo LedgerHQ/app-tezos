@@ -186,6 +186,9 @@ const char *const tz_michelson_op_names_ordered[TZ_LAST_MICHELSON_OPCODE + 1]
         "BYTES",                           // 155
         "NAT",                             // 156
         "Ticket",                          // 157
+        "IS_IMPLICIT_ACCOUNT",             // 158
+        "INDEX_ADDRESS",                   // 159
+        "GET_ADDRESS_INDEX",               // 160
 };
 
 const char *

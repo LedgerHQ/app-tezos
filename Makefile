@@ -41,7 +41,7 @@ docker_ledger_app_builder:
 
 docker_ledger_app_ocaml:
 	$(DOCKER) build -t ledger-app-tezos-ocaml \
-			-f docker/Dockerfile.ocaml docker --platform linux/$(CPU)
+			-f docker/Dockerfile.ocaml . --platform linux/$(CPU)
 
 docker_ledger_app_integration_tests:
 	$(DOCKER) pull $(LEDGERHQ)/ledger-app-builder/ledger-app-dev-tools:latest

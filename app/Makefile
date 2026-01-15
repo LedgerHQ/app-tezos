@@ -23,17 +23,6 @@ endif
 
 include $(BOLOS_SDK)/Makefile.defines
 
-# Clean up on target switches, to allow rebuilding to other devices more easily
-ifeq ($(file <.target),)
-$(file >.target,$(TARGET_NAME)$(DEBUG))
-else
-ifneq ($(TARGET_NAME)$(DEBUG), $(file <.target))
-$(info Target switch detected, $(file <.target) -> $(TARGET_NAME)$(DEBUG), cleaning up...)
-$(file >.target,$(TARGET_NAME)$(DEBUG))
-IGNORE_OUTPUT:=$(shell make clean DEBUG=$(DEBUG))
-endif
-endif
-
 ########################################
 #        Mandatory configuration       #
 ########################################

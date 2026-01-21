@@ -30,6 +30,7 @@ from pytezos.michelson.forge import (
     forge_nat,
     forge_public_key,
 )
+from pytezos.michelson.tags import prim_tags
 from pytezos.operation.content import ContentMixin, format_mutez
 import pytezos.operation.forge as forge_operation
 from pytezos.operation.forge import reserved_entrypoints, forge_tag
@@ -90,6 +91,12 @@ class Watermark(IntEnum):
     MANAGER_OPERATION    = 0x03
     MICHELINE_EXPRESSION = 0x05
 
+# pytezos is not up to date with the protocol Seoul
+# See `https://gitlab.com/tezos/tezos/-/blob/v23-release/src/proto_023_PtSeouLo/lib_protocol/michelson_v1_primitives.ml#L807`
+prim_tags.update({ 'IS_IMPLICIT_ACCOUNT': b'\x9e'})
+# See `https://gitlab.com/tezos/tezos/-/blob/master/src/proto_024_PsU87LFi/lib_protocol/michelson_v1_primitives.ml#L816-L817`
+prim_tags.update({ 'INDEX_ADDRESS': b'\x9f'})
+prim_tags.update({ 'GET_ADDRESS_INDEX': b'\xa0'})
 
 class MichelineExpr(Message):
     """Class representing a tezos micheline expression."""
@@ -108,32 +115,6 @@ class MichelineExpr(Message):
 
 class OperationBuilder(ContentMixin):
     """Class representing to extends and fix pytezos.ContentMixin."""
-
-    def reveal(
-            self,
-            public_key: str = '',
-            proof: Optional[str] = None,
-            source: str = '',
-            counter: int = 0,
-            fee: int = 0,
-            gas_limit: int = 0,
-            storage_limit: int = 0):
-        """Build a Tezos reveal."""
-        # Same as Pytezos but with a proof field
-        content = {
-            'kind': 'reveal',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
-            'public_key': public_key,
-        }
-
-        if proof is not None:
-            content['proof'] = proof
-
-        return self.operation(content)
 
     def delegation(self, delegate, *args, **kwargs):
         delegation = super().delegation(delegate, *args, **kwargs)
@@ -293,12 +274,18 @@ class OperationForge:
     smart_rollup_add_messages = forge_operation.forge_smart_rollup_add_messages
     smart_rollup_execute_outbox_message = forge_operation.forge_smart_rollup_execute_outbox_message
 
+    # Fix Pytezos reveal forging updated in 3.16.0
     @staticmethod
     def reveal(content: Dict[str, Any]) -> bytes:
         """Forge a Tezos reveal."""
-        res = forge_operation.forge_reveal(content)
+        res = forge_tag(operation_tags[content['kind']])
+        res += forge_address(content['source'], tz_only=True)
+        res += forge_nat(int(content['fee']))
+        res += forge_nat(int(content['counter']))
+        res += forge_nat(int(content['gas_limit']))
+        res += forge_nat(int(content['storage_limit']))
+        res += forge_public_key(content['public_key'])
 
-        # Fix Pytezos reveal forging by adding the new proof field
         if content.get('proof'):
             res += forge_bool(True)
             res += forge_array(forge_base58(content['proof']))
@@ -568,12 +555,12 @@ class Reveal(ManagerOperation):
         return OperationForge.reveal(
             self.reveal(
                 self.public_key,
-                self.proof,
                 self.source,
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
+                self.proof
             )
         )
 

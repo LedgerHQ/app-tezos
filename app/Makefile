@@ -23,17 +23,6 @@ endif
 
 include $(BOLOS_SDK)/Makefile.defines
 
-# Clean up on target switches, to allow rebuilding to other devices more easily
-ifeq ($(file <.target),)
-$(file >.target,$(TARGET_NAME)$(DEBUG))
-else
-ifneq ($(TARGET_NAME)$(DEBUG), $(file <.target))
-$(info Target switch detected, $(file <.target) -> $(TARGET_NAME)$(DEBUG), cleaning up...)
-$(file >.target,$(TARGET_NAME)$(DEBUG))
-IGNORE_OUTPUT:=$(shell make clean DEBUG=$(DEBUG))
-endif
-endif
-
 ########################################
 #        Mandatory configuration       #
 ########################################
@@ -43,7 +32,7 @@ APPNAME = "Tezos Wallet"
 # Application version
 APPVERSION_M=3
 APPVERSION_N=0
-APPVERSION_P=9
+APPVERSION_P=10
 APPVERSION=$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # COMMIT

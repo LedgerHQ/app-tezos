@@ -51,7 +51,8 @@ const char *const tz_operation_parser_step_name[] = {"OPTION",
                                                      "READ_SORU_KIND",
                                                      "READ_BALLOT",
                                                      "READ_PROTOS",
-                                                     "READ_PKH_LIST"};
+                                                     "READ_PKH_LIST",
+                                                     "READ_FA2_TRANSFER"};
 
 /**
  * @brief Get the string format of an operations step
@@ -329,7 +330,8 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     tz_operation_state *op = &state->operation;
 
     tz_parser_init(state);
-    state->operation.seen_reveal = 0;
+    state->operation.seen_reveal      = 0;
+    state->operation.is_fa2_candidate = 0;
     memset(&state->operation.source, 0, 22);
     memset(&state->operation.destination, 0, 22);
     op->batch_index = 0;
@@ -553,6 +555,8 @@ tz_step_tag(tz_parser_state *state)
         op->nb_reveal++;
     }
 #endif  // HAVE_SWAP
+    op->is_fa2_candidate = 0;
+    memset(&op->destination, 0, 22);
     for (d = tz_operation_descriptors; d->tag != TZ_OPERATION_TAG_END; d++) {
         if (d->tag == t) {
             op->frame->step                   = TZ_OPERATION_STEP_TUPLE;
@@ -566,6 +570,401 @@ tz_step_tag(tz_parser_state *state)
         }
     }
     tz_raise(INVALID_TAG);
+}
+
+/* FA2 transfer parser sub-steps */
+#define FA2_STEP_OUTER_SEQ_TAG   0   /* expect 0x02 (SEQ) */
+#define FA2_STEP_OUTER_SEQ_SIZE  1   /* read 4-byte size */
+#define FA2_STEP_OUTER_PAIR_TAG  2   /* expect 0x07 (PRIM_2_NOANNOTS) */
+#define FA2_STEP_OUTER_PAIR_OP   3   /* expect 0x07 (Pair opcode) */
+#define FA2_STEP_FROM_ADDR_TAG   4   /* expect 0x01 (STRING) or 0x0A (BYTES) */
+#define FA2_STEP_FROM_ADDR_SIZE  5   /* read 4-byte size */
+#define FA2_STEP_FROM_ADDR_BYTES 6   /* read addr_len bytes into CAPTURE */
+#define FA2_STEP_TXS_SEQ_TAG     7   /* expect 0x02 (SEQ) */
+#define FA2_STEP_TXS_SEQ_SIZE    8   /* read 4-byte size */
+#define FA2_STEP_TXS_PAIR_TAG    9   /* expect 0x07 (PRIM_2_NOANNOTS) */
+#define FA2_STEP_TXS_PAIR_OP     10  /* expect 0x07 (Pair opcode) */
+#define FA2_STEP_TO_ADDR_TAG     11  /* expect 0x01 (STRING) or 0x0A (BYTES) */
+#define FA2_STEP_TO_ADDR_SIZE    12  /* read 4-byte size */
+#define FA2_STEP_TO_ADDR_BYTES   13  /* read addr_len bytes into CAPTURE */
+#define FA2_STEP_INNER_SEQ_TAG   14  /* expect 0x02 (SEQ) */
+#define FA2_STEP_INNER_SEQ_SIZE  15  /* read 4-byte size */
+#define FA2_STEP_INNER_PAIR_TAG  16  /* expect 0x07 (PRIM_2_NOANNOTS) */
+#define FA2_STEP_INNER_PAIR_OP   17  /* expect 0x07 (Pair opcode) */
+#define FA2_STEP_TOKEN_ID_TAG    18  /* expect 0x00 (INT) */
+#define FA2_STEP_TOKEN_ID_VAL    19  /* read varint (must be 0) */
+#define FA2_STEP_AMOUNT_TAG      20  /* expect 0x00 (INT) */
+#define FA2_STEP_AMOUNT_VAL      21  /* read varint */
+#define FA2_STEP_VERIFY_END      22  /* verify no extra outer items */
+#define FA2_STEP_EMIT_FROM       23  /* emit "FA2 From" field */
+#define FA2_STEP_EMIT_TO         24  /* emit "FA2 To" field */
+#define FA2_STEP_EMIT_AMOUNT     25  /* emit "Token Amount" field */
+
+/* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
+#define FA2_FROM_ADDR_OFS 0
+#define FA2_TO_ADDR_OFS   (TZ_CAPTURE_BUFFER_SIZE / 2)
+#define FA2_ADDR_MAX_LEN  (TZ_CAPTURE_BUFFER_SIZE / 2 - 1)
+
+/**
+ * @brief Switch FA2 parser to binary fallback for remaining bytes
+ *
+ *        Called when the FA2 structure does not match the expected
+ *        single-item token_id=0 pattern.  Remaining bytes are displayed
+ *        as hex with the complex flag set.
+ */
+static tz_parser_result
+fa2_fallback_to_binary(tz_parser_state *state)
+{
+    tz_operation_state *op = &state->operation;
+
+    op->frame->step                       = TZ_OPERATION_STEP_READ_BINARY;
+    op->frame->step_read_string.ofs       = 0;
+    op->frame->step_read_string.skip      = 0;
+    op->frame->step_read_string.check_fa2 = 0;
+    state->field_info.is_field_complex    = true;
+    STRLCPY(state->field_info.field_name, "Parameter");
+    tz_continue;
+}
+
+/**
+ * @brief Read and parse an FA2 transfer parameter for clear signing
+ *
+ *        Supports single-item transfers with token_id = 0.
+ *        Falls back to raw Micheline display for unsupported patterns.
+ *
+ * @param state: parser state
+ * @return tz_parser_result: parser result
+ */
+static tz_parser_result
+tz_step_read_fa2_transfer(tz_parser_state *state)
+{
+    ASSERT_STEP(state, READ_FA2_TRANSFER);
+    tz_operation_state *op   = &state->operation;
+    tz_parser_regs     *regs = &state->regs;
+    uint8_t             b;
+
+    switch (op->frame->step_read_fa2.sub_step) {
+
+    /* ---- outer list ---- */
+    case FA2_STEP_OUTER_SEQ_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x02) {  /* SEQ */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_SEQ_SIZE;
+        op->frame->step_read_fa2.size_ofs = 0;
+        op->frame->step_read_fa2.size_val = 0;
+        tz_continue;
+
+    case FA2_STEP_OUTER_SEQ_SIZE:
+        tz_must(tz_parser_read(state, &b));
+        op->frame->step_read_fa2.size_val
+            = (op->frame->step_read_fa2.size_val << 8) | b;
+        op->frame->step_read_fa2.size_ofs++;
+        if (op->frame->step_read_fa2.size_ofs < 4) {
+            tz_continue;
+        }
+        if (op->frame->step_read_fa2.size_val == 0) {
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_PAIR_TAG;
+        tz_continue;
+
+    case FA2_STEP_OUTER_PAIR_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x07) {  /* PRIM_2_NOANNOTS */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_PAIR_OP;
+        tz_continue;
+
+    case FA2_STEP_OUTER_PAIR_OP:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x07) {  /* Pair opcode */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_TAG;
+        tz_continue;
+
+    /* ---- from_ address ---- */
+    case FA2_STEP_FROM_ADDR_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x01 && b != 0x0A) {  /* STRING or BYTES */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.addr_tag = b;
+        op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_SIZE;
+        op->frame->step_read_fa2.size_ofs = 0;
+        op->frame->step_read_fa2.size_val = 0;
+        tz_continue;
+
+    case FA2_STEP_FROM_ADDR_SIZE:
+        tz_must(tz_parser_read(state, &b));
+        op->frame->step_read_fa2.size_val
+            = (op->frame->step_read_fa2.size_val << 8) | b;
+        op->frame->step_read_fa2.size_ofs++;
+        if (op->frame->step_read_fa2.size_ofs < 4) {
+            tz_continue;
+        }
+        if (op->frame->step_read_fa2.size_val > FA2_ADDR_MAX_LEN) {
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
+        op->frame->step_read_fa2.addr_ofs = 0;
+        op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_BYTES;
+        tz_continue;
+
+    case FA2_STEP_FROM_ADDR_BYTES:
+        tz_must(tz_parser_read(state, &b));
+        CAPTURE[FA2_FROM_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = b;
+        op->frame->step_read_fa2.addr_ofs++;
+        op->frame->step_read_fa2.addr_len--;
+        if (op->frame->step_read_fa2.addr_len > 0) {
+            tz_continue;
+        }
+        /* Address fully read; null-terminate for string case */
+        CAPTURE[FA2_FROM_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
+        if (op->frame->step_read_fa2.addr_tag == 0x0A) {
+            /* Binary address: format it in-place */
+            if (tz_format_address(
+                    CAPTURE + FA2_FROM_ADDR_OFS,
+                    op->frame->step_read_fa2.addr_ofs,
+                    (char *)(CAPTURE + FA2_FROM_ADDR_OFS),
+                    FA2_ADDR_MAX_LEN)) {
+                return fa2_fallback_to_binary(state);
+            }
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_SEQ_TAG;
+        tz_continue;
+
+    /* ---- txs list ---- */
+    case FA2_STEP_TXS_SEQ_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x02) {  /* SEQ */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_SEQ_SIZE;
+        op->frame->step_read_fa2.size_ofs = 0;
+        op->frame->step_read_fa2.size_val = 0;
+        tz_continue;
+
+    case FA2_STEP_TXS_SEQ_SIZE:
+        tz_must(tz_parser_read(state, &b));
+        op->frame->step_read_fa2.size_val
+            = (op->frame->step_read_fa2.size_val << 8) | b;
+        op->frame->step_read_fa2.size_ofs++;
+        if (op->frame->step_read_fa2.size_ofs < 4) {
+            tz_continue;
+        }
+        if (op->frame->step_read_fa2.size_val == 0) {
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_PAIR_TAG;
+        tz_continue;
+
+    case FA2_STEP_TXS_PAIR_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x07) {  /* PRIM_2_NOANNOTS */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_PAIR_OP;
+        tz_continue;
+
+    case FA2_STEP_TXS_PAIR_OP:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x07) {  /* Pair opcode */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_TAG;
+        tz_continue;
+
+    /* ---- to_ address ---- */
+    case FA2_STEP_TO_ADDR_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x01 && b != 0x0A) {  /* STRING or BYTES */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.addr_tag = b;
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_SIZE;
+        op->frame->step_read_fa2.size_ofs = 0;
+        op->frame->step_read_fa2.size_val = 0;
+        tz_continue;
+
+    case FA2_STEP_TO_ADDR_SIZE:
+        tz_must(tz_parser_read(state, &b));
+        op->frame->step_read_fa2.size_val
+            = (op->frame->step_read_fa2.size_val << 8) | b;
+        op->frame->step_read_fa2.size_ofs++;
+        if (op->frame->step_read_fa2.size_ofs < 4) {
+            tz_continue;
+        }
+        if (op->frame->step_read_fa2.size_val > FA2_ADDR_MAX_LEN) {
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
+        op->frame->step_read_fa2.addr_ofs = 0;
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_BYTES;
+        tz_continue;
+
+    case FA2_STEP_TO_ADDR_BYTES:
+        tz_must(tz_parser_read(state, &b));
+        CAPTURE[FA2_TO_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = b;
+        op->frame->step_read_fa2.addr_ofs++;
+        op->frame->step_read_fa2.addr_len--;
+        if (op->frame->step_read_fa2.addr_len > 0) {
+            tz_continue;
+        }
+        /* Address fully read; null-terminate for string case */
+        CAPTURE[FA2_TO_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
+        if (op->frame->step_read_fa2.addr_tag == 0x0A) {
+            if (tz_format_address(
+                    CAPTURE + FA2_TO_ADDR_OFS,
+                    op->frame->step_read_fa2.addr_ofs,
+                    (char *)(CAPTURE + FA2_TO_ADDR_OFS),
+                    FA2_ADDR_MAX_LEN)) {
+                return fa2_fallback_to_binary(state);
+            }
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_SEQ_TAG;
+        tz_continue;
+
+    /* ---- inner txs item (single pair: token_id + amount) ---- */
+    case FA2_STEP_INNER_SEQ_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x02) {  /* SEQ */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_SEQ_SIZE;
+        op->frame->step_read_fa2.size_ofs = 0;
+        op->frame->step_read_fa2.size_val = 0;
+        tz_continue;
+
+    case FA2_STEP_INNER_SEQ_SIZE:
+        tz_must(tz_parser_read(state, &b));
+        op->frame->step_read_fa2.size_val
+            = (op->frame->step_read_fa2.size_val << 8) | b;
+        op->frame->step_read_fa2.size_ofs++;
+        if (op->frame->step_read_fa2.size_ofs < 4) {
+            tz_continue;
+        }
+        if (op->frame->step_read_fa2.size_val == 0) {
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_PAIR_TAG;
+        tz_continue;
+
+    case FA2_STEP_INNER_PAIR_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x07) {  /* PRIM_2_NOANNOTS */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_PAIR_OP;
+        tz_continue;
+
+    case FA2_STEP_INNER_PAIR_OP:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x07) {  /* Pair opcode */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TOKEN_ID_TAG;
+        tz_continue;
+
+    /* ---- token_id (must be 0) ---- */
+    case FA2_STEP_TOKEN_ID_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x00) {  /* INT tag */
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_TOKEN_ID_VAL;
+        tz_continue;
+
+    case FA2_STEP_TOKEN_ID_VAL: {
+        /* Read a single Zarith byte; must be 0x00 (value 0, no more bytes) */
+        tz_must(tz_parser_read(state, &b));
+        /* Zarith: MSB=1 means more bytes follow; value bits are low 7 bits.
+           For token_id=0, the only valid encoding is a single byte 0x00. */
+        if (b != 0x00) {
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_AMOUNT_TAG;
+        tz_continue;
+    }
+
+    /* ---- amount ---- */
+    case FA2_STEP_AMOUNT_TAG:
+        tz_must(tz_parser_read(state, &b));
+        if (b != 0x00) {  /* INT tag */
+            return fa2_fallback_to_binary(state);
+        }
+        /* Initialize num parser for amount */
+        tz_parse_num_state_init(&state->buffers.num,
+                                &op->frame->step_read_fa2.num_state);
+        op->frame->step_read_fa2.sub_step = FA2_STEP_AMOUNT_VAL;
+        tz_continue;
+
+    case FA2_STEP_AMOUNT_VAL: {
+        tz_must(tz_parser_read(state, &b));
+        tz_must(tz_parse_num_step(&state->buffers.num,
+                                  &op->frame->step_read_fa2.num_state, b, 1));
+        if (!op->frame->step_read_fa2.num_state.stop) {
+            tz_continue;
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_VERIFY_END;
+        tz_continue;
+    }
+
+    case FA2_STEP_VERIFY_END:
+        /* Verify we are at the end of the parameter (no extra items) */
+        if (state->ofs != op->frame->stop) {
+            return fa2_fallback_to_binary(state);
+        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_FROM;
+        tz_continue;
+
+    case FA2_STEP_EMIT_FROM:
+        /* Emit "FA2 From" field: push a PRINT frame, advance sub_step */
+        if (regs->oofs > 0) {
+            tz_stop(IM_FULL);
+        }
+        STRLCPY(state->field_info.field_name, "FA2 From");
+        state->field_info.is_field_complex = false;
+        state->field_info.field_index++;
+        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TO;
+        tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
+        op->frame->step_print.str = (char *)(CAPTURE + FA2_FROM_ADDR_OFS);
+        tz_continue;
+
+    case FA2_STEP_EMIT_TO:
+        /* Emit "FA2 To" field: push a PRINT frame, advance sub_step */
+        if (regs->oofs > 0) {
+            tz_stop(IM_FULL);
+        }
+        STRLCPY(state->field_info.field_name, "FA2 To");
+        state->field_info.is_field_complex = false;
+        state->field_info.field_index++;
+        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
+        tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
+        op->frame->step_print.str = (char *)(CAPTURE + FA2_TO_ADDR_OFS);
+        tz_continue;
+
+    case FA2_STEP_EMIT_AMOUNT:
+        /* Emit "Token Amount" field: push a PRINT frame, then pop FA2 */
+        if (regs->oofs > 0) {
+            tz_stop(IM_FULL);
+        }
+        STRLCPY(state->field_info.field_name, "Token Amount");
+        state->field_info.is_field_complex = false;
+        state->field_info.field_index++;
+        /* Pop the FA2 frame first, then push PRINT so PRINT pops to parent */
+        tz_must(pop_frame(state));
+        tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
+        op->frame->step_print.str = (char *)state->buffers.num.decimal;
+        tz_continue;
+
+    default:
+        tz_raise(INVALID_STATE);
+    }
+    tz_continue;
 }
 
 /**
@@ -881,6 +1280,11 @@ tz_step_read_string(tz_parser_state *state)
     tz_operation_state *op = &state->operation;
     if (state->ofs == op->frame->stop) {
         CAPTURE[op->frame->step_read_string.ofs] = 0;
+        if (op->frame->step_read_string.check_fa2) {
+            if (strcmp((char *)CAPTURE, "transfer") == 0) {
+                op->is_fa2_candidate = 1;
+            }
+        }
         tz_must(tz_print_string(state));
     } else {
         uint8_t b;
@@ -978,8 +1382,10 @@ tz_step_read_smart_entrypoint(tz_parser_state *state)
         tz_must(tz_print_string(state));
         break;
     case 0xFF:
-        op->frame->step                 = TZ_OPERATION_STEP_READ_STRING;
-        op->frame->step_read_string.ofs = 0;
+        op->frame->step                      = TZ_OPERATION_STEP_READ_STRING;
+        op->frame->step_read_string.ofs      = 0;
+        op->frame->step_read_string.check_fa2
+            = (op->destination[0] == 1) ? 1 : 0;
         tz_must(push_frame(state, TZ_OPERATION_STEP_SIZE));
         op->frame->step_size.size     = 0;
         op->frame->step_size.size_len = 1;
@@ -1029,9 +1435,10 @@ tz_step_field(tz_parser_state *state)
         break;
     }
     case TZ_OPERATION_FIELD_BINARY: {
-        op->frame->step                  = TZ_OPERATION_STEP_READ_BINARY;
-        op->frame->step_read_string.ofs  = 0;
-        op->frame->step_read_string.skip = field->skip;
+        op->frame->step                       = TZ_OPERATION_STEP_READ_BINARY;
+        op->frame->step_read_string.ofs       = 0;
+        op->frame->step_read_string.skip      = field->skip;
+        op->frame->step_read_string.check_fa2 = 0;
         tz_must(push_frame(state, TZ_OPERATION_STEP_SIZE));
         op->frame->step_size.size     = 0;
         op->frame->step_size.size_len = 4;
@@ -1130,24 +1537,35 @@ tz_step_field(tz_parser_state *state)
     }
     case TZ_OPERATION_FIELD_SMART_ENTRYPOINT: {
         op->frame->step = TZ_OPERATION_STEP_READ_SMART_ENTRYPOINT;
-        op->frame->step_read_string.ofs  = 0;
-        op->frame->step_read_string.skip = field->skip;
+        op->frame->step_read_string.ofs       = 0;
+        op->frame->step_read_string.skip      = field->skip;
+        op->frame->step_read_string.check_fa2 = 0;
         break;
     }
     case TZ_OPERATION_FIELD_EXPR: {
-        op->frame->step = TZ_OPERATION_STEP_READ_MICHELINE;
-        op->frame->step_read_micheline.inited = 0;
-        op->frame->step_read_micheline.skip   = field->skip;
-        op->frame->step_read_micheline.name   = name;
+        if (op->is_fa2_candidate && !field->skip) {
+            op->frame->step = TZ_OPERATION_STEP_READ_FA2_TRANSFER;
+            op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_SEQ_TAG;
+            op->frame->step_read_fa2.addr_ofs = 0;
+            op->frame->step_read_fa2.size_ofs = 0;
+            op->frame->step_read_fa2.size_val = 0;
+            op->frame->step_read_fa2.addr_len = 0;
+        } else {
+            op->frame->step = TZ_OPERATION_STEP_READ_MICHELINE;
+            op->frame->step_read_micheline.inited = 0;
+            op->frame->step_read_micheline.skip   = field->skip;
+            op->frame->step_read_micheline.name   = name;
+        }
         tz_must(push_frame(state, TZ_OPERATION_STEP_SIZE));
         op->frame->step_size.size     = 0;
         op->frame->step_size.size_len = 4;
         break;
     }
     case TZ_OPERATION_FIELD_STRING: {
-        op->frame->step                  = TZ_OPERATION_STEP_READ_STRING;
-        op->frame->step_read_string.ofs  = 0;
-        op->frame->step_read_string.skip = field->skip;
+        op->frame->step                       = TZ_OPERATION_STEP_READ_STRING;
+        op->frame->step_read_string.ofs       = 0;
+        op->frame->step_read_string.skip      = field->skip;
+        op->frame->step_read_string.check_fa2 = 0;
         tz_must(push_frame(state, TZ_OPERATION_STEP_SIZE));
         op->frame->step_size.size     = 0;
         op->frame->step_size.size_len = 4;
@@ -1534,6 +1952,9 @@ tz_operation_parser_step(tz_parser_state *state)
         break;
     case TZ_OPERATION_STEP_READ_PKH_LIST:
         tz_must(tz_step_read_pkh_list(state));
+        break;
+    case TZ_OPERATION_STEP_READ_FA2_TRANSFER:
+        tz_must(tz_step_read_fa2_transfer(state));
         break;
     case TZ_OPERATION_STEP_PRINT:
     case TZ_OPERATION_STEP_PARTIAL_PRINT:

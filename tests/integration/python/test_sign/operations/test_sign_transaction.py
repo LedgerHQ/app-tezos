@@ -19,6 +19,36 @@
 from utils.message import Transaction
 from .helper import Flow, Field, TestOperation, pytest_generate_tests
 
+# FA2 transfer parameter: single item, token_id=0 (clear-signing supported)
+_FA2_TRANSFER_PARAMETER = [
+    {'prim': 'Pair', 'args': [
+        {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
+        [{'prim': 'Pair', 'args': [
+            {'string': 'sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh'},
+            [{'prim': 'Pair', 'args': [
+                {'int': 0},
+                {'int': 5432900665191893635}
+            ]}]
+        ]}]
+    ]}
+]
+
+# FA2 transfer parameter: token_id != 0 (fallback to generic display)
+_FA2_TRANSFER_FALLBACK_PARAMETER = [
+    {'prim': 'Pair', 'args': [
+        {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
+        [{'prim': 'Pair', 'args': [
+            {'string': 'sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh'},
+            [{'prim': 'Pair', 'args': [
+                {'int': 1},
+                {'int': 100}
+            ]}]
+        ]}]
+    ]}
+]
+
+_FA2_KT1_DESTINATION = 'KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT'
+
 
 class TestTransaction(TestOperation):
     """Commun tests."""
@@ -31,20 +61,15 @@ class TestTransaction(TestOperation):
         Flow('basic', amount=5),
         Flow(
             'contract_call',
-            destination='KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT',
+            destination=_FA2_KT1_DESTINATION,
             entrypoint="transfer",
-            parameter=[
-                {'prim': 'Pair', 'args': [
-                    {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
-                    [{'prim': 'Pair', 'args': [
-                        {'string': 'sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh'},
-                        [{'prim': 'Pair', 'args': [
-                            {'int': 0},
-                            {'int': 5432900665191893635}
-                        ]}]
-                    ]}]
-                ]}
-            ]
+            parameter=_FA2_TRANSFER_PARAMETER,
+        ),
+        Flow(
+            'contract_call_fa2_fallback',
+            destination=_FA2_KT1_DESTINATION,
+            entrypoint="transfer",
+            parameter=_FA2_TRANSFER_FALLBACK_PARAMETER,
         ),
         Flow('stake', amount=1000000000, entrypoint='stake'),
         Flow('unstake', amount=500000000, entrypoint='unstake'),
@@ -97,5 +122,29 @@ class TestTransaction(TestOperation):
             Field.Case({'prim': 'Unit'}, "unit", entrypoint='entrypoint'),
             Field.Case({'prim': 'Pair', 'args': [{'string': 'a'}, {'int': 1}]}, "basic"),
             # More test about Micheline in micheline tests
+        ]),
+        Field("parameter", "FA2 From", [
+            Field.Case(
+                _FA2_TRANSFER_PARAMETER,
+                "fa2_from",
+                entrypoint='transfer',
+                destination=_FA2_KT1_DESTINATION,
+            ),
+        ]),
+        Field("parameter", "FA2 To", [
+            Field.Case(
+                _FA2_TRANSFER_PARAMETER,
+                "fa2_to",
+                entrypoint='transfer',
+                destination=_FA2_KT1_DESTINATION,
+            ),
+        ]),
+        Field("parameter", "Token Amount", [
+            Field.Case(
+                _FA2_TRANSFER_PARAMETER,
+                "fa2_amount",
+                entrypoint='transfer',
+                destination=_FA2_KT1_DESTINATION,
+            ),
         ]),
     ]

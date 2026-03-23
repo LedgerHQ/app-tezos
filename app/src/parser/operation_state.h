@@ -177,10 +177,10 @@ typedef struct {
         } step_print;         /// TZ_OPERATION_STEP_PRINT
                               /// TZ_OPERATION_STEP_PARTIAL_PRINT
         struct {
-            uint16_t ofs;  /// current bytes buffer offset
-            uint16_t len;  /// expected bytes length
-            tz_operation_field_kind
-                kind : 5;      /// kind of field
+            uint16_t                ofs;  /// current bytes buffer offset
+            uint16_t                len;  /// expected bytes length
+            tz_operation_field_kind kind
+                : 5;           /// kind of field
                                /// TZ_OPERATION_FIELD_SOURCE
                                /// TZ_OPERATION_FIELD_PKH
                                /// TZ_OPERATION_FIELD_PK
@@ -208,15 +208,15 @@ typedef struct {
             uint8_t ofs : 3;   /// number offset
         } step_read_int32;     /// TZ_OPERATION_STEP_READ_INT32
         struct {
-            uint16_t ofs;           /// current buffer string offset
-            uint8_t  skip : 1;      /// if the field is skipped
-            uint8_t  check_fa2 : 1; /// check FA2 candidate after read
-        } step_read_string;         /// TZ_OPERATION_STEP_READ_STRING
-                                    /// TZ_OPERATION_STEP_READ_BINARY
+            uint16_t ofs;            /// current buffer string offset
+            uint8_t  skip : 1;       /// if the field is skipped
+            uint8_t  check_fa2 : 1;  /// check FA2 candidate after read
+        } step_read_string;          /// TZ_OPERATION_STEP_READ_STRING
+                                     /// TZ_OPERATION_STEP_READ_BINARY
         struct {
             const char *name;  /// field name
-            uint8_t
-                inited : 1;    /// if the parser micheline has been initialize
+            uint8_t     inited
+                : 1;           /// if the parser micheline has been initialize
             uint8_t skip : 1;  /// if the field is skipped
         } step_read_micheline;  /// TZ_OPERATION_STEP_READ_MICHELINE
         struct {
@@ -233,7 +233,8 @@ typedef struct {
             uint32_t           size_val;   /// accumulator for 4-byte size
             uint16_t           addr_len;   /// remaining bytes for address
             tz_num_parser_regs num_state;  /// num parser state for amount
-        } step_read_fa2;                   /// TZ_OPERATION_STEP_READ_FA2_TRANSFER
+            int8_t token_idx;  /// matched token index, -1 if unknown
+        } step_read_fa2;       /// TZ_OPERATION_STEP_READ_FA2_TRANSFER
     };
 } tz_operation_parser_frame;
 
@@ -253,10 +254,10 @@ typedef struct {
     tz_operation_parser_frame *frame;     /// current frame
                                           /// init == stack, NULL when done
     uint8_t  seen_reveal : 1;             /// check at most one reveal
-    uint8_t  is_fa2_candidate : 1;        /// KT1 destination + transfer entrypoint
-    uint8_t  source[22];                  /// check consistent source in batch
-    uint8_t  destination[22];             /// saved for entrypoint dispatch
-    uint16_t batch_index;                 /// to print a sequence number
+    uint8_t  is_fa2_candidate : 1;  /// KT1 destination + transfer entrypoint
+    uint8_t  source[22];            /// check consistent source in batch
+    uint8_t  destination[22];       /// saved for entrypoint dispatch
+    uint16_t batch_index;           /// to print a sequence number
 #ifdef HAVE_SWAP
     tz_operation_tag last_tag;   /// last operations tag encountered
     uint16_t         nb_reveal;  /// number of reveal encountered

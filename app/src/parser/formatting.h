@@ -210,7 +210,7 @@ typedef enum {
     TZ_MICHELSON_OP_GET_ADDRESS_INDEX              = 160
 } tz_michelson_opcode;
 
-#define TZ_DECIMAL_BUFFER_SIZE(_l) ((((_l)*241) / 100) + 1)
+#define TZ_DECIMAL_BUFFER_SIZE(_l) ((((_l) * 241) / 100) + 1)
 
 /**
  * @brief Formats a positive number of arbitrary to decimal.
@@ -227,7 +227,7 @@ typedef enum {
  */
 int tz_format_decimal(const uint8_t *n, size_t l, char *obuf, size_t olen);
 
-#define TZ_BASE58_BUFFER_SIZE(_l) ((((_l)*138) / 100) + 1)
+#define TZ_BASE58_BUFFER_SIZE(_l) ((((_l) * 138) / 100) + 1)
 
 /**
  * @brief Formats a data `n` of size `l` in base58 using Tezos'

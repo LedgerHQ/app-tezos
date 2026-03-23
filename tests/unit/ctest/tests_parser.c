@@ -223,7 +223,7 @@ CTEST2(operation_parser, check_reveal_complexity)
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
         {"Public key",    false, 4},
- //     {"Option",        _,     5},
+        //     {"Option",        _,     5},
         {"Proof",         false, 6},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
@@ -241,7 +241,7 @@ CTEST2(operation_parser, check_simple_transaction_complexity)
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
         {"Destination",   false, 5},
- //     {"Option",        _,     6},
+        //     {"Option",        _,     6},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -258,8 +258,8 @@ CTEST2(operation_parser, check_transaction_complexity)
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
         {"Destination",   false, 5},
- //     {"Option",        _,     6},
-  //    {"Tuple",         _,     7},
+        //     {"Option",        _,     6},
+        //    {"Tuple",         _,     7},
         {"Entrypoint",    false, 8},
         {"Parameter",     true,  9},
     };
@@ -280,14 +280,14 @@ CTEST2(operation_parser, check_double_transaction_complexity)
         {"Storage limit", false, 3 },
         {"Amount",        false, 4 },
         {"Destination",   false, 5 },
- //     {"Option",        _,     6 },
+        //     {"Option",        _,     6 },
         {"Source",        false, 7 },
         {"Fee",           false, 8 },
         {"Storage limit", false, 9 },
         {"Amount",        false, 10},
         {"Destination",   false, 11},
- //     {"Option",        _,     12},
-  //    {"Tuple",         _,     13},
+        //     {"Option",        _,     12},
+        //    {"Tuple",         _,     13},
         {"Entrypoint",    false, 14},
         {"Parameter",     true,  15},
     };
@@ -306,8 +306,8 @@ CTEST2(operation_parser, check_stake_complexity)
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
         {"Destination",   false, 5},
- //     {"Option",        _,     6},
-  //    {"Tuple",         _,     7},
+        //     {"Option",        _,     6},
+        //    {"Tuple",         _,     7},
         {"Entrypoint",    false, 8},
         {"Parameter",     false, 9},
     };
@@ -326,8 +326,8 @@ CTEST2(operation_parser, check_unstake_complexity)
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
         {"Destination",   false, 5},
- //     {"Option",        _,     6},
-  //    {"Tuple",         _,     7},
+        //     {"Option",        _,     6},
+        //    {"Tuple",         _,     7},
         {"Entrypoint",    false, 8},
         {"Parameter",     false, 9},
     };
@@ -346,8 +346,8 @@ CTEST2(operation_parser, check_finalize_unstake_complexity)
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
         {"Destination",   false, 5},
- //     {"Option",        _,     6},
-  //    {"Tuple",         _,     7},
+        //     {"Option",        _,     6},
+        //    {"Tuple",         _,     7},
         {"Entrypoint",    false, 8},
         {"Parameter",     false, 9},
     };
@@ -367,8 +367,8 @@ CTEST2(operation_parser, check_set_delegate_parameters_complexity)
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
         {"Destination",   false, 5},
- //     {"Option",        _,     6},
-  //    {"Tuple",         _,     7},
+        //     {"Option",        _,     6},
+        //    {"Tuple",         _,     7},
         {"Entrypoint",    false, 8},
         {"Parameter",     true,  9},
     };
@@ -403,7 +403,7 @@ CTEST2(operation_parser, check_delegation_complexity)
         {"Source",        false, 1},
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
- //     {"Option",        _,     4},
+        //     {"Option",        _,     4},
         {"Delegate",      false, 5},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
@@ -434,7 +434,7 @@ CTEST2(operation_parser, check_set_deposit_limit_complexity)
         {"Source",        false, 1},
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
- //     {"Option",        _,     4},
+        //     {"Option",        _,     4},
         {"Staking limit", false, 5},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
@@ -470,7 +470,7 @@ CTEST2(operation_parser, check_set_consensus_key_complexity)
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
         {"Public key",    false, 4},
- //     {"Option",        _,     5},
+        //     {"Option",        _,     5},
         {"Proof",         false, 6},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
@@ -490,7 +490,7 @@ CTEST2(operation_parser, check_set_companion_key_complexity)
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
         {"Public key",    false, 4},
- //     {"Option",        _,     5},
+        //     {"Option",        _,     5},
         {"Proof",         false, 6},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
@@ -578,7 +578,7 @@ CTEST2(operation_parser, check_sc_rollup_originate_complexity)
         {"Kind",          false, 4},
         {"Kernel",        true,  5},
         {"Parameters",    true,  6},
- //     {"Option",        _,     7},
+        //     {"Option",        _,     7},
         {"Whitelist",     false, 8},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));

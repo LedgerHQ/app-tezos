@@ -1,51 +1,69 @@
 FROM ocaml/opam:ubuntu-24.04-ocaml-5.2
 
-# Setup a tezos environement
-COPY --chown=opam:opam deps/tezos /opt/tezos
 USER opam
-WORKDIR /opt/tezos
 
-# Install Rust
-RUN sudo apt-get -y install wget &&                                              \
+# Install system dependencies and Rust
+RUN sudo apt-get update &&                                                       \
+    sudo apt-get -y install wget git &&                                          \
     RUSTUP_TOOLCHAIN=1.86.0 &&                                                   \
     wget https://sh.rustup.rs/rustup-init.sh &&                                  \
     chmod +x rustup-init.sh &&                                                   \
-    ./rustup-init.sh --profile minimal --default-toolchain $RUSTUP_TOOLCHAIN -y
+    ./rustup-init.sh --profile minimal --default-toolchain $RUSTUP_TOOLCHAIN -y && \
+    rm rustup-init.sh
 ENV PATH=/home/opam/.cargo/bin:$PATH
+ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 
-# Build dependencies and install Tezos libs
-RUN rm -rf _opam/ &&                                        \
-    sudo apt-get update &&                                  \
-    make build-deps &&                                      \
-    eval $(opam env) && dune build @install &&              \
-    eval $(opam env) && dune install                        \
-        # required by `octez-libs`
+# Install OCaml build dependencies
+# Only copy files needed for dependency resolution to maximize layer cache hits.
+# This layer is invalidated only when the opam lock file or version scripts change.
+WORKDIR /opt/tezos
+COPY --chown=opam:opam deps/tezos/scripts/version.sh scripts/version.sh
+COPY --chown=opam:opam deps/tezos/opam opam
+RUN sudo chown opam:opam /opt/tezos
+RUN . ./scripts/version.sh &&                                                      \
+    opam repository add tezos                                                      \
+      "https://github.com/ocaml/opam-repository.git#${opam_repository_tag}"        \
+      --dont-select 2>/dev/null ||                                                 \
+    opam repository set-url tezos                                                  \
+      "https://github.com/ocaml/opam-repository.git#${opam_repository_tag}"        \
+      --dont-select &&                                                             \
+    opam switch create /opt/tezos --repositories=tezos                             \
+      "ocaml-base-compiler.${ocaml_version}" --no-install &&                       \
+    eval "$(opam env)" &&                                                          \
+    opam repository remove default 2>/dev/null || true &&                          \
+    export OPAMYES=true &&                                                         \
+    OPAMASSUMEDEPEXTS=true opam install conf-rust conf-rust-2021 &&                \
+    opam install opam-depext &&                                                    \
+    opam pin add -ny stdcompat.19                                                  \
+      "https://github.com/thierry-martinez/stdcompat/archive/d53390d788027fe0a2282c4745eb3d1626341f99.tar.gz" && \
+    sed -i '/^pin-depends:/,/^\]$/d' opam/virtual/octez-deps.opam.locked &&        \
+    opam pin add -ny --locked=locked octez-deps opam/virtual/ &&                   \
+    opam depext octez-deps &&                                                      \
+    opam pin remove -y octez-deps &&                                               \
+    opam install opam/virtual/octez-deps.opam.locked                               \
+      --deps-only --criteria="-notuptodate,-changed,-removed"
+
+# Build and install Tezos libs
+# -j 1: the wasmer C-stubs file is huge and a single gcc invocation can use
+#   several GB of RAM; running anything else at the same time OOM-kills the build.
+COPY --chown=opam:opam deps/tezos /opt/tezos
+ENV CARGO_BUILD_JOBS=2
+RUN eval $(opam env) && dune build -j 1 @install
+
+RUN eval $(opam env) && dune install                        \
         octez-internal-libs                                 \
-        # required by `octez-proto-libs`
         octez-libs                                          \
-        # required by `octez-riscv-pvm`
         octez-riscv-api                                     \
-        # required by `octez-proto-libs`
         octez-riscv-pvm                                     \
-        # required by `tezos-protocol-023-PtSeouLo`
         octez-proto-libs                                    \
-        # required by `octez-protocol-023-PtSeouLo-libs`
         tezt-tezos                                          \
-        # required by `tezos-benchmarks-proto-023-PtSeouLo`
         octez-protocol-023-PtSeouLo-libs                    \
-        # required by `tezos-benchmarks-proto-023-PtSeouLo`
         tezos-benchmark-type-inference-023-PtSeouLo         \
-        # required by `tezos-benchmark-023-PtSeouLo`
         tezos-micheline-rewriting                           \
-        # required by `tezos-benchmarks-proto-023-PtSeouLo`
         tezos-benchmark-023-PtSeouLo                        \
-        # required by `tezos-benchmarks-proto-023-PtSeouLo`
         tezos-benchmark                                     \
-        # required by `octez-shell-libs`
         octez-version                                       \
-        # required by `octez-protocol-compiler`
         octez-protocol-compiler-compat                      \
-        # required by `octez-shell-libs`
         octez-protocol-compiler                             \
         octez-rust-deps                                     \
         bls12-381                                           \
@@ -53,7 +71,8 @@ RUN rm -rf _opam/ &&                                        \
         tezos-benchmarks-proto-023-PtSeouLo                 \
         octez-shell-libs &&                                 \
     opam install terminal_size &&                           \
-    make clean &&                                           \
+    dune clean &&                                           \
     rm -rf _opam/.opam-switch/build _opam/.opam-switch/sources
+
 ENV OPAMSWITCH=/opt/tezos
 ENV PATH=/opt/tezos/_opam/bin:$PATH

@@ -96,7 +96,7 @@ jobs:
 
       - name: Run test
         run: |
-          apt install -y libsodium-dev
+          apt update && apt install -y libsodium-dev
           python3 -m venv tezos_test_env --system-site-package
           . ./tezos_test_env/bin/activate
           python3 -m pip install --upgrade pip -q
@@ -189,7 +189,7 @@ jobs:
 
       - name: Test
         run: |
-            apt install -y libsodium-dev xxd
+            apt update && apt install -y libsodium-dev xxd
             python3 -m venv tezos_test_env --system-site-package
             . ./tezos_test_env/bin/activate
             python3 -m pip install --upgrade pip -q

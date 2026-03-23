@@ -14,6 +14,7 @@
 /integration_tests_log
 /pattern_registry
 /tests/samples
+/tests/integration/python/snapshots-tmp
 /*env/
 
 tags

@@ -274,7 +274,6 @@ class TezosNavigator(metaclass=MetaScreen):
         """
         path = self._root_dir
         test_case_name = snap_path
-
         idx = 0
         start = time.time()
         if not isinstance(self._backend, SpeculosBackend):

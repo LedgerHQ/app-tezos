@@ -16,6 +16,7 @@
 """Conftest base on `ragger` conftest."""
 
 
+import re
 from pathlib import Path
 from typing import Dict, Generator, List, Union
 
@@ -37,6 +38,13 @@ DEVICES_LIST: List[Device] = [
 ]
 
 DEVICES: List[str] = list(map(lambda dev: Devices.get_by_type(dev).name, DEVICES_LIST))
+
+
+def _sanitize_node_name(name: str) -> str:
+    """Replace filesystem-unsafe characters in a pytest node name."""
+    name = name.replace("[", "__").replace("]", "__")
+    name = re.sub(r"_+", "_", name).strip("_")
+    return name
 
 def pytest_addoption(parser):
     """Register argparse-style options for pytest."""
@@ -163,7 +171,7 @@ def snapshot_dir(request) -> Path :
     """Get the test snapshot location."""
     test_file_path = Path(request.fspath)
     file_name = test_file_path.stem
-    test_name = request.node.name
+    test_name = _sanitize_node_name(request.node.name)
     # Get test directory from the root
     test_file_snapshot_dir = Path(*test_file_path.parts[len(Path(__file__).parts)-1:-1])
     return test_file_snapshot_dir / file_name / test_name

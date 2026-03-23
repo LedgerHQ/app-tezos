@@ -2,3 +2,10 @@
 build_directory = "./app"
 sdk = "C"
 devices = ["nanox", "nanos+", "stax", "flex", "apex_p"]
+
+[use_cases]
+# A standard use case, compiling with logs enabled
+debug = "DEBUG=1"
+
+[pytest.standalone]
+directory = "./tests/integration/python"

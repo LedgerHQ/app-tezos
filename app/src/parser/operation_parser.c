@@ -36,10 +36,10 @@ typedef struct {
 } fa2_token_metadata_t;
 
 static const fa2_token_metadata_t FA2_TOKEN_REGISTRY[] = {
-    /* KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT */
-    {"FA2 Token", "FA2", 6, {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                             0x00, 0x00, 0x00, 0x00, 0x00, 0x00}},
+    /* KT193D4vozYnhGJQVtw7CoxxqphqUEEwK6Vb */
+    {"Quipuswap Governance Token", "QUIPU", 6,
+     {0x05, 0x00, 0x1A, 0x8A, 0xF8, 0x13, 0x09, 0x4E, 0xE8, 0xBF,
+      0x16, 0x2A, 0xC2, 0x09, 0x3A, 0x89, 0x37, 0xE8, 0xBA, 0x83}},
 };
 
 #define FA2_TOKEN_REGISTRY_SIZE \
@@ -629,9 +629,8 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_AMOUNT_TAG      20 /* expect 0x00 (INT) */
 #define FA2_STEP_AMOUNT_VAL      21 /* read varint */
 #define FA2_STEP_VERIFY_END      22 /* verify no extra outer items */
-#define FA2_STEP_EMIT_FROM       23 /* emit "FA2 From" field */
-#define FA2_STEP_EMIT_TO         24 /* emit "FA2 To" field */
-#define FA2_STEP_EMIT_AMOUNT     25 /* emit "Token Amount" field */
+#define FA2_STEP_EMIT_TOKEN      23 /* emit "Token" field */
+#define FA2_STEP_EMIT_AMOUNT     24 /* emit "Token Amount" field */
 
 /* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
 #define FA2_FROM_ADDR_OFS 0
@@ -1037,8 +1036,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
 
     case FA2_STEP_AMOUNT_VAL: {
         tz_must(tz_parser_read(state, &b));
-        tz_must(tz_parse_num_step(&state->buffers.num,
-                                  &op->frame->step_read_fa2.num_state, b, 1));
+        /* Micheline int uses signed Zarith; natural=1 would double positive values. */
+        tz_must(tz_parse_int_step(&state->buffers.num,
+                                  &op->frame->step_read_fa2.num_state, b));
         if (!op->frame->step_read_fa2.num_state.stop) {
             tz_continue;
         }
@@ -1051,33 +1051,26 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (state->ofs != op->frame->stop) {
             return fa2_fallback_to_binary(state);
         }
-        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_FROM;
+        if (op->frame->step_read_fa2.token_idx >= 0) {
+            op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TOKEN;
+        } else {
+            op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
+        }
         tz_continue;
 
-    case FA2_STEP_EMIT_FROM:
-        /* Emit "FA2 From" field: push a PRINT frame, advance sub_step */
+    case FA2_STEP_EMIT_TOKEN:
+        /* Emit "Token" field: push a PRINT frame, advance sub_step */
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
         }
-        STRLCPY(state->field_info.field_name, "FA2 From");
-        state->field_info.is_field_complex = false;
-        state->field_info.field_index++;
-        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TO;
-        tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
-        op->frame->step_print.str = (char *)(CAPTURE + FA2_FROM_ADDR_OFS);
-        tz_continue;
-
-    case FA2_STEP_EMIT_TO:
-        /* Emit "FA2 To" field: push a PRINT frame, advance sub_step */
-        if (regs->oofs > 0) {
-            tz_stop(IM_FULL);
-        }
-        STRLCPY(state->field_info.field_name, "FA2 To");
+        STRLCPY(state->field_info.field_name, "Token");
         state->field_info.is_field_complex = false;
         state->field_info.field_index++;
         op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
         tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
-        op->frame->step_print.str = (char *)(CAPTURE + FA2_TO_ADDR_OFS);
+        op->frame->step_print.str = (char *)FA2_TOKEN_REGISTRY
+                                        [op->frame->step_read_fa2.token_idx]
+                                            .name;
         tz_continue;
 
     case FA2_STEP_EMIT_AMOUNT:
@@ -1091,10 +1084,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_format_token_amount((char *)state->buffers.num.decimal,
                                    sizeof(state->buffers.num.decimal),
                                    token->decimals, token->symbol);
-            STRLCPY(state->field_info.field_name, token->name);
-        } else {
-            STRLCPY(state->field_info.field_name, "Token Amount");
         }
+        STRLCPY(state->field_info.field_name, "Token Amount");
         state->field_info.is_field_complex = false;
         state->field_info.field_index++;
         /* Pop the FA2 frame first, then push PRINT so PRINT pops to parent */
@@ -1687,6 +1678,7 @@ tz_step_field(tz_parser_state *state)
     case TZ_OPERATION_FIELD_EXPR: {
         if (op->is_fa2_candidate && !field->skip) {
             const fa2_token_metadata_t *token;
+            state->field_info.is_field_complex = false;
             op->frame->step = TZ_OPERATION_STEP_READ_FA2_TRANSFER;
             op->frame->step_read_fa2.sub_step  = FA2_STEP_OUTER_SEQ_TAG;
             op->frame->step_read_fa2.addr_ofs  = 0;

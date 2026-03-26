@@ -27,7 +27,7 @@ _FA2_TRANSFER_PARAMETER = [
             {'string': 'sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh'},
             [{'prim': 'Pair', 'args': [
                 {'int': 0},
-                {'int': 5432900665191893635}
+                {'int': 200000}
             ]}]
         ]}]
     ]}
@@ -47,7 +47,7 @@ _FA2_TRANSFER_FALLBACK_PARAMETER = [
     ]}
 ]
 
-_FA2_KT1_DESTINATION = 'KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT'
+_FA2_KT1_DESTINATION = 'KT193D4vozYnhGJQVtw7CoxxqphqUEEwK6Vb'
 
 
 class TestTransaction(TestOperation):
@@ -123,18 +123,10 @@ class TestTransaction(TestOperation):
             Field.Case({'prim': 'Pair', 'args': [{'string': 'a'}, {'int': 1}]}, "basic"),
             # More test about Micheline in micheline tests
         ]),
-        Field("parameter", "FA2 From", [
+        Field("parameter", "Token", [
             Field.Case(
                 _FA2_TRANSFER_PARAMETER,
-                "fa2_from",
-                entrypoint='transfer',
-                destination=_FA2_KT1_DESTINATION,
-            ),
-        ]),
-        Field("parameter", "FA2 To", [
-            Field.Case(
-                _FA2_TRANSFER_PARAMETER,
-                "fa2_to",
+                "fa2_token",
                 entrypoint='transfer',
                 destination=_FA2_KT1_DESTINATION,
             ),

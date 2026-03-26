@@ -16,6 +16,7 @@
    See the License for the specific language governing permissions and
    limitations under the License. */
 
+#include <stdbool.h>
 #include <string.h>
 
 #include "operation_parser.h"
@@ -44,6 +45,12 @@ static const fa2_token_metadata_t FA2_TOKEN_REGISTRY[] = {
 
 #define FA2_TOKEN_REGISTRY_SIZE \
     (sizeof(FA2_TOKEN_REGISTRY) / sizeof(FA2_TOKEN_REGISTRY[0]))
+
+static bool
+fa2_token_idx_valid(int8_t idx)
+{
+    return idx >= 0 && (size_t)idx < FA2_TOKEN_REGISTRY_SIZE;
+}
 
 static const fa2_token_metadata_t *
 fa2_find_token(const uint8_t *destination_22bytes)
@@ -765,7 +772,12 @@ fa2_fallback_to_binary(tz_parser_state *state)
  * @brief Read and parse an FA2 transfer parameter for clear signing
  *
  *        Supports single-item transfers with token_id = 0.
+ *        The innermost list(pair(token_id, amount)) may be Micheline-encoded
+ *        either as SEQ[Pair(...)] or as a direct Pair (single-element list).
  *        Falls back to raw Micheline display for unsupported patterns.
+ *
+ *        See docs/FA2_CLEAR_SIGNING.md for scope, registry behavior, and
+ *        fallback rules.
  *
  * @param state: parser state
  * @return tz_parser_result: parser result
@@ -963,12 +975,16 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
     /* ---- inner txs item (single pair: token_id + amount) ---- */
     case FA2_STEP_INNER_SEQ_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x02) { /* SEQ */
+        if (b == 0x02) { /* SEQ */
+            op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_SEQ_SIZE;
+            op->frame->step_read_fa2.size_ofs = 0;
+            op->frame->step_read_fa2.size_val = 0;
+        } else if (b == 0x07) {
+            /* Direct Pair (no SEQ): single-element list encoding (e.g. Temple Wallet) */
+            op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_PAIR_OP;
+        } else {
             return fa2_fallback_to_binary(state);
         }
-        op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_SEQ_SIZE;
-        op->frame->step_read_fa2.size_ofs = 0;
-        op->frame->step_read_fa2.size_val = 0;
         tz_continue;
 
     case FA2_STEP_INNER_SEQ_SIZE:
@@ -1051,7 +1067,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (state->ofs != op->frame->stop) {
             return fa2_fallback_to_binary(state);
         }
-        if (op->frame->step_read_fa2.token_idx >= 0) {
+        if (fa2_token_idx_valid(op->frame->step_read_fa2.token_idx)) {
             op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TOKEN;
         } else {
             op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
@@ -1062,6 +1078,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         /* Emit "Token" field: push a PRINT frame, advance sub_step */
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
+        }
+        if (!fa2_token_idx_valid(op->frame->step_read_fa2.token_idx)) {
+            tz_raise(INVALID_STATE);
         }
         STRLCPY(state->field_info.field_name, "Token");
         state->field_info.is_field_complex = false;
@@ -1078,7 +1097,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
         }
-        if (op->frame->step_read_fa2.token_idx >= 0) {
+        if (fa2_token_idx_valid(op->frame->step_read_fa2.token_idx)) {
             const fa2_token_metadata_t *token
                 = &FA2_TOKEN_REGISTRY[op->frame->step_read_fa2.token_idx];
             tz_format_token_amount((char *)state->buffers.num.decimal,
@@ -1421,6 +1440,9 @@ tz_step_read_string(tz_parser_state *state)
         tz_must(tz_print_string(state));
     } else {
         uint8_t b;
+        if (op->frame->step_read_string.ofs >= TZ_CAPTURE_BUFFER_SIZE - 1) {
+            tz_raise(TOO_LARGE);
+        }
         tz_must(tz_parser_read(state, &b));
         CAPTURE[op->frame->step_read_string.ofs] = b;
         op->frame->step_read_string.ofs++;

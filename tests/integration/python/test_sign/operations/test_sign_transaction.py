@@ -19,8 +19,23 @@
 from utils.message import Transaction
 from .helper import Flow, Field, TestOperation, pytest_generate_tests
 
-# FA2 transfer parameter: single item, token_id=0 (clear-signing supported)
+# FA2 transfer parameter: single item, token_id=0 (clear-signing supported).
+# Inner list(pair(nat,nat)) as direct Pair (common wallet encoding, e.g. Temple).
 _FA2_TRANSFER_PARAMETER = [
+    {'prim': 'Pair', 'args': [
+        {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
+        [{'prim': 'Pair', 'args': [
+            {'string': 'sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh'},
+            {'prim': 'Pair', 'args': [
+                {'int': 0},
+                {'int': 200000}
+            ]}
+        ]}]
+    ]}
+]
+
+# Same as above but inner txs item uses SEQ [ Pair(...) ] (alternative encoding).
+_FA2_TRANSFER_PARAMETER_SEQ_WRAPPED = [
     {'prim': 'Pair', 'args': [
         {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
         [{'prim': 'Pair', 'args': [
@@ -39,10 +54,10 @@ _FA2_TRANSFER_FALLBACK_PARAMETER = [
         {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
         [{'prim': 'Pair', 'args': [
             {'string': 'sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh'},
-            [{'prim': 'Pair', 'args': [
+            {'prim': 'Pair', 'args': [
                 {'int': 1},
                 {'int': 100}
-            ]}]
+            ]}
         ]}]
     ]}
 ]
@@ -130,11 +145,23 @@ class TestTransaction(TestOperation):
                 entrypoint='transfer',
                 destination=_FA2_KT1_DESTINATION,
             ),
+            Field.Case(
+                _FA2_TRANSFER_PARAMETER_SEQ_WRAPPED,
+                "fa2_token_seq_wrapped",
+                entrypoint='transfer',
+                destination=_FA2_KT1_DESTINATION,
+            ),
         ]),
         Field("parameter", "Token Amount", [
             Field.Case(
                 _FA2_TRANSFER_PARAMETER,
                 "fa2_amount",
+                entrypoint='transfer',
+                destination=_FA2_KT1_DESTINATION,
+            ),
+            Field.Case(
+                _FA2_TRANSFER_PARAMETER_SEQ_WRAPPED,
+                "fa2_amount_seq_wrapped",
                 entrypoint='transfer',
                 destination=_FA2_KT1_DESTINATION,
             ),

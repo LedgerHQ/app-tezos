@@ -1,5 +1,12 @@
 # Tezos Ledger Wallet App
 
+## FA2 token clear-signing
+
+FA2 `transfer` parameters can be shown as **Token** / **Token Amount** when they
+match a supported Micheline shape and the destination contract is in the
+in-app registry. Scope and limitations are described in
+[docs/FA2_CLEAR_SIGNING.md](docs/FA2_CLEAR_SIGNING.md).
+
 ## Interfaces
 
 Both `webusb` and `u2f` interfaces are supported. For example, `u2f` interface is used by the [Kukai](https://wallet.kukai.app/connect-ledger) web wallet.

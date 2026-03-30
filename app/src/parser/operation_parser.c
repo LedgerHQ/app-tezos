@@ -635,9 +635,9 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_TOKEN_ID_VAL    19 /* read varint (must be 0) */
 #define FA2_STEP_AMOUNT_TAG      20 /* expect 0x00 (INT) */
 #define FA2_STEP_AMOUNT_VAL      21 /* read varint */
-#define FA2_STEP_VERIFY_END      22 /* verify no extra outer items */
-#define FA2_STEP_EMIT_TOKEN      23 /* emit "Token" field */
-#define FA2_STEP_EMIT_AMOUNT     24 /* emit "Token Amount" field */
+#define FA2_STEP_VERIFY_END   22 /* verify no extra outer items */
+#define FA2_STEP_EMIT_AMOUNT  24 /* emit "Token Amount" field */
+#define FA2_STEP_EMIT_TO_ADDR 25 /* emit "Transfer tokens to" field */
 
 /* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
 #define FA2_FROM_ADDR_OFS 0
@@ -1067,29 +1067,20 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (state->ofs != op->frame->stop) {
             return fa2_fallback_to_binary(state);
         }
-        if (fa2_token_idx_valid(op->frame->step_read_fa2.token_idx)) {
-            op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TOKEN;
-        } else {
-            op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
-        }
+        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TO_ADDR;
         tz_continue;
 
-    case FA2_STEP_EMIT_TOKEN:
-        /* Emit "Token" field: push a PRINT frame, advance sub_step */
+    case FA2_STEP_EMIT_TO_ADDR:
+        /* Emit receiver address before token amount */
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
         }
-        if (!fa2_token_idx_valid(op->frame->step_read_fa2.token_idx)) {
-            tz_raise(INVALID_STATE);
-        }
-        STRLCPY(state->field_info.field_name, "Token");
+        STRLCPY(state->field_info.field_name, "Transfer tokens to");
         state->field_info.is_field_complex = false;
         state->field_info.field_index++;
         op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
         tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
-        op->frame->step_print.str = (char *)FA2_TOKEN_REGISTRY
-                                        [op->frame->step_read_fa2.token_idx]
-                                            .name;
+        op->frame->step_print.str = (char *)(CAPTURE + FA2_TO_ADDR_OFS);
         tz_continue;
 
     case FA2_STEP_EMIT_AMOUNT:
@@ -1310,7 +1301,7 @@ tz_step_read_bytes(tz_parser_state *state)
         tz_must(tz_parser_read(state, c));
         op->frame->step_read_bytes.ofs++;
     } else {
-        if (op->frame->step_read_num.skip) {
+        if (op->frame->step_read_bytes.skip) {
             tz_must(pop_frame(state));
             tz_continue;
         }
@@ -1356,6 +1347,10 @@ tz_step_read_bytes(tz_parser_state *state)
             break;
         case TZ_OPERATION_FIELD_DESTINATION:
             memcpy(op->destination, CAPTURE, 22);
+            if (fa2_find_token(op->destination) != NULL) {
+                tz_must(pop_frame(state));
+                tz_continue;
+            }
             if (tz_format_address(CAPTURE, 22, (char *)CAPTURE,
                                   sizeof(CAPTURE))) {
                 tz_raise(INVALID_TAG);

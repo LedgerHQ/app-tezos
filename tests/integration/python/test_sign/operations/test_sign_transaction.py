@@ -138,16 +138,16 @@ class TestTransaction(TestOperation):
             Field.Case({'prim': 'Pair', 'args': [{'string': 'a'}, {'int': 1}]}, "basic"),
             # More test about Micheline in micheline tests
         ]),
-        Field("parameter", "Token", [
+        Field("parameter", "Transfer tokens to", [
             Field.Case(
                 _FA2_TRANSFER_PARAMETER,
-                "fa2_token",
+                "fa2_transfer_to",
                 entrypoint='transfer',
                 destination=_FA2_KT1_DESTINATION,
             ),
             Field.Case(
                 _FA2_TRANSFER_PARAMETER_SEQ_WRAPPED,
-                "fa2_token_seq_wrapped",
+                "fa2_transfer_to_seq_wrapped",
                 entrypoint='transfer',
                 destination=_FA2_KT1_DESTINATION,
             ),

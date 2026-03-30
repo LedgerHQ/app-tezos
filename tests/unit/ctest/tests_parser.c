@@ -597,16 +597,16 @@ CTEST2(operation_parser, check_fa2_transfer_clear_signing_fields)
           "77523833685a70684353716159535141705078504d65796b734a57576e68070700"
           "000080b518";
     const tz_fields_check fields_check[] = {
-        {"Source",        false, 1},
-        {"Fee",           false, 2},
-        {"Storage limit", false, 3},
-        {"Amount",        false, 4},
-        {"Destination",   false, 5},
-        //     {"Option",        _,     6},
-        //    {"Tuple",         _,     7},
-        {"Entrypoint",    false, 8},
-        {"Token",         false, 10},
-        {"Token Amount",  false, 11},
+        {"Source",             false, 1},
+        {"Fee",                false, 2},
+        {"Storage limit",      false, 3},
+        {"Amount",             false, 4},
+        // Destination omitted from review for registered FA2 contracts
+        //     {"Option",        _,     5},
+        //    {"Tuple",         _,     6},
+        {"Entrypoint",         false, 8},
+        {"Transfer tokens to", false, 10},
+        {"Token Amount",       false, 11},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -626,7 +626,6 @@ CTEST2(operation_parser, check_fa2_transfer_fallback_uses_complex_parameter)
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
-        {"Destination",   false, 5},
         {"Entrypoint",    false, 8},
         {"Parameter",     true,  9},
     };
@@ -649,7 +648,6 @@ CTEST2(operation_parser, check_fa2_transfer_multi_item_fallback)
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
-        {"Destination",   false, 5},
         {"Entrypoint",    false, 8},
         {"Parameter",     true,  9},
     };
@@ -670,7 +668,6 @@ CTEST2(operation_parser, check_fa2_transfer_negative_amount_fallback)
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
-        {"Destination",   false, 5},
         {"Entrypoint",    false, 8},
         {"Parameter",     true,  9},
     };

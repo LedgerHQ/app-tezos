@@ -1,8 +1,10 @@
 # FA2 transfer clear-signing (Ledger app)
 
 The operation parser can recognize a subset of FA2 `transfer` calls to a **KT1**
-contract and show **Token** and **Token Amount** instead of a single opaque
-**Parameter** field.
+contract listed in the registry and show **Transfer tokens to** (receiver
+address) and **Token Amount** instead of a single opaque **Parameter** field.
+The **Destination** field (FA2 contract) is omitted from the review flow for
+those contracts; the **Token** name field is not shown.
 
 ## When clear-signing applies
 
@@ -28,7 +30,9 @@ contract and show **Token** and **Token Amount** instead of a single opaque
   (see `fa2_fallback_to_binary`).
 - **Unknown tokens** (contract not in the registry): the amount is still shown
   as a decimal string, but **without** symbol/decimal scaling from a registry
-  entry.
+  entry. **Transfer tokens to** still appears for successful FA2-shaped
+  parameters; **Destination** stays visible if the contract is not in the
+  registry.
 
 ## Token metadata
 

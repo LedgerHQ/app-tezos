@@ -24,6 +24,14 @@ DOCKER_RUN_APP_BUILDER	= $(DOCKER_RUN) ledger-app-builder:latest
 DOCKER_RUN_APP_OCAML	= $(DOCKER_RUN) ledger-app-tezos-ocaml:latest
 CONCURRENCY = 2
 
+ifdef GOLDEN_RUN
+PYTEST_FLAGS += --golden-run
+endif
+
+ifdef FILTER_TESTS
+PYTEST_FLAGS +=  -k '$(FILTER_TESTS)'
+endif
+
 #
 # Fetch the docker images:
 
@@ -116,7 +124,7 @@ integration_tests_basic_%:	app_%.tgz   \
 		python3 -m pip install -r tests/requirements.txt -q ;     \
 		python3 -m pytest -n $(CONCURRENCY) tests/integration/python/ --tb=short \
 			--device $* --app \$$TMP_DIR/app.elf              \
-			--log-dir integration_tests_log"
+			--log-dir integration_tests_log $(PYTEST_FLAGS)"
 
 integration_tests_basic:	integration_tests_basic_nanos	\
 				integration_tests_basic_nanosp	\

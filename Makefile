@@ -22,6 +22,7 @@ DOCKER			= docker
 DOCKER_RUN		= $(DOCKER) run --rm -i -v "$(realpath .):/app"
 DOCKER_RUN_APP_BUILDER	= $(DOCKER_RUN) ledger-app-builder:latest
 DOCKER_RUN_APP_OCAML	= $(DOCKER_RUN) ledger-app-tezos-ocaml:latest
+CONCURRENCY = 2
 
 #
 # Fetch the docker images:
@@ -113,7 +114,7 @@ integration_tests_basic_%:	app_%.tgz   \
 		source ./tezos_test_env/bin/activate;                     \
 		python3 -m pip install --upgrade pip -q;                  \
 		python3 -m pip install -r tests/requirements.txt -q ;     \
-		python3 -m pytest -n 32 tests/integration/python/ --tb=short \
+		python3 -m pytest -n $(CONCURRENCY) tests/integration/python/ --tb=short \
 			--device $* --app \$$TMP_DIR/app.elf              \
 			--log-dir integration_tests_log"
 

@@ -165,12 +165,12 @@ load_%: app_%.tgz
 	ledgerctl delete "Tezos Wallet"
 	DIR=`mktemp -d` ; tar xf $< -C $$DIR && cd $$DIR && ledgerctl install app.toml ; rm -rf $$DIR
 
-#
-# Dash vs under aliases:
+clang-format-linter-image:
+	docker build -t clang-format-lint github.com/DoozyX/clang-format-lint-action
 
+# command used by the pipeline to validate the code base format
 format:
-	@find ./app/src ./tests -name '*.c' -exec clang-format -i "{}" \;
-	@find ./app/src ./tests -name '*.h' -exec clang-format -i "{}" \;
+	docker run -it --rm --user $UID:$GID --workdir /app -v $(pwd):/app clang-format-lint "--clang-format-executable" "/clang-format/clang-format15" "-r" "--color" "always" "--style" "file" "--inplace" "true" "--extensions" "h,c" "--exclude" "none" "./app/src"
 
 docker-images: docker_images
 integration-tests: integration_tests

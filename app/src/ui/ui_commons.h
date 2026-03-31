@@ -50,7 +50,7 @@ typedef void (*action_validate_cb)(bool confirm);
     UX_REDISPLAY();
 
 #define REGULAR BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER
-#define BOLD BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER
+#define BOLD    BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER
 #endif  // HAVE_BAGL
 
 #define SIGN_BUTTON           "Hold to sign"

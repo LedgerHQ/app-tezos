@@ -177,10 +177,10 @@ typedef struct {
         } step_print;         /// TZ_OPERATION_STEP_PRINT
                               /// TZ_OPERATION_STEP_PARTIAL_PRINT
         struct {
-            uint16_t                ofs;  /// current bytes buffer offset
-            uint16_t                len;  /// expected bytes length
-            tz_operation_field_kind kind
-                : 5;           /// kind of field
+            uint16_t ofs;  /// current bytes buffer offset
+            uint16_t len;  /// expected bytes length
+            tz_operation_field_kind
+                kind : 5;      /// kind of field
                                /// TZ_OPERATION_FIELD_SOURCE
                                /// TZ_OPERATION_FIELD_PKH
                                /// TZ_OPERATION_FIELD_PK
@@ -215,8 +215,8 @@ typedef struct {
                                      /// TZ_OPERATION_STEP_READ_BINARY
         struct {
             const char *name;  /// field name
-            uint8_t     inited
-                : 1;           /// if the parser micheline has been initialize
+            uint8_t
+                inited : 1;    /// if the parser micheline has been initialize
             uint8_t skip : 1;  /// if the field is skipped
         } step_read_micheline;  /// TZ_OPERATION_STEP_READ_MICHELINE
         struct {

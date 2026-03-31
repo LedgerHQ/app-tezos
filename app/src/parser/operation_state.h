@@ -227,14 +227,14 @@ typedef struct {
                                    /// TZ_OPERATION_STEP_READ_SORU_MESSAGES
         struct {
             uint8_t            sub_step;   /// current FA2 parsing sub-step
-            uint8_t            addr_ofs;   /// offset within address buffer
+            uint16_t           addr_ofs;   /// offset within address buffer
             uint8_t            addr_tag;   /// address encoding tag
             uint8_t            size_ofs;   /// bytes consumed of 4-byte size
             uint32_t           size_val;   /// accumulator for 4-byte size
             uint16_t           addr_len;   /// remaining bytes for address
             tz_num_parser_regs num_state;  /// num parser state for amount
-            int8_t token_idx;  /// matched token index, -1 if unknown
-        } step_read_fa2;       /// TZ_OPERATION_STEP_READ_FA2_TRANSFER
+            int16_t token_idx;  /// matched token index, -1 if unknown
+        } step_read_fa2;        /// TZ_OPERATION_STEP_READ_FA2_TRANSFER
     };
 } tz_operation_parser_frame;
 

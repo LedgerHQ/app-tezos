@@ -90,5 +90,5 @@ tz_exc derive_pk(cx_ecfp_public_key_t *public_key,
 tz_exc derive_pkh(cx_ecfp_public_key_t *pubkey,
                   derivation_type_t derivation_type, char *buffer,
                   size_t len);
-void   sign(derivation_type_t derivation_type, const bip32_path_t *path,
-            const uint8_t *hash, size_t hashlen, uint8_t *sig, size_t *siglen);
+void sign(derivation_type_t derivation_type, const bip32_path_t *path,
+          const uint8_t *hash, size_t hashlen, uint8_t *sig, size_t *siglen);

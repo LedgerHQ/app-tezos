@@ -202,12 +202,12 @@ tag_selection(tz_parser_state *state, uint8_t t)
         nargs = (t - 3) >> 1;
         annot = (~t & 1);
         wrap  = (m->frame > m->stack)
-               && (m->frame[-1].step == TZ_MICHELINE_STEP_PRIM)
-               && ((nargs > 0) || annot);
+                && (m->frame[-1].step == TZ_MICHELINE_STEP_PRIM)
+                && ((nargs > 0) || annot);
         goto common_prim;
     case TZ_MICHELINE_TAG_PRIM_N:
-        wrap = (m->frame > m->stack)
-               && (m->frame[-1].step == TZ_MICHELINE_STEP_PRIM);
+        wrap  = (m->frame > m->stack)
+                && (m->frame[-1].step == TZ_MICHELINE_STEP_PRIM);
         nargs = 3;
         annot = true;
     common_prim:

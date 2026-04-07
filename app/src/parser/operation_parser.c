@@ -254,6 +254,12 @@ TZ_OPERATION_FIELDS(soru_origin_fields,
         .display_none=false)
 );
 
+#define FA2_REQUIRE(state, cond) \
+    do { \
+        if (!(cond)) \
+            return fa2_fallback_to_binary(state); \
+    } while (0)
+
 /**
  * @brief Array of all handled operations
  */
@@ -761,9 +767,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
     /* ---- outer list ---- */
     case FA2_STEP_OUTER_SEQ_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x02) { /* SEQ */
-            return fa2_fallback_to_binary(state);
-        }
+        FA2_REQUIRE(state, b == 0x02);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_SEQ_SIZE;
         op->frame->step_read_fa2.size_ofs = 0;
         op->frame->step_read_fa2.size_val = 0;
@@ -777,34 +782,34 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-        if (op->frame->step_read_fa2.size_val == 0) {
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val != 0);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_PAIR_TAG;
         tz_continue;
 
     case FA2_STEP_OUTER_PAIR_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x07) { /* PRIM_2_NOANNOTS */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x07);
+        
         op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_PAIR_OP;
         tz_continue;
 
     case FA2_STEP_OUTER_PAIR_OP:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x07) { /* Pair opcode */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x07);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_TAG;
         tz_continue;
 
     /* ---- from_ address ---- */
     case FA2_STEP_FROM_ADDR_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x01 && b != 0x0A) { /* STRING or BYTES */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x01 || b == 0x0A);
+
         op->frame->step_read_fa2.addr_tag = b;
         op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_SIZE;
         op->frame->step_read_fa2.size_ofs = 0;
@@ -819,9 +824,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-        if (op->frame->step_read_fa2.size_val > FA2_ADDR_MAX_LEN) {
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
+
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
         op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_BYTES;
@@ -839,12 +844,10 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         CAPTURE[FA2_FROM_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
         if (op->frame->step_read_fa2.addr_tag == 0x0A) {
             /* Binary address: format it in-place */
-            if (tz_format_address(CAPTURE + FA2_FROM_ADDR_OFS,
+            FA2_REQUIRE(state, tz_format_address(CAPTURE + FA2_FROM_ADDR_OFS,
                                   op->frame->step_read_fa2.addr_ofs,
                                   (char *)(CAPTURE + FA2_FROM_ADDR_OFS),
-                                  FA2_ADDR_MAX_LEN)) {
-                return fa2_fallback_to_binary(state);
-            }
+                                  FA2_ADDR_MAX_LEN) == 0);
         }
         op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_SEQ_TAG;
         tz_continue;
@@ -852,9 +855,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
     /* ---- txs list ---- */
     case FA2_STEP_TXS_SEQ_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x02) { /* SEQ */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x02);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_SEQ_SIZE;
         op->frame->step_read_fa2.size_ofs = 0;
         op->frame->step_read_fa2.size_val = 0;
@@ -868,34 +871,34 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-        if (op->frame->step_read_fa2.size_val == 0) {
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val != 0);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_PAIR_TAG;
         tz_continue;
 
     case FA2_STEP_TXS_PAIR_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x07) { /* PRIM_2_NOANNOTS */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x07);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_PAIR_OP;
         tz_continue;
 
     case FA2_STEP_TXS_PAIR_OP:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x07) { /* Pair opcode */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x07);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_TAG;
         tz_continue;
 
     /* ---- to_ address ---- */
     case FA2_STEP_TO_ADDR_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x01 && b != 0x0A) { /* STRING or BYTES */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x01 || b == 0x0A);
+
         op->frame->step_read_fa2.addr_tag = b;
         op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_SIZE;
         op->frame->step_read_fa2.size_ofs = 0;
@@ -910,9 +913,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-        if (op->frame->step_read_fa2.size_val > FA2_ADDR_MAX_LEN) {
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
+
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
         op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_BYTES;
@@ -929,12 +932,10 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         /* Address fully read; null-terminate for string case */
         CAPTURE[FA2_TO_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
         if (op->frame->step_read_fa2.addr_tag == 0x0A) {
-            if (tz_format_address(CAPTURE + FA2_TO_ADDR_OFS,
+            FA2_REQUIRE(state, tz_format_address(CAPTURE + FA2_TO_ADDR_OFS,
                                   op->frame->step_read_fa2.addr_ofs,
                                   (char *)(CAPTURE + FA2_TO_ADDR_OFS),
-                                  FA2_ADDR_MAX_LEN)) {
-                return fa2_fallback_to_binary(state);
-            }
+                                  FA2_ADDR_MAX_LEN) == 0);
         }
         op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_SEQ_TAG;
         tz_continue;
@@ -963,45 +964,45 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-        if (op->frame->step_read_fa2.size_val == 0) {
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val != 0);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_PAIR_TAG;
         tz_continue;
 
     case FA2_STEP_INNER_PAIR_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x07) { /* PRIM_2_NOANNOTS */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x07);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_PAIR_OP;
         tz_continue;
 
     case FA2_STEP_INNER_PAIR_OP:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x07) { /* Pair opcode */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x07);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_TOKEN_ID_TAG;
         tz_continue;
 
     /* ---- token_id (must be 0) ---- */
     case FA2_STEP_TOKEN_ID_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x00) { /* INT tag */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x00);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_TOKEN_ID_VAL;
         tz_continue;
 
     case FA2_STEP_TOKEN_ID_VAL: {
         /* Read a single Zarith byte; must be 0x00 (value 0, no more bytes) */
         tz_must(tz_parser_read(state, &b));
+
         /* Zarith: MSB=1 means more bytes follow; value bits are low 7 bits.
            For token_id=0, the only valid encoding is a single byte 0x00. */
-        if (b != 0x00) {
-            return fa2_fallback_to_binary(state);
-        }
+        FA2_REQUIRE(state, b == 0x00);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_AMOUNT_TAG;
         tz_continue;
     }
@@ -1009,9 +1010,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
     /* ---- amount ---- */
     case FA2_STEP_AMOUNT_TAG:
         tz_must(tz_parser_read(state, &b));
-        if (b != 0x00) { /* INT tag */
-            return fa2_fallback_to_binary(state);
-        }
+
+        FA2_REQUIRE(state, b == 0x00);
+
         /* Initialize num parser for amount */
         tz_parse_num_state_init(&state->buffers.num,
                                 &op->frame->step_read_fa2.num_state);
@@ -1033,9 +1034,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
 
     case FA2_STEP_VERIFY_END:
         /* Verify we are at the end of the parameter (no extra items) */
-        if (state->ofs != op->frame->stop) {
-            return fa2_fallback_to_binary(state);
-        }
+        FA2_REQUIRE(state, state->ofs == op->frame->stop);
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TO_ADDR;
         tz_continue;
 

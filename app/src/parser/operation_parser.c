@@ -30,11 +30,15 @@ static tz_parser_result push_frame(tz_parser_state              *state,
                                    tz_operation_parser_step_kind step);
 static tz_parser_result pop_frame(tz_parser_state *state);
 
+#define FA2_TOKEN_NAME_LENGTH 32
+#define FA2_TOKEN_SYMBOL_LENGTH 12
+#define FA2_TOKEN_CONTRACT_HASH_LENGTH 20
+
 typedef struct {
-    const char    name[32];
-    const char    symbol[12];
+    const char    name[FA2_TOKEN_NAME_LENGTH];
+    const char    symbol[FA2_TOKEN_SYMBOL_LENGTH];
     uint8_t       decimals;
-    const uint8_t contract_hash[20];
+    const uint8_t contract_hash[FA2_TOKEN_CONTRACT_HASH_LENGTH];
 } fa2_token_metadata_t;
 
 static const fa2_token_metadata_t FA2_TOKEN_REGISTRY[] = {
@@ -795,8 +799,8 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_AMOUNT_TAG      20 /* expect 0x00 (INT) */
 #define FA2_STEP_AMOUNT_VAL      21 /* read varint */
 #define FA2_STEP_VERIFY_END      22 /* verify no extra outer items */
-#define FA2_STEP_EMIT_AMOUNT     23 /* emit "Token Amount" field */
-#define FA2_STEP_EMIT_TO_ADDR    24 /* emit "Transfer tokens to" field */
+#define FA2_STEP_EMIT_TO_ADDR    23 /* emit "Transfer tokens to" field */
+#define FA2_STEP_EMIT_AMOUNT     24 /* emit "Token Amount" field */
 
 /* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
 #define FA2_FROM_ADDR_OFS 0

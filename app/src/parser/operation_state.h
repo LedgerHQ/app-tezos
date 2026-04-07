@@ -238,7 +238,9 @@ typedef struct {
     };
 } tz_operation_parser_frame;
 
-#define TZ_OPERATION_STACK_DEPTH 6  /// Maximum operations depth handled
+#define TZ_OPERATION_STACK_DEPTH      6  /// Maximum operations depth handled
+#define TZ_OPERATION_SOURCE_SIZE      22
+#define TZ_OPERATION_DESTINATION_SIZE 22
 
 /**
  * @brief This struct represents the parser of operations
@@ -253,11 +255,14 @@ typedef struct {
         stack[TZ_OPERATION_STACK_DEPTH];  /// stack of frames
     tz_operation_parser_frame *frame;     /// current frame
                                           /// init == stack, NULL when done
-    uint8_t  seen_reveal : 1;             /// check at most one reveal
-    uint8_t  is_fa2_candidate : 1;  /// KT1 destination + transfer entrypoint
-    uint8_t  source[22];            /// check consistent source in batch
-    uint8_t  destination[22];       /// saved for entrypoint dispatch
-    uint16_t batch_index;           /// to print a sequence number
+    uint8_t seen_reveal : 1;              /// check at most one reveal
+    uint8_t is_fa2_candidate : 1;  /// KT1 destination + transfer entrypoint
+    uint8_t source[TZ_OPERATION_SOURCE_SIZE];  /// check consistent source in
+                                               /// batch
+    uint8_t
+        destination[TZ_OPERATION_DESTINATION_SIZE];  /// saved for entrypoint
+                                                     /// dispatch
+    uint16_t batch_index;  /// to print a sequence number
 #ifdef HAVE_SWAP
     tz_operation_tag last_tag;   /// last operations tag encountered
     uint16_t         nb_reveal;  /// number of reveal encountered

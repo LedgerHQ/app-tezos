@@ -170,7 +170,10 @@ clang-format-linter-image:
 
 # command used by the pipeline to validate the code base format
 format:
-	docker run -it --rm --user $UID:$GID --workdir /app -v $(pwd):/app clang-format-lint "--clang-format-executable" "/clang-format/clang-format15" "-r" "--color" "always" "--style" "file" "--inplace" "true" "--extensions" "h,c" "--exclude" "none" "./app/src"
+	@if ! docker image inspect clang-format-lint >/dev/null 2>&1; then \
+		$(MAKE) clang-format-linter-image; \
+	fi
+	docker run --rm --user $(shell id -u):$(shell id -g) --workdir /app -v "$(CURDIR)":/app clang-format-lint "--clang-format-executable" "/clang-format/clang-format15" "-r" "--color" "always" "--style" "file" "--inplace" "true" "--extensions" "h,c" "--exclude" "none" "./app/src"
 
 docker-images: docker_images
 integration-tests: integration_tests

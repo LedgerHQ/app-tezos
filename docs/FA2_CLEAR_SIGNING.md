@@ -10,7 +10,7 @@ those contracts; the **Token** name field is not shown.
 
 - Destination is a KT1 contract whose 20-byte hash is listed in the in-app
   **FA2 token registry** (`FA2_TOKEN_REGISTRY` in
-  `app/src/parser/operation_parser.c`).
+  `app/src/parser/fa2_tokens.c`).
 - Entrypoint name is exactly `transfer` (string match after read).
 - The Micheline parameter matches the **single-transfer** shape parsed by
   `tz_step_read_fa2_transfer`: outer `list`/`Pair` of `from_`, txs `list` with

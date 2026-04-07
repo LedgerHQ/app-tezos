@@ -17,8 +17,11 @@ export COMMIT=$(git describe --tags --abbrev=8 --always --long --dirty 2>/dev/nu
 export COMMIT_BYTES=$(printf '%s' "$COMMIT" | xxd -p -c 256)
 
 export VERSION_WALLET_TAG="00"
-export APPVERSION_M=3
-export APPVERSION_N=1
-export APPVERSION_P=0
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+APP_MAKEFILE="$SCRIPT_DIR/../../app/Makefile"
+
+export APPVERSION_M=$(grep -m1 '^APPVERSION_M=' "$APP_MAKEFILE" | cut -d= -f2 | tr -d '[:space:]')
+export APPVERSION_N=$(grep -m1 '^APPVERSION_N=' "$APP_MAKEFILE" | cut -d= -f2 | tr -d '[:space:]')
+export APPVERSION_P=$(grep -m1 '^APPVERSION_P=' "$APP_MAKEFILE" | cut -d= -f2 | tr -d '[:space:]')
 export APPVERSION=$APPVERSION_M.$APPVERSION_N.$APPVERSION_P
 export VERSION_BYTES=$(printf "%02x%02x%02x%02x" "$VERSION_WALLET_TAG" "$APPVERSION_M" "$APPVERSION_N" "$APPVERSION_P")

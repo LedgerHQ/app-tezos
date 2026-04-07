@@ -792,7 +792,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         tz_must(tz_parser_read(state, &b));
 
         FA2_REQUIRE(state, b == 0x07);
-        
+
         op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_PAIR_OP;
         tz_continue;
 
@@ -825,7 +825,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_continue;
         }
 
-        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
+        FA2_REQUIRE(state,
+                    op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
 
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
@@ -844,10 +845,12 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         CAPTURE[FA2_FROM_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
         if (op->frame->step_read_fa2.addr_tag == 0x0A) {
             /* Binary address: format it in-place */
-            FA2_REQUIRE(state, tz_format_address(CAPTURE + FA2_FROM_ADDR_OFS,
-                                  op->frame->step_read_fa2.addr_ofs,
-                                  (char *)(CAPTURE + FA2_FROM_ADDR_OFS),
-                                  FA2_ADDR_MAX_LEN) == 0);
+            FA2_REQUIRE(state, tz_format_address(
+                                   CAPTURE + FA2_FROM_ADDR_OFS,
+                                   op->frame->step_read_fa2.addr_ofs,
+                                   (char *)(CAPTURE + FA2_FROM_ADDR_OFS),
+                                   FA2_ADDR_MAX_LEN)
+                                   == 0);
         }
         op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_SEQ_TAG;
         tz_continue;
@@ -914,7 +917,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_continue;
         }
 
-        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
+        FA2_REQUIRE(state,
+                    op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
 
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
@@ -932,10 +936,12 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         /* Address fully read; null-terminate for string case */
         CAPTURE[FA2_TO_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
         if (op->frame->step_read_fa2.addr_tag == 0x0A) {
-            FA2_REQUIRE(state, tz_format_address(CAPTURE + FA2_TO_ADDR_OFS,
-                                  op->frame->step_read_fa2.addr_ofs,
-                                  (char *)(CAPTURE + FA2_TO_ADDR_OFS),
-                                  FA2_ADDR_MAX_LEN) == 0);
+            FA2_REQUIRE(state,
+                        tz_format_address(CAPTURE + FA2_TO_ADDR_OFS,
+                                          op->frame->step_read_fa2.addr_ofs,
+                                          (char *)(CAPTURE + FA2_TO_ADDR_OFS),
+                                          FA2_ADDR_MAX_LEN)
+                            == 0);
         }
         op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_SEQ_TAG;
         tz_continue;

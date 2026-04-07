@@ -21,8 +21,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define FA2_TOKEN_NAME_LENGTH 32
-#define FA2_TOKEN_SYMBOL_LENGTH 12
+#define FA2_TOKEN_NAME_LENGTH          32
+#define FA2_TOKEN_SYMBOL_LENGTH        12
 #define FA2_TOKEN_CONTRACT_HASH_LENGTH 20
 
 typedef struct {
@@ -38,5 +38,6 @@ const fa2_token_metadata_t *fa2_token_by_index(int16_t idx);
 
 int16_t fa2_token_index(const fa2_token_metadata_t *token);
 
-const fa2_token_metadata_t *fa2_find_token(const uint8_t *destination_22bytes);
-#endif // FA_TOKENS_H
+const fa2_token_metadata_t *fa2_find_token(
+    const uint8_t *destination_22bytes);
+#endif  // FA_TOKENS_H

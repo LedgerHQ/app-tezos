@@ -12,6 +12,7 @@ remake: clean all
 test: main.c.o ctest.h
 	$(CC) $(LDFLAGS) \
 	digestif/sha256.c \
+	strlcpy.c \
 	../../../app/src/parser/formatting.c \
 	../../../app/src/parser/parser_state.c \
 	../../../app/src/parser/num_parser.c \

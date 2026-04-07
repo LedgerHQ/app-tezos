@@ -43,6 +43,26 @@ jobs:
           path: app_${{ matrix.device }}_dbg.tgz
           name: app_${{ matrix.device }}_dbg.tgz
 
+  unit_tests:
+    needs: [build_app]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
+
+    steps:
+      - name: Set Git Safe Directory
+        run: |
+          git config --global safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run test
+        run: |
+          apt-get update && apt-get install -y libbsd-dev && \
+          cd tests/unit && make ctest
 
   pull_docker_tezos_ocaml:
     if: github.repository == 'trilitech/ledger-app-tezos-wallet'

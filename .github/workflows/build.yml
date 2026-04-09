@@ -61,8 +61,9 @@ jobs:
 
       - name: Run test
         run: |
-          apt-get update && apt-get install -y libbsd-dev && \
-          cd tests/unit && make ctest
+          cmake -Bunit-tests/build -Hunit-tests
+          cmake --build unit-tests/build
+          CTEST_OUTPUT_ON_FAILURE=1 ctest --test-dir unit-tests/build
 
   pull_docker_tezos_ocaml:
     if: github.repository == 'trilitech/ledger-app-tezos-wallet'
@@ -120,11 +121,15 @@ jobs:
           python3 -m venv tezos_test_env --system-site-package
           . ./tezos_test_env/bin/activate
           python3 -m pip install --upgrade pip -q
-          python3 -m pip install -r ./tests/requirements.txt -q
-          TMP_DIR=$(mktemp -d /tmp/foo-XXXXXX)
-          tar xfz app_${{ matrix.device }}_dbg.tgz -C $TMP_DIR
-          python3 -m pytest -n 32 tests/integration/python/ --tb=no   \
-                 --device ${{ matrix.device }} --app $TMP_DIR/app.elf \
+          python3 -m pip install --no-deps pytezos==3.16.1 -q
+          python3 -m pip install base58 -q
+          python3 -m pip install -r ./tests/standalone/requirements.txt -q
+          DEVICE_DIR=${{ matrix.device }}
+          if [ "$DEVICE_DIR" = "nanosp" ]; then DEVICE_DIR=nanos2; fi
+          mkdir -p app/build/$DEVICE_DIR/bin
+          tar xfz app_${{ matrix.device }}_dbg.tgz -C app/build/$DEVICE_DIR/bin
+          python3 -m pytest -n 32 tests/standalone/ --tb=no \
+                 --device ${{ matrix.device }} --backend speculos \
                  --log-dir integration_tests_log
 
       - name: Upload results

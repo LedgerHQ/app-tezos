@@ -154,7 +154,7 @@ def forge_transaction(content: dict) -> bytes:
     return res
 
 
-# Same fixtures as tests/integration/python/test_sign/operations/test_sign_transaction.py
+# Same fixtures as tests/standalone/test_sign/operations/test_sign_transaction.py
 _FA2_TRANSFER_PARAMETER = [
     {
         "prim": "Pair",

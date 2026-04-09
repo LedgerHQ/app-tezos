@@ -33,10 +33,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
       - name: Install pylint
         run: pip install pylint -r tests/requirements.txt
 
       - name: Run pylint with .pylintrc
-        run: pylint --errors-only --rcfile=tests/integration/.pylintrc tests/integration/python/
+        run: pylint --errors-only --rcfile=tests/integration/.pylintrc tests/standalone/

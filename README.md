@@ -115,7 +115,7 @@ via the Makefile:
 
 ```
 :; ./tests/integration/run_test_docker.sh nanos app_nanos_dbg.tgz \
-                                                tests/integration/python
+                                                tests/standalone
 ```
 
 There is also `run_test_local.sh` which should perform in a similar
@@ -133,7 +133,7 @@ Both of these commands take the following arguments:
 -x
 : executes the tests with shell tracing (-x)
 
-Basic tests rely on gold-images, rather than OCR. They are stored under [snapshots](./tests/integration/python/snapshots).
+Basic tests rely on gold-images, rather than OCR. They are stored under [snapshots](./tests/standalone/snapshots).
 
 To generate/reset the snapshots, you can do so for individual tests.
 
@@ -161,11 +161,9 @@ make app_nanox_dbg.tgz
 You can run an individual test from the test container. You should see the app progress on the vnc viewer.
 
 ```sh
-pytest tests/integration/python/<test_name>.py \
+pytest tests/standalone/<test_name>.py \
    --device $DEVICE \
-   --port $PORT \
-   --speculos-args="--vnc-port 41000" \
-   --app app/bin/app.elf
+   --backend speculos
 ```
 
 #### Setting goldimages
@@ -220,5 +218,5 @@ The version of the app must be updated after every change. Following files need 
 with a new version
 1. app/Makefile
 2. tests/integration/app_vars.sh
-3. tests/integration/python/version.py
+3. tests/standalone/version.py
 4. the snapshots (nano and touch)

@@ -25,7 +25,7 @@ DOCKER_RUN_APP_OCAML	= $(DOCKER_RUN) ledger-app-tezos-ocaml:latest
 CONCURRENCY = 2
 
 ifdef GOLDEN_RUN
-PYTEST_FLAGS += --golden-run
+PYTEST_FLAGS += --golden_run
 endif
 
 ifdef FILTER_TESTS
@@ -90,7 +90,6 @@ app_%.tgz:	app/src/*.[ch]		\
 
 clean:
 	rm -rf bin app_*.tgz
-	make -C tests/unit/ctest clean
 	$(DOCKER_RUN_APP_BUILDER) make -C app mrproper
 	$(DOCKER_RUN_APP_OCAML) bash -c "make -C /app/tests/generate clean && cd /app && rm -rf **/_build"
 
@@ -101,29 +100,33 @@ unit_tests:	test/samples/micheline/nano/samples.hex	\
 		tests/unit/parser/dune				\
 		tests/unit/parser/Makefile			\
 		tests/unit/Makefile				\
-		tests/unit/ctest/Makefile			\
-		tests/unit/ctest/*.[ch]
+		unit-tests/CMakeLists.txt			\
+		unit-tests/*.c				\
+		unit-tests/digestif/*.*
 	@cp app/src/parser/[!g]*.[ch] tests/unit/parser/
 
 	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/unit
+	$(DOCKER_RUN_APP_BUILDER) bash -c "cd /app/unit-tests && cmake -Bbuild -H. && cmake --build build && CTEST_OUTPUT_ON_FAILURE=1 ctest --test-dir build"
 
 RUN_TEST_DOCKER = ./tests/integration/run_test_docker.sh
 
 integration_tests_basic_%:	app_%.tgz   \
 				app_%_dbg.tgz			\
-				$(shell find tests/integration/python -type f)
+				$(shell find tests/standalone -type f)
 	docker run --rm -i -v "$(realpath .):/app" \
 	--entrypoint=/bin/bash ledger-app-tezos-integration-tests -c "  \
-		TMP_DIR=\$$(mktemp -d /tmp/foo-XXXXXX);                   \
 		cd /app;                                                  \
-		tar xfz app_$*_dbg.tgz -C \$$TMP_DIR;                     \
+		DEVICE_DIR=$*;                                            \
+		if [ \"\$$DEVICE_DIR\" = \"nanosp\" ]; then DEVICE_DIR=nanos2; fi; \
+		mkdir -p app/build/\$$DEVICE_DIR/bin;                     \
+		tar xfz app_$*_dbg.tgz -C app/build/\$$DEVICE_DIR/bin;    \
 		apt update && apt install -y libsodium-dev;     \
 		python3 -m venv tezos_test_env --system-site-package;     \
 		source ./tezos_test_env/bin/activate;                     \
 		python3 -m pip install --upgrade pip -q;                  \
-		python3 -m pip install -r tests/requirements.txt -q ;     \
-		python3 -m pytest -n $(CONCURRENCY) tests/integration/python/ --tb=short \
-			--device $* --app \$$TMP_DIR/app.elf              \
+		python3 -m pip install -r tests/standalone/requirements.txt -q ;     \
+		python3 -m pytest -n $(CONCURRENCY) tests/standalone/ --tb=short \
+			--device $* --backend speculos                     \
 			--log-dir integration_tests_log $(PYTEST_FLAGS)"
 
 integration_tests_basic:	integration_tests_basic_nanos	\

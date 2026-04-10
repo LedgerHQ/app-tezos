@@ -112,7 +112,7 @@ def backend(  # pylint: disable=too-many-arguments,too-many-positional-arguments
     speculos_kwargs["args"] = args
     speculos_kwargs["log_apdu_file"] = log_apdu_file
 
-    backend_instance = SpeculosTezosBackend(  # pylint: disable=abstract-class-instantiated
+    backend_instance = SpeculosTezosBackend(  # pylint: disable=abstract-class-instantiated,unexpected-keyword-arg
         app_path,
         device,
         **speculos_kwargs,

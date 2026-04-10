@@ -45,7 +45,7 @@ base58_encodings = [
     (b"p2sig", 98, Tb([54, 240, 44, 52]), 64, "p256 signature"),
     (b"sig", 96, Tb([4, 130, 43]), 64, "generic signature"),
     (b"Net", 15, Tb([87, 82, 0]), 4, "chain id"),
-    (b"nce", 53, Tb([69, 220, 169]), 32, "seed nonce hash"),
+    (b"nce", 53, Tb([69, 220, 169]), 32, "seed nonce hash"),  # codespell:ignore nce
     (b"btz1", 37, Tb([1, 2, 49, 223]), 20, "blinded public key hash"),
     (b"vh", 52, Tb([1, 106, 242]), 32, "block_payload_hash"),
     (b"BLsig", 142, Tb([40, 171, 64, 207]), 96, "bls12_381 signature"),

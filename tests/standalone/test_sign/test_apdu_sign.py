@@ -35,7 +35,7 @@ def test_sign(
         account: Account,
         with_hash: bool
 ):
-    """Check signing with or wihout getting hash"""
+    """Check signing with or without getting hash"""
 
     message = Transaction()
 

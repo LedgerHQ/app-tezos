@@ -21,7 +21,7 @@ from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint:
 
 
 class TestFailingNoop(TestOperation):
-    """Commun tests."""
+    """Common tests."""
 
     @property
     def op_class(self):

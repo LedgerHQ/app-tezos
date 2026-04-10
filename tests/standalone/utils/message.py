@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Implemenation of sent messages."""
+"""Implementation of sent messages."""
 # pylint: disable=too-many-lines
 
 from abc import ABC, abstractmethod

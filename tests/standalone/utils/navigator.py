@@ -224,7 +224,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
         self._root_dir = Path(__file__).resolve().parent.parent
 
     def _ignore_processing(self, callback: Callable):
-        """Wrapper to ignore the `Proccessing` screen"""
+        """Wrapper to ignore the `Processing` screen"""
         def wrapper(*args, **kwargs):
             if not isinstance(self._backend, SpeculosBackend):
                 callback(*args, **kwargs)

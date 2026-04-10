@@ -66,7 +66,7 @@ tz_parser_result tz_parse_nat_step(tz_num_parser_buffer *buffers,
 /**
  * @brief format a buffer to mutez number
  *
- * @param in: intput buffer
+ * @param in: input buffer
  * @param out: output number
  * @return bool: success
  */

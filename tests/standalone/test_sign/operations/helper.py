@@ -41,7 +41,7 @@ class Flow:  # pylint: disable=too-few-public-methods
     Identifier for naming the test: flow-<name>
 
     fields: Dict[str, Any]
-    Fields passed to the operation contstructor
+    Fields passed to the operation constructor
 
     """
 
@@ -95,7 +95,7 @@ class Field:  # pylint: disable=too-few-public-methods
         Identifier for naming the test: <field.name>-<name>
 
         fields: Dict[str, Any]
-        Additionnals fields passed to the operation contstructor
+        Additionnals fields passed to the operation constructor
 
         """
 
@@ -153,7 +153,7 @@ def pytest_generate_tests(metafunc) -> None:
 
 
 class TestOperation(ABC):
-    """Commun tests for operations."""
+    """Common tests for operations."""
 
     @property
     @abstractmethod

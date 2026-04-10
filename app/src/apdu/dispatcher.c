@@ -75,7 +75,7 @@
  *
  * Same as dispatch but focus on signing instructions.
  *
- * @param cmd: command containg APDU received
+ * @param cmd: command containing APDU received
  */
 static void
 dispatch_sign_instruction(const command_t *cmd)

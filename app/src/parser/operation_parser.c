@@ -412,7 +412,7 @@ tz_print_string(tz_parser_state *state)
     } while (0)
 
 /**
- * @brief Try to read an optionnal field
+ * @brief Try to read an optional field
  *
  *        If the field is present, ask to read it.
  *

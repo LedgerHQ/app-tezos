@@ -36,7 +36,7 @@ from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint:
 
 
 class TestManagerOperation(TestOperation):
-    """Commun tests."""
+    """Common tests."""
 
     @property
     def op_class(self):
@@ -68,7 +68,7 @@ class TestManagerOperation(TestOperation):
 
 
 class TestOperationGroup(TestOperation):
-    """Commun tests."""
+    """Common tests."""
 
     @property
     def op_class(self):

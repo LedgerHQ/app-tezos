@@ -66,7 +66,7 @@ _FA2_KT1_DESTINATION = 'KT193D4vozYnhGJQVtw7CoxxqphqUEEwK6Vb'
 
 
 class TestTransaction(TestOperation):
-    """Commun tests."""
+    """Common tests."""
 
     @property
     def op_class(self):

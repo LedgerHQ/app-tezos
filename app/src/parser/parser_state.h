@@ -121,7 +121,7 @@ void tz_parser_init(tz_parser_state *state);
  * @brief Flush what has been parsed
  *
  * @param state: parser state
- * @param obuf: ouput buffer
+ * @param obuf: output buffer
  * @param olen: length of the output buffer
  */
 void tz_parser_flush(tz_parser_state *state, char *obuf, size_t olen);
@@ -130,7 +130,7 @@ void tz_parser_flush(tz_parser_state *state, char *obuf, size_t olen);
  * @brief Flush a part of what has been parsed
  *
  * @param state: parser state
- * @param obuf: ouput buffer
+ * @param obuf: output buffer
  * @param olen: length of the output buffer
  * @param up_to: length of what we want to flush up to
  */

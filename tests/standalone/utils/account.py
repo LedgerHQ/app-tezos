@@ -178,6 +178,7 @@ class AccountKey:
         return self._encoded_public_key
 
     def verify(self, signature: Union[str, bytes], message: Union[str, bytes]) -> bool:
+        """Verify that signature is a valid signature of message for this account."""
         encoded_signature = signature if isinstance(signature, bytes) else signature.encode()
         encoded_message = message if isinstance(message, bytes) else message.encode()
 
@@ -195,8 +196,11 @@ class AccountKey:
                 raise ValueError("Signature is invalid.") from exc
         elif self._curve == b"sp":
             pk = coincurve.PublicKey(self._public_point)
+            der_sig = coincurve_ecdsa.cdata_to_der(
+                coincurve_ecdsa.deserialize_compact(decoded_signature)
+            )
             if not pk.verify(
-                signature=coincurve_ecdsa.cdata_to_der(coincurve_ecdsa.deserialize_compact(decoded_signature)),
+                signature=der_sig,
                 message=encoded_message,
                 hasher=lambda x: blake2b_32(x).digest(),
             ):
@@ -207,7 +211,8 @@ class AccountKey:
             )
             r = int.from_bytes(decoded_signature[:32], "big")
             s = int.from_bytes(decoded_signature[32:], "big")
-            if not fastecdsa.ecdsa.verify(sig=(r, s), msg=encoded_message, Q=pk, hashfunc=blake2b_32):
+            if not fastecdsa.ecdsa.verify(
+                    sig=(r, s), msg=encoded_message, Q=pk, hashfunc=blake2b_32):
                 raise ValueError("Signature is invalid.")
         else:
             raise ValueError(f"Invalid or unsupported curve type: `{self._curve!r}`.")

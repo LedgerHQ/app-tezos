@@ -17,7 +17,7 @@
 """Gathering of tests related to Smart-rollup Originate operations."""
 
 from utils.message import ScRollupOriginate
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestScRollupOriginate(TestOperation):
@@ -45,7 +45,7 @@ class TestScRollupOriginate(TestOperation):
         ]),
         Field("kernel", "Kernel", [
             Field.Case('', 'empty'),
-            Field.Case('0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', 'long'),
+            Field.Case('0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', 'long'),  # pylint: disable=line-too-long
         ]),
         Field("parameters_ty", "Parameters", [
             Field.Case({'prim': 'unit'}, "unit"),

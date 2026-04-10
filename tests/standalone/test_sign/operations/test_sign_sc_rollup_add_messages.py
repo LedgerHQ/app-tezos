@@ -17,7 +17,7 @@
 """Gathering of tests related to Smart-rollup Add-message operations."""
 
 from utils.message import ScRollupAddMessage
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestScRollupAddMessage(TestOperation):
@@ -35,7 +35,7 @@ class TestScRollupAddMessage(TestOperation):
     fields = [
         Field("message", "Message", [
             Field.Case([b''], "empty"),
-            Field.Case([bytes.fromhex('0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF')], "long"),
+            Field.Case([bytes.fromhex('0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF')], "long"),  # pylint: disable=line-too-long
             Field.Case([b'\00'] * 20, "many"),  # No max
         ]),
     ]

@@ -17,7 +17,7 @@
 """Gathering of tests related to Transaction operations."""
 
 from utils.message import Transaction
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 # FA2 transfer parameter: single item, token_id=0 (clear-signing supported).
 # Inner list(pair(nat,nat)) as direct Pair (common wallet encoding, e.g. Temple).

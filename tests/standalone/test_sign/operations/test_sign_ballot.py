@@ -17,7 +17,7 @@
 """Gathering of tests related to Ballot operations."""
 
 from utils.message import Ballot
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestBallot(TestOperation):

@@ -17,7 +17,7 @@
 """Gathering of tests related to Increase-paid-storage operations."""
 
 from utils.message import IncreasePaidStorage
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestIncreasePaidStorage(TestOperation):

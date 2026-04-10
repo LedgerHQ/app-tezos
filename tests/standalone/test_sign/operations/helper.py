@@ -34,7 +34,7 @@ from utils.navigator import TezosNavigator, TezosNavInsID
 Op = TypeVar('Op', bound=Operation)
 
 
-class Flow:
+class Flow:  # pylint: disable=too-few-public-methods
     """Data required to run `test_operation_flow`.
 
     name: str
@@ -71,7 +71,7 @@ def parametrize_test_operation_flow(metafunc) -> None:
     )
 
 
-class Field:
+class Field:  # pylint: disable=too-few-public-methods
     """Data required to run `test_operation_field`.
 
     name: str
@@ -85,7 +85,7 @@ class Field:
 
     """
 
-    class Case:
+    class Case:  # pylint: disable=too-few-public-methods
         """Data representing a case to test for a given field.
 
         value: Any
@@ -192,7 +192,7 @@ class TestOperation(ABC):
             data=result.value
         )
 
-    def test_operation_flow(
+    def test_operation_flow(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             backend: TezosBackend,
             tezos_navigator: TezosNavigator,
@@ -212,7 +212,7 @@ class TestOperation(ABC):
         with backend.sign(account, message):
             tezos_navigator.accept_sign(snap_path=snapshot_dir)
 
-    def test_operation_field(
+    def test_operation_field(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             backend: TezosBackend,
             device: Device,

@@ -15,13 +15,14 @@
 # limitations under the License.
 
 """Gathering of tests related to app menu."""
+# pylint: disable=protected-access
 
 from pathlib import Path
 from typing import List, Union
 
 import requests
 
-from ledgered.devices import Device, DeviceType
+from ledgered.devices import DeviceType
 from ragger.navigator import BaseNavInsID, NavIns, NavInsID
 
 from utils.backend import TezosBackend

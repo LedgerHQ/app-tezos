@@ -125,7 +125,9 @@ def test_sign_basic_too_long_operation(
 
     with backend.sign(account, message, with_hash=True) as result:
         if device.is_nano:
-            tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "clear_n_too_long_warning")
+            tezos_navigator.accept_sign_blindsign_risk(
+                snap_path=snapshot_dir / "clear_n_too_long_warning"
+            )
         else:
             tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
             tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "blindsign_warning")
@@ -152,10 +154,14 @@ def test_reject_basic_too_long_operation_at_warning(
     with StatusCode.REJECT.expected():
         with backend.sign(account, BASIC_OPERATION):
             if device.is_nano:
-                tezos_navigator.refuse_sign_blindsign_risk(snap_path=snapshot_dir / "clear_n_too_long_warning")
+                tezos_navigator.refuse_sign_blindsign_risk(
+                    snap_path=snapshot_dir / "clear_n_too_long_warning"
+                )
             else:
                 tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
-                tezos_navigator.refuse_sign_blindsign_risk(snap_path=snapshot_dir / "blindsign_warning")
+                tezos_navigator.refuse_sign_blindsign_risk(
+                    snap_path=snapshot_dir / "blindsign_warning"
+                )
 
 def test_reject_basic_too_long_operation_at_summary(
         backend: TezosBackend,
@@ -172,10 +178,14 @@ def test_reject_basic_too_long_operation_at_summary(
     with StatusCode.REJECT.expected():
         with backend.sign(account, BASIC_OPERATION):
             if device.is_nano:
-                tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "clear_n_too_long_warning")
+                tezos_navigator.accept_sign_blindsign_risk(
+                    snap_path=snapshot_dir / "clear_n_too_long_warning"
+                )
             else:
                 tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
-                tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "blindsign_warning")
+                tezos_navigator.accept_sign_blindsign_risk(
+                    snap_path=snapshot_dir / "blindsign_warning"
+                )
             tezos_navigator.reject_sign(snap_path=snapshot_dir / "summary")
 
 @pytest.mark.use_on_device("touch")
@@ -273,7 +283,9 @@ def test_sign_too_long_operation_with_only_transactions(
 
     with backend.sign(account, message, with_hash=True) as result:
         if device.is_nano:
-            tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "clear_n_too_long_warning")
+            tezos_navigator.accept_sign_blindsign_risk(
+                snap_path=snapshot_dir / "clear_n_too_long_warning"
+            )
         else:
             tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
             tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "blindsign_warning")
@@ -325,7 +337,9 @@ def test_sign_too_long_operation_without_fee_or_amount(
 
     with backend.sign(account, message, with_hash=True) as result:
         if device.is_nano:
-            tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "clear_n_too_long_warning")
+            tezos_navigator.accept_sign_blindsign_risk(
+                snap_path=snapshot_dir / "clear_n_too_long_warning"
+            )
         else:
             tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
             tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "blindsign_warning")
@@ -386,7 +400,7 @@ OPERATION_WITH_TOO_LARGE = OperationGroup([
         counter = 12,
         gas_limit = 1,
         storage_limit = 3,
-        value = {'int': 115792089237316195423570985008687907853269984665640564039457584007913129639936}
+        value = {'int': 115792089237316195423570985008687907853269984665640564039457584007913129639936}  # pylint: disable=line-too-long
     )
 ])
 
@@ -406,7 +420,9 @@ def test_sign_too_long_operation_with_too_large(
 
     with backend.sign(account, message, with_hash=True) as result:
         if device.is_nano:
-            tezos_navigator.accept_sign_error_risk(snap_path=snapshot_dir / "clear_n_too_large_warning")
+            tezos_navigator.accept_sign_error_risk(
+                snap_path=snapshot_dir / "clear_n_too_large_warning"
+            )
         else:
             tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
             tezos_navigator.accept_sign_error_risk(snap_path=snapshot_dir / "too_large_warning")
@@ -434,7 +450,9 @@ def test_reject_too_long_operation_with_too_large_at_too_large_warning(
     with StatusCode.PARSE_ERROR.expected():
         with backend.sign(account, OPERATION_WITH_TOO_LARGE):
             if device.is_nano:
-                tezos_navigator.refuse_sign_error_risk(snap_path=snapshot_dir / "clear_n_too_large_warning")
+                tezos_navigator.refuse_sign_error_risk(
+                    snap_path=snapshot_dir / "clear_n_too_large_warning"
+                )
             else:
                 tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
                 tezos_navigator.refuse_sign_error_risk(snap_path=snapshot_dir / "too_large_warning")
@@ -459,11 +477,15 @@ def test_reject_too_long_operation_with_too_large_at_blindsigning(
     with error.expected():
         with backend.sign(account, OPERATION_WITH_TOO_LARGE):
             if device.is_nano:
-                tezos_navigator.accept_sign_error_risk(snap_path=snapshot_dir / "clear_n_too_large_warning")
+                tezos_navigator.accept_sign_error_risk(
+                    snap_path=snapshot_dir / "clear_n_too_large_warning"
+                )
             else:
                 tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
                 tezos_navigator.accept_sign_error_risk(snap_path=snapshot_dir / "too_large_warning")
-                tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "blindsigning_warning")
+                tezos_navigator.accept_sign_blindsign_risk(
+                    snap_path=snapshot_dir / "blindsigning_warning"
+                )
             tezos_navigator.reject_sign(snap_path=snapshot_dir / "blindsigning")
 
 @pytest.mark.use_on_device("touch")
@@ -482,7 +504,9 @@ def test_reject_too_long_operation_with_too_large_at_blindsigning_warning(
         with backend.sign(account, OPERATION_WITH_TOO_LARGE):
             tezos_navigator.skip_sign(snap_path=snapshot_dir / "skip")
             tezos_navigator.accept_sign_error_risk(snap_path=snapshot_dir / "too_large_warning")
-            tezos_navigator.refuse_sign_blindsign_risk(snap_path=snapshot_dir / "blindsigning_warning")
+            tezos_navigator.refuse_sign_blindsign_risk(
+                snap_path=snapshot_dir / "blindsigning_warning"
+            )
 
 def test_blindsign_too_deep(
         backend: TezosBackend,
@@ -492,11 +516,11 @@ def test_blindsign_too_deep(
         snapshot_dir: Path):
     """Check blindsigning on too deep expression"""
 
-    expression = MichelineExpr([[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[{'int':42}]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]])
+    expression = MichelineExpr([[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[{'int':42}]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]])  # pylint: disable=line-too-long
 
     with backend.sign(account, expression, with_hash=True) as result:
         if device.type == DeviceType.NANOS:
-            ### Simulate `navigate_review` up to `ACCEPT_RISK` because the nanos screen can look like it hasn't changed.
+            ### Simulate `navigate_review` up to `ACCEPT_RISK` because the nanos screen can look like it hasn't changed.  # pylint: disable=line-too-long
 
             instructions: List[Union[NavIns, NavInsID]] = [
                 # 'Review operation'
@@ -518,7 +542,9 @@ def test_blindsign_too_deep(
         else:
             tezos_navigator.accept_sign_error_risk(snap_path=snapshot_dir / "clear")
             if not device.is_nano:
-                tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "blindsigning_warning")
+                tezos_navigator.accept_sign_blindsign_risk(
+                    snap_path=snapshot_dir / "blindsigning_warning"
+                )
 
         tezos_navigator.accept_sign(snap_path=snapshot_dir / "blind")
 
@@ -537,12 +563,14 @@ def test_blindsign_too_large(
 ):
     """Check blindsigning on too large expression"""
 
-    message = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})
+    message = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})  # pylint: disable=line-too-long
 
     with backend.sign(account, message, with_hash=True) as result:
         tezos_navigator.accept_sign_error_risk(snap_path=snapshot_dir / "clear")
         if not device.is_nano:
-            tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "blindsigning_warning")
+            tezos_navigator.accept_sign_blindsign_risk(
+                snap_path=snapshot_dir / "blindsigning_warning"
+            )
         tezos_navigator.accept_sign(snap_path=snapshot_dir / "blind")
 
     account.check_signature(
@@ -559,7 +587,7 @@ def test_blindsign_reject_from_clear(
 ):
     """Check blindsigning rejection"""
 
-    expression = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})
+    expression = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})  # pylint: disable=line-too-long
 
     with StatusCode.PARSE_ERROR.expected():
         with backend.sign(account, expression):
@@ -574,7 +602,7 @@ def test_blindsign_reject_from_blind(
 ):
     """Check blindsigning rejection"""
 
-    expression = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})
+    expression = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})  # pylint: disable=line-too-long
 
     if device.is_nano:
         error = StatusCode.REJECT
@@ -610,7 +638,7 @@ def test_ensure_always_clearsign(
         destination = 'KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT',
         amount = 0,
         entrypoint = 'root',
-        parameter = [{'prim':'pair','args':[{'string':"["},{'prim':'pair','args':[{'string':"Z"},{'prim':'pair','args':[{'string':"Y"},{'prim':'pair','args':[{'string':"X"},{'prim':'pair','args':[{'string':"W"},{'prim':'pair','args':[{'string':"V"},{'prim':'pair','args':[{'string':"U"},{'prim':'pair','args':[{'string':"T"},{'prim':'pair','args':[{'string':"S"},{'prim':'pair','args':[{'string':"R"},{'prim':'pair','args':[{'string':"Q"},{'prim':'pair','args':[{'string':"P"},{'prim':'pair','args':[{'string':"O"},{'prim':'pair','args':[{'string':"N"},{'prim':'pair','args':[{'string':"M"},{'prim':'pair','args':[{'string':"L"},{'prim':'pair','args':[{'string':"K"},{'prim':'pair','args':[{'string':"J"},{'prim':'pair','args':[{'string':"I"},{'prim':'pair','args':[{'string':"H"},{'prim':'pair','args':[{'string':"G"},{'prim':'pair','args':[{'string':"F"},{'prim':'pair','args':[{'string':"E"},{'prim':'pair','args':[{'string':"D"},{'prim':'pair','args':[{'string':"C"},{'prim':'pair','args':[{'string':"B"},[]]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]},{'prim':'pair','args':[{'int':10},{'prim':'pair','args':[{'int':9},{'prim':'pair','args':[{'int':8},{'prim':'pair','args':[{'int':7},{'prim':'pair','args':[{'int':6},{'prim':'pair','args':[{'int':5},{'prim':'pair','args':[{'int':4},{'prim':'pair','args':[{'int':3},{'prim':'pair','args':[{'int':2},{'prim':'pair','args':[{'int':1},[]]}]}]}]}]}]}]}]}]}]}]
+        parameter = [{'prim':'pair','args':[{'string':"["},{'prim':'pair','args':[{'string':"Z"},{'prim':'pair','args':[{'string':"Y"},{'prim':'pair','args':[{'string':"X"},{'prim':'pair','args':[{'string':"W"},{'prim':'pair','args':[{'string':"V"},{'prim':'pair','args':[{'string':"U"},{'prim':'pair','args':[{'string':"T"},{'prim':'pair','args':[{'string':"S"},{'prim':'pair','args':[{'string':"R"},{'prim':'pair','args':[{'string':"Q"},{'prim':'pair','args':[{'string':"P"},{'prim':'pair','args':[{'string':"O"},{'prim':'pair','args':[{'string':"N"},{'prim':'pair','args':[{'string':"M"},{'prim':'pair','args':[{'string':"L"},{'prim':'pair','args':[{'string':"K"},{'prim':'pair','args':[{'string':"J"},{'prim':'pair','args':[{'string':"I"},{'prim':'pair','args':[{'string':"H"},{'prim':'pair','args':[{'string':"G"},{'prim':'pair','args':[{'string':"F"},{'prim':'pair','args':[{'string':"E"},{'prim':'pair','args':[{'string':"D"},{'prim':'pair','args':[{'string':"C"},{'prim':'pair','args':[{'string':"B"},[]]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]}]},{'prim':'pair','args':[{'int':10},{'prim':'pair','args':[{'int':9},{'prim':'pair','args':[{'int':8},{'prim':'pair','args':[{'int':7},{'prim':'pair','args':[{'int':6},{'prim':'pair','args':[{'int':5},{'prim':'pair','args':[{'int':4},{'prim':'pair','args':[{'int':3},{'prim':'pair','args':[{'int':2},{'prim':'pair','args':[{'int':1},[]]}]}]}]}]}]}]}]}]}]}]  # pylint: disable=line-too-long
     )
 
     with backend.sign(account, message, with_hash=True) as result:

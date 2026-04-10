@@ -62,7 +62,7 @@ def test_sign_with_another_sig(
 
 @pytest.mark.parametrize(
     "seed", [
-        "around dignity equal spread between young lawsuit interest climb wide that panther rather mom snake scene ecology reunion ice illegal brush"
+        "around dignity equal spread between young lawsuit interest climb wide that panther rather mom snake scene ecology reunion ice illegal brush"  # pylint: disable=line-too-long
     ],
     ids=["seed21"]
 )

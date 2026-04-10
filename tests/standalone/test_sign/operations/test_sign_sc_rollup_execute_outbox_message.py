@@ -17,7 +17,7 @@
 """Gathering of tests related to Smart-rollup Execute-outbox operations."""
 
 from utils.message import ScRollupExecuteOutboxMessage
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestScRollupExecuteOutboxMessage(TestOperation):
@@ -40,6 +40,6 @@ class TestScRollupExecuteOutboxMessage(TestOperation):
         ]),
         Field("output_proof", "Output proof", [
             Field.Case(b'', "empty"),
-            Field.Case(b'0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', "long"),
+            Field.Case(b'0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', "long"),  # pylint: disable=line-too-long
         ]),
     ]

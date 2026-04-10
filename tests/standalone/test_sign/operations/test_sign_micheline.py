@@ -67,7 +67,7 @@ prim_cases: List[Tuple[Micheline, str]] = [
     ({"prim": "code", 'args': [{"prim": "ADD"}]}, "code"),
     ({"prim": "view", 'args': [{'string': ''}, *default_view_interface]}, "small-view-name"),
     ({"prim": "view", 'args': [{'string': 'v' * 31}, *default_view_interface]}, "long-view-name"),
-    ({"prim": "view", 'args': [{'string': 'view\nname'}, *default_view_interface]}, "view-name-with-newline"),
+    ({"prim": "view", 'args': [{'string': 'view\nname'}, *default_view_interface]}, "view-name-with-newline"),  # pylint: disable=line-too-long
 
     # Data
     ({"prim": "False"}, "False"),
@@ -75,13 +75,13 @@ prim_cases: List[Tuple[Micheline, str]] = [
     ({"prim": "Left", 'args': [{"prim": "Unit"}]}, "Left-data"),
     ({"prim": "None"}, "None-data"),
     ({"prim": "Pair", 'args': [{"prim": "Unit"}, {"prim": "Unit"}]}, "Pair-data"),
-    ({"prim": "Pair", 'args': [{"prim": "Unit"}, {"prim": "Unit"}, {"prim": "Unit"}, {"prim": "Unit"}]}, "long-Pair-data"),
+    ({"prim": "Pair", 'args': [{"prim": "Unit"}, {"prim": "Unit"}, {"prim": "Unit"}, {"prim": "Unit"}]}, "long-Pair-data"),  # pylint: disable=line-too-long
     ({"prim": "Right", 'args': [{"prim": "Unit"}]}, "Right-data"),
     ({"prim": "Some", 'args': [{"prim": "Unit"}]}, "Some-data"),
     ({"prim": "True"}, "True"),
     ({"prim": "Unit"}, "Unit-data"),
-    ({"prim": "Ticket", 'args': [{"string": Default.ORIGINATED_ADDRESS+"%my_entrypoint"}, {"prim": "unit"}, {"prim": "Unit"}, {"int": 0}]}, "Ticket-data"),
-    ({"prim": "Lambda_rec", 'args': [[{"prim": "DROP"}, {"prim": "DROP"}, {"prim": "UNIT"}]]}, "Lambda_rec-data"),
+    ({"prim": "Ticket", 'args': [{"string": Default.ORIGINATED_ADDRESS+"%my_entrypoint"}, {"prim": "unit"}, {"prim": "Unit"}, {"int": 0}]}, "Ticket-data"),  # pylint: disable=line-too-long
+    ({"prim": "Lambda_rec", 'args': [[{"prim": "DROP"}, {"prim": "DROP"}, {"prim": "UNIT"}]]}, "Lambda_rec-data"),  # pylint: disable=line-too-long
 
     # Instruction
     ({"prim": "PACK"}, "PACK"),
@@ -141,8 +141,8 @@ prim_cases: List[Tuple[Micheline, str]] = [
     ({"prim": "IF_LEFT", 'args': [[{"prim": "UNIT"}], [{"prim": "UNIT"}]]}, "IF_LEFT"),
     ({"prim": "IF_NONE", 'args': [[{"prim": "UNIT"}], [{"prim": "UNIT"}]]}, "IF_NONE"),
     ({"prim": "INT"}, "INT-instr"),
-    ({"prim": "LAMBDA", 'args': [{"prim": "unit"}, {"prim": "unit"}, [{"prim": "UNIT"}]]}, "LAMBDA-instr"),
-    ({"prim": "LAMBDA_REC", 'args': [{"prim": "unit"}, {"prim": "unit"}, [{"prim": "UNIT"}]]}, "LAMBDA_REC-instr"),
+    ({"prim": "LAMBDA", 'args': [{"prim": "unit"}, {"prim": "unit"}, [{"prim": "UNIT"}]]}, "LAMBDA-instr"),  # pylint: disable=line-too-long
+    ({"prim": "LAMBDA_REC", 'args': [{"prim": "unit"}, {"prim": "unit"}, [{"prim": "UNIT"}]]}, "LAMBDA_REC-instr"),  # pylint: disable=line-too-long
     ({"prim": "LE"}, "LE"),
     ({"prim": "LEFT", 'args': [{"prim": "unit"}]}, "LEFT-instr"),
     ({"prim": "LEVEL"}, "LEVEL"),
@@ -231,7 +231,7 @@ prim_cases: List[Tuple[Micheline, str]] = [
     ({"prim": "option", 'args': [{"prim": "unit"}]}, "option"),
     ({"prim": "or", 'args': [{"prim": "unit"}, {"prim": "unit"}]}, "or-type"),
     ({"prim": "pair", 'args': [{"prim": "unit"}, {"prim": "unit"}]}, "pair-type"),
-    ({"prim": "pair", 'args': [{"prim": "unit"}, {"prim": "unit"}, {"prim": "unit"}, {"prim": "unit"}]}, "long-pair-type"),
+    ({"prim": "pair", 'args': [{"prim": "unit"}, {"prim": "unit"}, {"prim": "unit"}, {"prim": "unit"}]}, "long-pair-type"),  # pylint: disable=line-too-long
     ({"prim": "set", 'args': [{"prim": "unit"}]}, "set"),
     ({"prim": "signature"}, "signature"),
     ({"prim": "string"}, "string"),
@@ -243,8 +243,8 @@ prim_cases: List[Tuple[Micheline, str]] = [
     ({"prim": "address"}, "address-type"),
     ({"prim": "tx_rollup_l2_address"}, "tx_rollup_l2_address"),  # deprecated
     ({"prim": "sapling_transaction", 'args': [{"int": 0}]}, "sapling_transaction"),
-    ({"prim": "sapling_transaction", 'args': [{"int": 0XFFFF}]}, "sapling_transaction-max-memo-size"),
-    ({"prim": "sapling_transaction_deprecated", 'args': [{"int": 0XFFFF}]}, "sapling_transaction_deprecated"),
+    ({"prim": "sapling_transaction", 'args': [{"int": 0XFFFF}]}, "sapling_transaction-max-memo-size"),  # pylint: disable=line-too-long
+    ({"prim": "sapling_transaction_deprecated", 'args': [{"int": 0XFFFF}]}, "sapling_transaction_deprecated"),  # pylint: disable=line-too-long
     ({"prim": "sapling_state", 'args': [{"int": 0}]}, "sapling_state"),
     ({"prim": "chain_id"}, "chain_id-type"),
     ({"prim": "never"}, "never-type"),
@@ -262,8 +262,8 @@ prim_cases: List[Tuple[Micheline, str]] = [
     ({"prim": "unit", "annots": [":annot"]}, "with-annot"),
     ({"prim": "PAIR", "annots": ["@annot1", "%@annot2"]}, "with-annots"),
     ({"prim": "LEFT", "annots": ["%annot"], 'args': [{"prim": "unit"}]}, "with-annot-and-arg"),
-    ({"prim": "unit", "annots": [":" + ascii_lowercase + ascii_uppercase + '_' + digits]}, "allowed-char-annot"),
-    ({"prim": "unit", "annots": [":" + (ascii_lowercase * ((254 // len(ascii_lowercase)) + 1))[:254]]}, "max-len-annot"),
+    ({"prim": "unit", "annots": [":" + ascii_lowercase + ascii_uppercase + '_' + digits]}, "allowed-char-annot"),  # pylint: disable=line-too-long
+    ({"prim": "unit", "annots": [":" + (ascii_lowercase * ((254 // len(ascii_lowercase)) + 1))[:254]]}, "max-len-annot"),  # pylint: disable=line-too-long
 
 ]
 
@@ -286,7 +286,7 @@ real_cases: List[Tuple[Micheline, str]] = [
                 ]}
             ]}
         ]},
-        {"prim": "list", "annots": [":sigs"], 'args': [{"prim": "option", 'args': [{"prim": "signature"}]}]}
+        {"prim": "list", "annots": [":sigs"], 'args': [{"prim": "option", 'args': [{"prim": "signature"}]}]}  # pylint: disable=line-too-long
     ]}, "type"),
 
     ({"prim": "Pair", 'args': [
@@ -301,25 +301,25 @@ real_cases: List[Tuple[Micheline, str]] = [
         ]},
         [
             {"prim": "Some", 'args': [
-                {"string": "edsigtXomBKi5CTRf5cjATJWSyaRvhfYNHqSUGrn4SdbYRcGwQrUGjzEfQDTuqHhuA8b2d8NarZjz8TRf65WkpQmo423BtomS8Q"}
+                {"string": "edsigtXomBKi5CTRf5cjATJWSyaRvhfYNHqSUGrn4SdbYRcGwQrUGjzEfQDTuqHhuA8b2d8NarZjz8TRf65WkpQmo423BtomS8Q"}  # pylint: disable=line-too-long
             ]},
             {"prim": "None"}
         ]
     ]}, "data"),
 
     ([
-        {"prim": "UNPAIR"}, {"prim": "SWAP"}, {"prim": "DUP"}, {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]},
+        {"prim": "UNPAIR"}, {"prim": "SWAP"}, {"prim": "DUP"}, {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]},  # pylint: disable=line-too-long
         {"prim": "DIP", 'args': [[
             {"prim": "UNPAIR"},
-            {"prim": "DUP"}, {"prim": "SELF"}, {"prim": "ADDRESS"}, {"prim": "CHAIN_ID"}, {"prim": "PAIR"}, {"prim": "PAIR"},
+            {"prim": "DUP"}, {"prim": "SELF"}, {"prim": "ADDRESS"}, {"prim": "CHAIN_ID"}, {"prim": "PAIR"}, {"prim": "PAIR"},  # pylint: disable=line-too-long
             {"prim": "PACK"},
-            {"prim": "DIP", 'args': [[{"prim": "UNPAIR", "annots": ["@counter"]}, {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]}]]}, {"prim": "SWAP"},
+            {"prim": "DIP", 'args': [[{"prim": "UNPAIR", "annots": ["@counter"]}, {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]}]]}, {"prim": "SWAP"},  # pylint: disable=line-too-long
         ]]},
-        {"prim": "UNPAIR", "annots": ["@stored_counter"]}, {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]},
-        {"prim": "COMPARE"}, {"prim": "EQ"}, {"prim": "IF", 'args': [[], [{"prim": "UNIT"}, {"prim": "FAILWITH"}]]},
-        {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]}, {"prim": "UNPAIR", "annots": ["@threshold", "@keys"]},
+        {"prim": "UNPAIR", "annots": ["@stored_counter"]}, {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]},  # pylint: disable=line-too-long
+        {"prim": "COMPARE"}, {"prim": "EQ"}, {"prim": "IF", 'args': [[], [{"prim": "UNIT"}, {"prim": "FAILWITH"}]]},  # pylint: disable=line-too-long
+        {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]}, {"prim": "UNPAIR", "annots": ["@threshold", "@keys"]},  # pylint: disable=line-too-long
         {"prim": "DIP", 'args': [[
-            {"prim": "PUSH", "annots": ["@valid"], 'args': [{"prim": "nat"}, {"int": 0}]}, {"prim": "SWAP"},
+            {"prim": "PUSH", "annots": ["@valid"], 'args': [{"prim": "nat"}, {"int": 0}]}, {"prim": "SWAP"},  # pylint: disable=line-too-long
             {"prim": "ITER", 'args': [[
                 {"prim": "DIP", 'args': [[{"prim": "SWAP"}]]}, {"prim": "SWAP"},
                 {"prim": "IF_CONS", 'args': [
@@ -328,9 +328,9 @@ real_cases: List[Tuple[Micheline, str]] = [
                         [
                             {"prim": "SWAP"},
                             {"prim": "DIP", 'args': [[
-                                {"prim": "SWAP"}, {"prim": "DIP", 'args': [[{"prim": "DIP", 'args': [[{"prim": "DUP"}]]}, {"prim": "SWAP"}]]},
-                                {"prim": "CHECK_SIGNATURE"}, {"prim": "IF", 'args': [[], [{"prim": "UNIT"}, {"prim": "FAILWITH"}]]},
-                                {"prim": "PUSH", 'args': [{"prim": "nat"}, {"int": 1}]}, {"prim": "ADD", "annots": ["@valid"]},
+                                {"prim": "SWAP"}, {"prim": "DIP", 'args': [[{"prim": "DIP", 'args': [[{"prim": "DUP"}]]}, {"prim": "SWAP"}]]},  # pylint: disable=line-too-long
+                                {"prim": "CHECK_SIGNATURE"}, {"prim": "IF", 'args': [[], [{"prim": "UNIT"}, {"prim": "FAILWITH"}]]},  # pylint: disable=line-too-long
+                                {"prim": "PUSH", 'args': [{"prim": "nat"}, {"int": 1}]}, {"prim": "ADD", "annots": ["@valid"]},  # pylint: disable=line-too-long
                             ]]},
                         ],
                     ]}],
@@ -339,15 +339,15 @@ real_cases: List[Tuple[Micheline, str]] = [
                 {"prim": "SWAP"},
             ]]},
         ]]},
-        {"prim": "COMPARE"}, {"prim": "LE"}, {"prim": "IF", 'args': [[], [{"prim": "UNIT"}, {"prim": "FAILWITH"}]]},
+        {"prim": "COMPARE"}, {"prim": "LE"}, {"prim": "IF", 'args': [[], [{"prim": "UNIT"}, {"prim": "FAILWITH"}]]},  # pylint: disable=line-too-long
         {"prim": "DROP"}, {"prim": "DROP"},
-        {"prim": "DIP", 'args': [[{"prim": "UNPAIR"}, {"prim": "PUSH", 'args': [{"prim": "nat"}, {"int": 1}]}, {"prim": "ADD", "annots": ["@new_counter"]}, {"prim": "PAIR"}]]},
+        {"prim": "DIP", 'args': [[{"prim": "UNPAIR"}, {"prim": "PUSH", 'args': [{"prim": "nat"}, {"int": 1}]}, {"prim": "ADD", "annots": ["@new_counter"]}, {"prim": "PAIR"}]]},  # pylint: disable=line-too-long
         {"prim": "NIL", 'args': [{"prim": "operation"}]}, {"prim": "SWAP"},
         {"prim": "IF_LEFT", 'args': [
             [{"prim": "UNPAIR"}, {"prim": "UNIT"}, {"prim": "TRANSFER_TOKENS"}, {"prim": "CONS"}],
             [{"prim": "IF_LEFT", 'args': [
                 [{"prim": "SET_DELEGATE"}, {"prim": "CONS"}],
-                [{"prim": "DIP", 'args': [[{"prim": "SWAP"}, {"prim": "CAR"}]]}, {"prim": "SWAP"}, {"prim": "PAIR"}, {"prim": "SWAP"}],
+                [{"prim": "DIP", 'args': [[{"prim": "SWAP"}, {"prim": "CAR"}]]}, {"prim": "SWAP"}, {"prim": "PAIR"}, {"prim": "SWAP"}],  # pylint: disable=line-too-long
             ]}],
         ]},
         {"prim": "PAIR"},

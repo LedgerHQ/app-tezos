@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Implemenation of sent messages."""
+# pylint: disable=too-many-lines
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
@@ -69,7 +70,7 @@ class RawMessage(Message):
 
 Micheline = Union[List, Dict]
 
-class Default:
+class Default:  # pylint: disable=too-few-public-methods
     """Class holding default values."""
     BLOCK_HASH: str                      = 'BKiHLREqU3JkXfzEDYAkmmfX48gBDtYhMrpA98s7Aq4SzbUAB6M'
     PROTOCOL_HASH: str                   = 'PrihK96nBAFSxVL1GLJTVhu9YnzkMFiBeuJRPA8NwuZVZCE1L6i'
@@ -83,11 +84,15 @@ class Default:
     BALLOT: str                          = 'yay'
     SMART_ROLLUP_KIND: str               = 'arith'
 
-    class DefaultMicheline:
+    class DefaultMicheline:  # pylint: disable=too-few-public-methods
         """Class holding Micheline default values."""
         VALUE: Micheline = {'prim': 'Unit'}
         TYPE: Micheline  = {'prim': 'unit'}
-        CODE: Micheline  = [{'prim': 'CDR'}, {'prim': 'NIL', 'args': [{'prim': 'operation'}]}, {'prim': 'PAIR'}]
+        CODE: Micheline  = [
+            {'prim': 'CDR'},
+            {'prim': 'NIL', 'args': [{'prim': 'operation'}]},
+            {'prim': 'PAIR'},
+        ]
 
 class Watermark(IntEnum):
     """Class hodling messages watermark."""
@@ -95,9 +100,11 @@ class Watermark(IntEnum):
     MICHELINE_EXPRESSION = 0x05
 
 # pytezos is not up to date with the protocol Seoul
-# See `https://gitlab.com/tezos/tezos/-/blob/v23-release/src/proto_023_PtSeouLo/lib_protocol/michelson_v1_primitives.ml#L807`
+# See https://gitlab.com/tezos/tezos/-/blob/v23-release/src/proto_023_PtSeouLo/
+# lib_protocol/michelson_v1_primitives.ml#L807
 prim_tags.update({ 'IS_IMPLICIT_ACCOUNT': b'\x9e'})
-# See `https://gitlab.com/tezos/tezos/-/blob/master/src/proto_024_PsU87LFi/lib_protocol/michelson_v1_primitives.ml#L816-L817`
+# See https://gitlab.com/tezos/tezos/-/blob/master/src/proto_024_PsU87LFi/
+# lib_protocol/michelson_v1_primitives.ml#L816-L817
 prim_tags.update({ 'INDEX_ADDRESS': b'\x9f'})
 prim_tags.update({ 'GET_ADDRESS_INDEX': b'\xa0'})
 
@@ -120,9 +127,11 @@ class OperationBuilder:
     """Class representing operation content builders."""
 
     def operation(self, content: Dict[str, Any]):
+        """Return the operation content dict."""
         return content
 
     def proposals(self, proposals, source='', period=0):
+        """Build a Tezos proposals operation."""
         if not isinstance(proposals, list):
             proposals = [proposals]
 
@@ -136,6 +145,7 @@ class OperationBuilder:
         )
 
     def ballot(self, proposal, ballot, source='', period=0):
+        """Build a Tezos ballot operation."""
         return self.operation(
             {
                 'kind': 'ballot',
@@ -146,7 +156,7 @@ class OperationBuilder:
             }
         )
 
-    def reveal(
+    def reveal(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             public_key='',
             source='',
@@ -155,6 +165,7 @@ class OperationBuilder:
             gas_limit=0,
             storage_limit=0,
             proof=''):
+        """Build a Tezos reveal operation."""
         content = {
             'kind': 'reveal',
             'source': source,
@@ -168,7 +179,7 @@ class OperationBuilder:
             content['proof'] = proof
         return self.operation(content)
 
-    def transaction(
+    def transaction(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             destination,
             amount=0,
@@ -178,6 +189,7 @@ class OperationBuilder:
             fee=0,
             gas_limit=0,
             storage_limit=0):
+        """Build a Tezos transaction operation."""
         content = {
             'kind': 'transaction',
             'source': source,
@@ -194,7 +206,7 @@ class OperationBuilder:
 
         return self.operation(content)
 
-    def origination(
+    def origination(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             script,
             balance=0,
@@ -204,6 +216,7 @@ class OperationBuilder:
             fee=0,
             gas_limit=0,
             storage_limit=0):
+        """Build a Tezos origination operation."""
         content = {
             'kind': 'origination',
             'source': source,
@@ -220,7 +233,7 @@ class OperationBuilder:
 
         return self.operation(content)
 
-    def delegation(
+    def delegation(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             delegate='',
             source='',
@@ -228,6 +241,7 @@ class OperationBuilder:
             fee=0,
             gas_limit=0,
             storage_limit=0):
+        """Build a Tezos delegation operation."""
         content = {
             'kind': 'delegation',
             'source': source,
@@ -244,6 +258,7 @@ class OperationBuilder:
         return self.operation(content)
 
     def failing_noop(self, arbitrary: str):
+        """Build a Tezos failing_noop operation."""
         return self.operation(
             {
                 'kind': 'failing_noop',
@@ -251,7 +266,9 @@ class OperationBuilder:
             }
         )
 
-    def register_global_constant(self, value: Any, source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
+    def register_global_constant(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+            self, value: Any, source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
+        """Build a Tezos register_global_constant operation."""
         return self.operation(
             {
                 'kind': 'register_global_constant',
@@ -264,7 +281,7 @@ class OperationBuilder:
             }
         )
 
-    def transfer_ticket(
+    def transfer_ticket(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             ticket_contents: Any,
             ticket_ty: Any,
@@ -277,6 +294,7 @@ class OperationBuilder:
             fee=0,
             gas_limit=0,
             storage_limit=0):
+        """Build a Tezos transfer_ticket operation."""
         return self.operation(
             {
                 'kind': 'transfer_ticket',
@@ -294,7 +312,7 @@ class OperationBuilder:
             }
         )
 
-    def smart_rollup_add_messages(
+    def smart_rollup_add_messages(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             message: List[bytes],
             source='',
@@ -302,6 +320,7 @@ class OperationBuilder:
             fee=0,
             gas_limit=0,
             storage_limit=0):
+        """Build a Tezos smart_rollup_add_messages operation."""
         return self.operation(
             {
                 'kind': 'smart_rollup_add_messages',
@@ -314,7 +333,7 @@ class OperationBuilder:
             }
         )
 
-    def smart_rollup_execute_outbox_message(
+    def smart_rollup_execute_outbox_message(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             rollup: str,
             cemented_commitment: str,
@@ -324,6 +343,7 @@ class OperationBuilder:
             fee=0,
             gas_limit=0,
             storage_limit=0):
+        """Build a Tezos smart_rollup_execute_outbox_message operation."""
         return self.operation(
             {
                 'kind': 'smart_rollup_execute_outbox_message',
@@ -338,7 +358,7 @@ class OperationBuilder:
             }
         )
 
-    def set_deposit_limit(
+    def set_deposit_limit(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             limit: Optional[int] = None,
             source: str = '',
@@ -361,7 +381,7 @@ class OperationBuilder:
 
         return self.operation(content)
 
-    def increase_paid_storage(
+    def increase_paid_storage(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             amount: int = 0,
             destination: str = '',
@@ -384,7 +404,7 @@ class OperationBuilder:
             }
         )
 
-    def update_consensus_key(
+    def update_consensus_key(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             pk: str = '',
             proof: Optional[str] = None,
@@ -409,7 +429,7 @@ class OperationBuilder:
 
         return self.operation(content)
 
-    def update_companion_key(
+    def update_companion_key(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             pk: str = '',
             proof: Optional[str] = None,
@@ -434,7 +454,7 @@ class OperationBuilder:
 
         return self.operation(content)
 
-    def smart_rollup_originate(
+    def smart_rollup_originate(  # pylint: disable=dangerous-default-value,too-many-arguments,too-many-positional-arguments
             self,
             pvm_kind: str = '',
             kernel: str = '',
@@ -481,12 +501,14 @@ class OperationForge:
 
     @staticmethod
     def failing_noop(content: Dict[str, Any]) -> bytes:
+        """Forge a failing_noop operation to bytes."""
         res = forge_tag(operation_tags[content['kind']])
         res += forge_array(content['arbitrary'].encode())
         return res
 
     @staticmethod
     def transaction(content: Dict[str, Any]) -> bytes:
+        """Forge a transaction operation to bytes."""
         res = forge_tag(operation_tags[content['kind']])
         res += forge_address(content['source'], tz_only=True)
         res += forge_nat(int(content['fee']))
@@ -507,6 +529,7 @@ class OperationForge:
 
     @staticmethod
     def origination(content: Dict[str, Any]) -> bytes:
+        """Forge an origination operation to bytes."""
         res = forge_tag(operation_tags[content['kind']])
         res += forge_address(content['source'], tz_only=True)
         res += forge_nat(int(content['fee']))
@@ -527,6 +550,7 @@ class OperationForge:
 
     @staticmethod
     def delegation(content: Dict[str, Any]) -> bytes:
+        """Forge a delegation operation to bytes."""
         res = forge_tag(operation_tags[content['kind']])
         res += forge_address(content['source'], tz_only=True)
         res += forge_nat(int(content['fee']))
@@ -544,6 +568,7 @@ class OperationForge:
 
     @staticmethod
     def register_global_constant(content: Dict[str, Any]) -> bytes:
+        """Forge a register_global_constant operation to bytes."""
         res = forge_tag(operation_tags[content['kind']])
         res += forge_address(content['source'], tz_only=True)
         res += forge_nat(int(content['fee']))
@@ -555,6 +580,7 @@ class OperationForge:
 
     @staticmethod
     def transfer_ticket(content: Dict[str, Any]) -> bytes:
+        """Forge a transfer_ticket operation to bytes."""
         res = forge_tag(operation_tags[content['kind']])
         res += forge_address(content['source'], tz_only=True)
         res += forge_nat(int(content['fee']))
@@ -571,17 +597,21 @@ class OperationForge:
 
     @staticmethod
     def smart_rollup_add_messages(content: Dict[str, Any]) -> bytes:
+        """Forge a smart_rollup_add_messages operation to bytes."""
         res = forge_tag(operation_tags[content['kind']])
         res += forge_address(content['source'], tz_only=True)
         res += forge_nat(int(content['fee']))
         res += forge_nat(int(content['counter']))
         res += forge_nat(int(content['gas_limit']))
         res += forge_nat(int(content['storage_limit']))
-        res += forge_array(b''.join((forge_array(bytes.fromhex(msg)) for msg in content['message'])))
+        res += forge_array(
+            b''.join(forge_array(bytes.fromhex(msg)) for msg in content['message'])
+        )
         return res
 
     @staticmethod
     def smart_rollup_execute_outbox_message(content: Dict[str, Any]) -> bytes:
+        """Forge a smart_rollup_execute_outbox_message operation to bytes."""
         res = forge_tag(operation_tags[content['kind']])
         res += forge_address(content['source'], tz_only=True)
         res += forge_nat(int(content['fee']))
@@ -758,7 +788,7 @@ class Proposals(Operation):
     source: str
     period: int
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=dangerous-default-value
                  proposals: List[str] = [Default.PROTOCOL_HASH],
                  source: str = Default.ED25519_PUBLIC_KEY_HASH,
                  period: int = 0,
@@ -826,9 +856,9 @@ class ManagerOperation(Operation):
     fee: int
     counter: int
     gas_limit: int
-    storage_limit: int
+    storage_limit: int  # pylint: disable=too-many-arguments,too-many-positional-arguments
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=too-many-arguments,too-many-positional-arguments
                  source: str = Default.ED25519_PUBLIC_KEY_HASH,
                  fee: int = 0,
                  counter: int = 0,
@@ -847,7 +877,7 @@ class OperationGroup(Operation):
 
     operations: List[ManagerOperation]
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=dangerous-default-value
                  operations: List[ManagerOperation] = [],
                  **kwargs):
         self.operations = operations
@@ -891,7 +921,7 @@ class Transaction(ManagerOperation):
     entrypoint: str
     parameter: Micheline
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=dangerous-default-value
                  destination: str = Default.ED25519_PUBLIC_KEY_HASH,
                  amount: int = 0,
                  entrypoint: str = Default.ENTRYPOINT,
@@ -926,7 +956,7 @@ class Origination(ManagerOperation):
     balance: int
     delegate: Optional[str]
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=dangerous-default-value
                  code: Micheline = Default.DefaultMicheline.CODE,
                  storage: Micheline = Default.DefaultMicheline.TYPE,
                  balance: int = 0,
@@ -981,7 +1011,7 @@ class RegisterGlobalConstant(ManagerOperation):
 
     value: Micheline
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=dangerous-default-value
                  value: Micheline = Default.DefaultMicheline.VALUE,
                  **kwargs):
         self.value = value
@@ -1113,7 +1143,7 @@ class TransferTicket(ManagerOperation):
     destination: str
     entrypoint: str
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=dangerous-default-value,too-many-arguments,too-many-positional-arguments
                  ticket_contents: Micheline = Default.DefaultMicheline.VALUE,
                  ticket_ty: Micheline = Default.DefaultMicheline.TYPE,
                  ticket_ticketer: str = Default.ORIGINATED_ADDRESS,
@@ -1154,7 +1184,7 @@ class ScRollupOriginate(ManagerOperation):
     parameters_ty: Micheline
     whitelist: Optional[List[str]]
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=dangerous-default-value
                  pvm_kind: str = Default.SMART_ROLLUP_KIND,
                  kernel: str = "",
                  parameters_ty: Micheline = Default.DefaultMicheline.TYPE,
@@ -1186,7 +1216,7 @@ class ScRollupAddMessage(ManagerOperation):
 
     message: List[bytes]
 
-    def __init__(self,
+    def __init__(self,  # pylint: disable=dangerous-default-value
                  message: List[bytes] = [b''],
                  **kwargs):
         self.message = message

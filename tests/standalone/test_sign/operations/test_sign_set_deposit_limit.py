@@ -17,7 +17,7 @@
 """Gathering of tests related to Set-deposit-limit operations."""
 
 from utils.message import SetDepositLimit
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestSetDepositLimit(TestOperation):

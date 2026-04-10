@@ -285,7 +285,7 @@ def with_retry(f, attempts=MAX_ATTEMPTS):
     while True:
         try:
             return f()
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             if attempts <= 0:
                 print("- with_retry: attempts exhausted -")
                 raise e
@@ -302,12 +302,12 @@ class SpeculosTezosBackend(TezosBackend, SpeculosBackend):
         try:
             super().__enter__()
             return self
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             process = self._client.process
             try:
-                with_retry(self._client._wait_until_ready, attempts=5)
+                with_retry(self._client._wait_until_ready, attempts=5)  # pylint: disable=protected-access
                 super().__enter__()
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self._client.stop()
                 # do not forget to close the first process
                 self._client.process = process

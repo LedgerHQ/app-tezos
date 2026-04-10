@@ -17,7 +17,7 @@
 
 import re
 from pathlib import Path
-from typing import Dict, Generator, List, Optional, Union
+from typing import Dict, Generator, List, Optional
 
 import pytest
 from ledgered.devices import Device
@@ -59,7 +59,7 @@ def account(request) -> Account:
     param = getattr(request, "param", None)
     return param.get("account", DEFAULT_ACCOUNT) if param else DEFAULT_ACCOUNT
 
-def _override_seed(args: List[str], seed: str) -> List[str]:
+def _override_seed(args: List[str], seed: str) -> List[str]:  # pylint: disable=redefined-outer-name
     """Replace any existing --seed argument with the one provided."""
     result: List[str] = []
     skip_next = False
@@ -78,7 +78,7 @@ def _override_seed(args: List[str], seed: str) -> List[str]:
 
 
 @pytest.fixture(scope="function")
-def backend(
+def backend(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals
     skip_tests_for_unsupported_devices,
     root_pytest_dir: Path,
     device: Device,
@@ -89,7 +89,7 @@ def backend(
     additional_speculos_arguments: List[str],
     verbose_speculos: bool,
     ignore_missing_binaries: bool,
-    seed: str,
+    seed: str,  # pylint: disable=redefined-outer-name
 ) -> Generator[TezosBackend, None, None]:
     """Provide Tezos-specific backend while reusing ragger discovery logic."""
     _ = skip_tests_for_unsupported_devices
@@ -121,7 +121,7 @@ def backend(
 
 @pytest.fixture(scope="function")
 def tezos_navigator(
-        backend: TezosBackend,
+        backend: TezosBackend,  # pylint: disable=redefined-outer-name
         device: Device,
         golden_run: bool
 ) -> TezosNavigator:
@@ -175,7 +175,13 @@ def use_only_on_device(request, device: Device):
             pytest.skip(f'skipped on this device: "{current_device}"')
 
 
-global_log_dir: Union[Path, None] = None
+_log_dir_state: Dict[str, Optional[Path]] = {"value": None}
+
+
+def _get_log_dir() -> Optional[Path]:
+    """Return the current global log directory."""
+    return _log_dir_state["value"]
+
 
 def pytest_configure(config):
     """Configure pytest."""
@@ -186,10 +192,9 @@ def pytest_configure(config):
     )
 
     # Setup log directory
-    global global_log_dir
     log_dir = config.getoption("log_dir")
     if log_dir is not None:
-        global_log_dir = Path(log_dir)
+        _log_dir_state["value"] = Path(log_dir)
 
 logs : Dict[str, List[pytest.TestReport]] = {}
 
@@ -206,6 +211,7 @@ def pytest_runtest_logreport(report):
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_logfinish(nodeid, location):
     """Called at the end of running the runtest protocol for a single item."""
+    global_log_dir = _get_log_dir()
     if global_log_dir is not None:
         log_dir = Path(nodeid.split(".py")[0])
         # Remove `tests/standalone/`
@@ -218,11 +224,15 @@ def pytest_runtest_logfinish(nodeid, location):
         log_file = log_dir / f"{head_line}.log"
         with open(log_file, 'w', encoding="utf-8") as writer:
             for report in logs[head_line]:
-                writer.write(f"============================== {report.when.capitalize()} {report.outcome} ==============================\n")
+                when = report.when.capitalize()
+                outcome = report.outcome
+                sep = "=" * 30
+                writer.write(f"{sep} {when} {outcome} {sep}\n")
                 writer.write(f"{report.longreprtext}\n")
                 for section in report.sections:
                     if section[0].endswith(report.when):
-                        writer.write(f"------------------------------ {section[0]} ------------------------------\n")
+                        sep2 = "-" * 30
+                        writer.write(f"{sep2} {section[0]} {sep2}\n")
                         writer.write(f"{section[1]}\n")
                         writer.write("\n")
                 writer.write("\n")

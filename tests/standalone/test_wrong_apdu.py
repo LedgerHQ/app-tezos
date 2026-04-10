@@ -15,6 +15,7 @@
 # limitations under the License.
 
 """Gathering of tests related to APDU checks."""
+# pylint: disable=protected-access
 
 from typing import Any, Callable, Union
 
@@ -100,7 +101,9 @@ def test_mixing_command(backend: TezosBackend, account: Account):
     with StatusCode.UNEXPECTED_STATE.expected():
         backend.git()
 
-@pytest.mark.parametrize("ins", [Ins.GET_PUBLIC_KEY, Ins.PROMPT_PUBLIC_KEY], ids=lambda ins: f"{ins}")
+@pytest.mark.parametrize(
+    "ins", [Ins.GET_PUBLIC_KEY, Ins.PROMPT_PUBLIC_KEY], ids=lambda ins: f"{ins}"
+)
 @pytest.mark.parametrize("index", [Index.OTHER, Index.LAST], ids=lambda index: f"{index}")
 def test_wrong_index(backend: TezosBackend, account: Account, ins: Ins, index: Index):
     """Check wrong apdu index behaviour"""
@@ -129,7 +132,9 @@ def test_wrong_index(backend: TezosBackend, account: Account, ins: Ins, index: I
         "sign_with_hash",
     ]
 )
-def test_wrong_derivation_type(backend: TezosBackend, sender: Callable[[TezosBackend, Account], Any]):
+def test_wrong_derivation_type(
+        backend: TezosBackend,
+        sender: Callable[[TezosBackend, Account], Any]):
     """Check wrong derivation type behaviour"""
     account = Account("m/44'/1729'/0'/0'", 0x04, "__unused__")
 
@@ -164,7 +169,7 @@ def test_wrong_derivation_type(backend: TezosBackend, sender: Callable[[TezosBac
             SigType.ED25519,
             "__unused__"),
         Account(
-            bytes.fromhex("0b8000002c800006c1800000008000000080000000800000008000000080000000800000008000000080000000"),
+            bytes.fromhex("0b8000002c800006c1800000008000000080000000800000008000000080000000800000008000000080000000"),  # pylint: disable=line-too-long
             SigType.ED25519,
             "__unused__"),
     ],

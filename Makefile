@@ -120,7 +120,6 @@ integration_tests_basic_%:	app_%.tgz   \
 		if [ \"\$$DEVICE_DIR\" = \"nanosp\" ]; then DEVICE_DIR=nanos2; fi; \
 		mkdir -p app/build/\$$DEVICE_DIR/bin;                     \
 		tar xfz app_$*_dbg.tgz -C app/build/\$$DEVICE_DIR/bin;    \
-		apt update && apt install -y libsodium-dev;     \
 		python3 -m venv tezos_test_env --system-site-package;     \
 		source ./tezos_test_env/bin/activate;                     \
 		python3 -m pip install --upgrade pip -q;                  \

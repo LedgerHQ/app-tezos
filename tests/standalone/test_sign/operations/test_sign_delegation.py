@@ -17,7 +17,7 @@
 """Gathering of tests related to Delegation operations."""
 
 from utils.message import Default, Delegation
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestDelegation(TestOperation):

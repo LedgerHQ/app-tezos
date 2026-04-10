@@ -17,7 +17,7 @@
 """Gathering of tests related to Register-global-constant operations."""
 
 from utils.message import Default, RegisterGlobalConstant
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestRegisterGlobalConstant(TestOperation):
@@ -33,7 +33,7 @@ class TestRegisterGlobalConstant(TestOperation):
         Field("value", "Value", [
             Field.Case({'prim': 'Unit'}, "unit"),
             Field.Case({'prim': 'Pair', 'args': [{'string': 'a'}, {'int': 1}]}, "basic"),
-            Field.Case({"prim": "constant", 'args': [{"string": Default.SCRIPT_EXPR_HASH}]}, "with-constant")
+            Field.Case({"prim": "constant", 'args': [{"string": Default.SCRIPT_EXPR_HASH}]}, "with-constant")  # pylint: disable=line-too-long
             # More test about Micheline in micheline tests
         ]),
     ]

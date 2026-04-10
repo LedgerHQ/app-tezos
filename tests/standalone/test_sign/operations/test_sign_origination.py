@@ -17,7 +17,7 @@
 """Gathering of tests related to Origination operations."""
 
 from utils.message import Default, Origination
-from .helper import Flow, Field, TestOperation, pytest_generate_tests
+from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 
 class TestOrigination(TestOperation):
@@ -47,7 +47,7 @@ class TestOrigination(TestOperation):
         ]),
         Field("code", "Code", [
             Field.Case([], "empty"),
-            Field.Case([{'prim': 'CDR'}, {'prim': 'NIL', 'args': [{'prim': 'operation'}]}, {'prim': 'PAIR'}], "small"),
+            Field.Case([{'prim': 'CDR'}, {'prim': 'NIL', 'args': [{'prim': 'operation'}]}, {'prim': 'PAIR'}], "small"),  # pylint: disable=line-too-long
             # More test about Micheline in micheline tests
         ]),
         Field("storage", "Storage", [

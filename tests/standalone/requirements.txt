@@ -9,3 +9,4 @@ pytest-xdist
 ledgered
 speculos>=0.25.11
 ragger[tests,speculos,ledgerwallet]>=1.44.0
+types-requests

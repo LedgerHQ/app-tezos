@@ -2,56 +2,56 @@
 
 from decimal import Decimal
 from hashlib import blake2b
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import base58
 
-tb = bytes
+Tb = bytes
 
 base58_encodings = [
-    (b"B", 51, tb([1, 52]), 32, "block hash"),
-    (b"o", 51, tb([5, 116]), 32, "operation hash"),
-    (b"Lo", 52, tb([133, 233]), 32, "operation list hash"),
-    (b"LLo", 53, tb([29, 159, 109]), 32, "operation list list hash"),
-    (b"P", 51, tb([2, 170]), 32, "protocol hash"),
-    (b"Co", 52, tb([79, 199]), 32, "context hash"),
-    (b"tz1", 36, tb([6, 161, 159]), 20, "ed25519 public key hash"),
-    (b"tz2", 36, tb([6, 161, 161]), 20, "secp256k1 public key hash"),
-    (b"tz3", 36, tb([6, 161, 164]), 20, "p256 public key hash"),
-    (b"tz4", 36, tb([6, 161, 166]), 20, "BLS12-381 public key hash"),
-    (b"KT1", 36, tb([2, 90, 121]), 20, "originated smart contract address"),
-    (b"txr1", 37, tb([1, 128, 120, 31]), 20, "tx_rollup_l2_address"),
-    (b"sr1", 36, tb([6, 124, 117]), 20, "originated smart rollup address"),
-    (b"src1", 54, tb([17, 165, 134, 138]), 32, "smart rollup commitment hash"),
-    (b"srs1", 54, tb([17, 165, 235, 240]), 32, "smart rollup state hash"),
-    (b"srib1", 55, tb([3, 255, 138, 145, 110]), 32, "smart rollup inbox"),
-    (b"srib2", 55, tb([3, 255, 138, 145, 140]), 32, "smart rollup merkelized payload"),
-    (b"id", 30, tb([153, 103]), 16, "cryptobox public key hash"),
-    (b"expr", 54, tb([13, 44, 64, 27]), 32, "script expression"),
-    (b"edsk", 54, tb([13, 15, 58, 7]), 32, "ed25519 seed"),
-    (b"edpk", 54, tb([13, 15, 37, 217]), 32, "ed25519 public key"),
-    (b"spsk", 54, tb([17, 162, 224, 201]), 32, "secp256k1 secret key"),
-    (b"p2sk", 54, tb([16, 81, 238, 189]), 32, "p256 secret key"),
-    (b"edesk", 88, tb([7, 90, 60, 179, 41]), 56, "ed25519 encrypted seed"),
-    (b"spesk", 88, tb([9, 237, 241, 174, 150]), 56, "secp256k1 encrypted secret key"),
-    (b"p2esk", 88, tb([9, 48, 57, 115, 171]), 56, "p256 encrypted secret key"),
-    (b"sppk", 55, tb([3, 254, 226, 86]), 33, "secp256k1 public key"),
-    (b"p2pk", 55, tb([3, 178, 139, 127]), 33, "p256 public key"),
-    (b"SSp", 53, tb([38, 248, 136]), 33, "secp256k1 scalar"),
-    (b"GSp", 53, tb([5, 92, 0]), 33, "secp256k1 element"),
-    (b"edsk", 98, tb([43, 246, 78, 7]), 64, "ed25519 secret key"),
-    (b"edsig", 99, tb([9, 245, 205, 134, 18]), 64, "ed25519 signature"),
-    (b"spsig", 99, tb([13, 115, 101, 19, 63]), 64, "secp256k1 signature"),
-    (b"p2sig", 98, tb([54, 240, 44, 52]), 64, "p256 signature"),
-    (b"sig", 96, tb([4, 130, 43]), 64, "generic signature"),
-    (b"Net", 15, tb([87, 82, 0]), 4, "chain id"),
-    (b"nce", 53, tb([69, 220, 169]), 32, "seed nonce hash"),
-    (b"btz1", 37, tb([1, 2, 49, 223]), 20, "blinded public key hash"),
-    (b"vh", 52, tb([1, 106, 242]), 32, "block_payload_hash"),
-    (b"BLsig", 142, tb([40, 171, 64, 207]), 96, "bls12_381 signature"),
-    (b"BLpk", 76, tb([6, 149, 135, 204]), 48, "bls12_381 public key"),
-    (b"BLsk", 54, tb([3, 150, 192, 40]), 32, "bls12_381 secret_key"),
-    (b"BLesk", 88, tb([2, 5, 30, 53, 25]), 56, "bls12_381 encrypted_secret_key"),
+    (b"B", 51, Tb([1, 52]), 32, "block hash"),
+    (b"o", 51, Tb([5, 116]), 32, "operation hash"),
+    (b"Lo", 52, Tb([133, 233]), 32, "operation list hash"),
+    (b"LLo", 53, Tb([29, 159, 109]), 32, "operation list list hash"),
+    (b"P", 51, Tb([2, 170]), 32, "protocol hash"),
+    (b"Co", 52, Tb([79, 199]), 32, "context hash"),
+    (b"tz1", 36, Tb([6, 161, 159]), 20, "ed25519 public key hash"),
+    (b"tz2", 36, Tb([6, 161, 161]), 20, "secp256k1 public key hash"),
+    (b"tz3", 36, Tb([6, 161, 164]), 20, "p256 public key hash"),
+    (b"tz4", 36, Tb([6, 161, 166]), 20, "BLS12-381 public key hash"),
+    (b"KT1", 36, Tb([2, 90, 121]), 20, "originated smart contract address"),
+    (b"txr1", 37, Tb([1, 128, 120, 31]), 20, "tx_rollup_l2_address"),
+    (b"sr1", 36, Tb([6, 124, 117]), 20, "originated smart rollup address"),
+    (b"src1", 54, Tb([17, 165, 134, 138]), 32, "smart rollup commitment hash"),
+    (b"srs1", 54, Tb([17, 165, 235, 240]), 32, "smart rollup state hash"),
+    (b"srib1", 55, Tb([3, 255, 138, 145, 110]), 32, "smart rollup inbox"),
+    (b"srib2", 55, Tb([3, 255, 138, 145, 140]), 32, "smart rollup merkelized payload"),
+    (b"id", 30, Tb([153, 103]), 16, "cryptobox public key hash"),
+    (b"expr", 54, Tb([13, 44, 64, 27]), 32, "script expression"),
+    (b"edsk", 54, Tb([13, 15, 58, 7]), 32, "ed25519 seed"),
+    (b"edpk", 54, Tb([13, 15, 37, 217]), 32, "ed25519 public key"),
+    (b"spsk", 54, Tb([17, 162, 224, 201]), 32, "secp256k1 secret key"),
+    (b"p2sk", 54, Tb([16, 81, 238, 189]), 32, "p256 secret key"),
+    (b"edesk", 88, Tb([7, 90, 60, 179, 41]), 56, "ed25519 encrypted seed"),
+    (b"spesk", 88, Tb([9, 237, 241, 174, 150]), 56, "secp256k1 encrypted secret key"),
+    (b"p2esk", 88, Tb([9, 48, 57, 115, 171]), 56, "p256 encrypted secret key"),
+    (b"sppk", 55, Tb([3, 254, 226, 86]), 33, "secp256k1 public key"),
+    (b"p2pk", 55, Tb([3, 178, 139, 127]), 33, "p256 public key"),
+    (b"SSp", 53, Tb([38, 248, 136]), 33, "secp256k1 scalar"),
+    (b"GSp", 53, Tb([5, 92, 0]), 33, "secp256k1 element"),
+    (b"edsk", 98, Tb([43, 246, 78, 7]), 64, "ed25519 secret key"),
+    (b"edsig", 99, Tb([9, 245, 205, 134, 18]), 64, "ed25519 signature"),
+    (b"spsig", 99, Tb([13, 115, 101, 19, 63]), 64, "secp256k1 signature"),
+    (b"p2sig", 98, Tb([54, 240, 44, 52]), 64, "p256 signature"),
+    (b"sig", 96, Tb([4, 130, 43]), 64, "generic signature"),
+    (b"Net", 15, Tb([87, 82, 0]), 4, "chain id"),
+    (b"nce", 53, Tb([69, 220, 169]), 32, "seed nonce hash"),
+    (b"btz1", 37, Tb([1, 2, 49, 223]), 20, "blinded public key hash"),
+    (b"vh", 52, Tb([1, 106, 242]), 32, "block_payload_hash"),
+    (b"BLsig", 142, Tb([40, 171, 64, 207]), 96, "bls12_381 signature"),
+    (b"BLpk", 76, Tb([6, 149, 135, 204]), 48, "bls12_381 public key"),
+    (b"BLsk", 54, Tb([3, 150, 192, 40]), 32, "bls12_381 secret_key"),
+    (b"BLesk", 88, Tb([2, 5, 30, 53, 25]), 56, "bls12_381 encrypted_secret_key"),
 ]
 
 prim_tags = {
@@ -268,6 +268,7 @@ reserved_entrypoints = {
 
 
 def scrub_input(v: Union[str, bytes]) -> bytes:
+    """Normalize input to bytes."""
     if isinstance(v, bytes):
         return v
     if isinstance(v, str):
@@ -275,19 +276,25 @@ def scrub_input(v: Union[str, bytes]) -> bytes:
             return bytes.fromhex(v.removeprefix("0x"))
         except ValueError:
             return v.encode("ascii")
-    raise TypeError(f"A bytes-like object is required (also str), not `{type(v).__name__}`")
+    raise TypeError(
+        f"A bytes-like object is required (also str), not `{type(v).__name__}`"
+    )
 
 
 def blake2b_32(v: Union[str, bytes] = b""):
+    """Return a 32-byte BLAKE2b digest of v."""
     return blake2b(scrub_input(v), digest_size=32)
 
 
 def base58_decode(v: Union[str, bytes]) -> bytes:
+    """Decode a base58check-encoded Tezos value, stripping the prefix."""
     if isinstance(v, str):
         v = v.encode()
     try:
         prefix_len = next(
-            len(encoding[2]) for encoding in base58_encodings if len(v) == encoding[1] and v.startswith(encoding[0])
+            len(encoding[2])
+            for encoding in base58_encodings
+            if len(v) == encoding[1] and v.startswith(encoding[0])
         )
     except StopIteration as exc:
         raise ValueError("Invalid encoding, prefix or length mismatch.") from exc
@@ -295,14 +302,20 @@ def base58_decode(v: Union[str, bytes]) -> bytes:
 
 
 def base58_encode(v: bytes, prefix: bytes) -> bytes:
+    """Encode bytes as a base58check Tezos value with the given prefix."""
     try:
-        encoding = next(encoding for encoding in base58_encodings if len(v) == encoding[3] and prefix == encoding[0])
+        encoding = next(
+            encoding
+            for encoding in base58_encodings
+            if len(v) == encoding[3] and prefix == encoding[0]
+        )
     except StopIteration as exc:
         raise ValueError("Invalid encoding, prefix or length mismatch.") from exc
     return base58.b58encode_check(encoding[2] + v)
 
 
 def format_mutez(value: Optional[Union[int, Decimal]]) -> str:
+    """Format a mutez value as a string."""
     if value is None:
         value = 0
     elif isinstance(value, Decimal):
@@ -313,6 +326,7 @@ def format_mutez(value: Optional[Union[int, Decimal]]) -> str:
 
 
 def forge_int(value: int) -> bytes:
+    """Encode a signed integer in Micheline binary format."""
     res = bytearray()
     i = abs(value)
     res.append((i & 0b00111111) | (0b11000000 if value < 0 else 0b10000000))
@@ -325,6 +339,7 @@ def forge_int(value: int) -> bytes:
 
 
 def forge_nat(value: int) -> bytes:
+    """Encode a natural number in Micheline binary format."""
     if value < 0:
         raise ValueError("Value cannot be negative.")
     buf = bytearray()
@@ -341,39 +356,48 @@ def forge_nat(value: int) -> bytes:
 
 
 def forge_int_fixed(value: int, length: int) -> bytes:
+    """Encode an integer as a fixed-length big-endian byte string."""
     return value.to_bytes(length, "big")
 
 
 def forge_int16(value: int) -> bytes:
+    """Encode an integer as a 2-byte big-endian value."""
     return value.to_bytes(2, "big")
 
 
 def forge_int32(value: int) -> bytes:
+    """Encode an integer as a 4-byte big-endian value."""
     return value.to_bytes(4, "big")
 
 
 def forge_bool(value: bool) -> bytes:
+    """Encode a boolean as a single byte."""
     return b"\xff" if value else b"\x00"
 
 
 def forge_base58(value: str) -> bytes:
+    """Decode a base58check-encoded value to raw bytes."""
     return base58_decode(value)
 
 
 def forge_array(data: bytes, len_bytes: int = 4) -> bytes:
+    """Prefix data with its length encoded as a big-endian integer."""
     return len(data).to_bytes(len_bytes, "big") + data
 
 
 def forge_tag(operation_tag: int) -> bytes:
+    """Encode an operation tag as a single byte."""
     return operation_tag.to_bytes(1, "big")
 
 
 def get_tag(args_len: int, annots_len: int) -> bytes:
+    """Compute the Micheline primitive tag byte."""
     tag = min(args_len * 2 + 3 + (1 if annots_len > 0 else 0), 9)
     return bytes([tag])
 
 
 def forge_address(value: str, tz_only: bool = False) -> bytes:
+    """Encode a Tezos address to its binary representation."""
     prefix_len = 4 if value.startswith("txr1") else 3
     prefix = value[:prefix_len]
     address = base58.b58decode_check(value)[prefix_len:]
@@ -399,6 +423,7 @@ def forge_address(value: str, tz_only: bool = False) -> bytes:
 
 
 def forge_public_key(value: str) -> bytes:
+    """Encode a Tezos public key to its binary representation."""
     prefix = value[:4]
     res = base58.b58decode_check(value)[4:]
     if prefix == "edpk":
@@ -412,7 +437,8 @@ def forge_public_key(value: str) -> bytes:
     raise ValueError(f"Unrecognized key type: #{prefix}")
 
 
-def forge_micheline(data: Union[List, Dict]) -> bytes:
+def forge_micheline(data: Union[List, Dict]) -> bytes:  # pylint: disable=too-many-branches
+    """Encode a Micheline expression to its binary representation."""
     res = []
     if isinstance(data, list):
         res.append(b"\x02")
@@ -452,18 +478,24 @@ def forge_micheline(data: Union[List, Dict]) -> bytes:
 
 
 def forge_script(script: Dict[str, Any]) -> bytes:
+    """Encode a Tezos script (code + storage) to its binary representation."""
     code = forge_micheline(script["code"])
     storage = forge_micheline(script["storage"])
     return forge_array(code) + forge_array(storage)
 
 
 def has_parameters(content: Dict[str, Any]) -> bool:
+    """Return True if the operation content has non-default parameters."""
     if not content.get("parameters"):
         return False
-    return not (content["parameters"]["entrypoint"] == "default" and content["parameters"]["value"] == {"prim": "Unit"})
+    return not (
+        content["parameters"]["entrypoint"] == "default"
+        and content["parameters"]["value"] == {"prim": "Unit"}
+    )
 
 
 def forge_entrypoint(entrypoint: str) -> bytes:
+    """Encode a contract entrypoint name to its binary representation."""
     if entrypoint in reserved_entrypoints:
         return reserved_entrypoints[entrypoint]
     return b"\xff" + forge_array(entrypoint.encode(), len_bytes=1)

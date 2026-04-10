@@ -109,12 +109,13 @@ def backend(  # pylint: disable=too-many-arguments,too-many-positional-arguments
 
     args = speculos_kwargs.pop("args", [])
     args = _override_seed(args, seed)
+    speculos_kwargs["args"] = args
+    speculos_kwargs["log_apdu_file"] = log_apdu_file
 
     backend_instance = SpeculosTezosBackend(  # pylint: disable=abstract-class-instantiated
         app_path,
         device,
-        log_apdu_file=log_apdu_file,
-        args=args,
+        **speculos_kwargs,
     )
     with backend_instance as instance:
         yield instance

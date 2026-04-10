@@ -22,7 +22,7 @@ from typing import List, Union
 import pytest
 
 from ledgered.devices import Device, DeviceType
-from ragger.navigator import NavIns, NavInsID
+from ragger.navigator import BaseNavInsID, NavIns, NavInsID
 
 from utils.account import Account
 from utils.backend import TezosBackend, StatusCode
@@ -522,7 +522,7 @@ def test_blindsign_too_deep(
         if device.type == DeviceType.NANOS:
             ### Simulate `navigate_review` up to `ACCEPT_RISK` because the nanos screen can look like it hasn't changed.  # pylint: disable=line-too-long
 
-            instructions: List[Union[NavIns, NavInsID]] = [
+            instructions: List[Union[NavIns, BaseNavInsID]] = [
                 # 'Review operation'
                 NavInsID.RIGHT_CLICK,  # 'Expression {{{...{{{'
                 NavInsID.RIGHT_CLICK,  # 'Expression {{{...{{{'

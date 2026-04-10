@@ -208,11 +208,11 @@ class AccountKey:
         elif self._curve == b"p2":
             pk = fastecdsa.encoding.sec1.SEC1Encoder.decode_public_key(
                 self._public_point, curve=fastecdsa.curve.P256
-            )
+            )  # type: ignore[assignment]
             r = int.from_bytes(decoded_signature[:32], "big")
             s = int.from_bytes(decoded_signature[32:], "big")
             if not fastecdsa.ecdsa.verify(
-                    sig=(r, s), msg=encoded_message, Q=pk, hashfunc=blake2b_32):
+                    sig=(r, s), msg=encoded_message, Q=pk, hashfunc=blake2b_32):  # type: ignore[arg-type]
                 raise ValueError("Signature is invalid.")
         else:
             raise ValueError(f"Invalid or unsupported curve type: `{self._curve!r}`.")

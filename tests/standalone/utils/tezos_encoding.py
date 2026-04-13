@@ -257,6 +257,8 @@ operation_tags = {
     "smart_rollup_execute_outbox_message": 206,
 }
 
+# Builtin smart entrypoints (Octez `Entrypoint_repr.smart_encoding`; see
+# docs/PROTOCOL_ALIGNMENT_STAKING2.md §3.2).
 reserved_entrypoints = {
     "default": b"\x00",
     "root": b"\x01",
@@ -264,6 +266,10 @@ reserved_entrypoints = {
     "set_delegate": b"\x03",
     "remove_delegate": b"\x04",
     "deposit": b"\x05",
+    "stake": b"\x06",
+    "unstake": b"\x07",
+    "finalize_unstake": b"\x08",
+    "set_delegate_parameters": b"\x09",
 }
 
 

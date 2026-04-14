@@ -14,10 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Gathering of tests related to Transaction operations."""
+"""Gathering of tests related to Transaction operations.
+
+Staking 2.0 pseudo-operations (Paris+) are ordinary tag-108 transactions with
+builtin smart entrypoints 6–9; see ``docs/PROTOCOL_ALIGNMENT_STAKING2.md``.
+"""
 
 from utils.message import Transaction
 from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+# Default implicit used as self-transfer destination elsewhere (`ManagerOperation`).
+_SELF = "tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU"
+# Distinct implicit for Seoul+ flows where payer (source) != staker (destination).
+_STAKER_OTHER = "tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa"
 
 # FA2 transfer parameter: single item, token_id=0 (clear-signing supported).
 # Inner list(pair(nat,nat)) as direct Pair (common wallet encoding, e.g. Temple).
@@ -86,19 +95,47 @@ class TestTransaction(TestOperation):
             entrypoint="transfer",
             parameter=_FA2_TRANSFER_FALLBACK_PARAMETER,
         ),
-        Flow('stake', amount=1000000000, entrypoint='stake'),
-        Flow('unstake', amount=500000000, entrypoint='unstake'),
-        Flow('finalize_unstake', entrypoint='finalize_unstake'),
         Flow(
-            'delegate_parameters',
-            entrypoint='delegate_parameters',
+            'staking2_stake_self',
+            amount=1000000000,
+            destination=_SELF,
+            entrypoint='stake',
+            parameter={'prim': 'Unit'},
+        ),
+        Flow(
+            'staking2_unstake_self',
+            amount=500000000,
+            destination=_SELF,
+            entrypoint='unstake',
+            parameter={'prim': 'Unit'},
+        ),
+        Flow(
+            'staking2_finalize_unstake_self',
+            amount=0,
+            destination=_SELF,
+            entrypoint='finalize_unstake',
+            parameter={'prim': 'Unit'},
+        ),
+        # Seoul+: fee payer (source / signer) may differ from staker (destination).
+        Flow(
+            'staking2_finalize_unstake_sponsored',
+            amount=0,
+            destination=_STAKER_OTHER,
+            entrypoint='finalize_unstake',
+            parameter={'prim': 'Unit'},
+        ),
+        Flow(
+            'staking2_set_delegate_parameters',
+            amount=0,
+            destination=_SELF,
+            entrypoint='set_delegate_parameters',
             parameter={'prim': 'Pair', 'args': [
                 {'int': 4000000},
                 {'prim': 'Pair', 'args': [
                     {'int': 20000000},
                     {'prim': 'Unit'}
                 ]}
-            ]}
+            ]},
         ),
     ]
 

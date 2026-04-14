@@ -2,10 +2,13 @@ FROM ocaml/opam:ubuntu-24.04-ocaml-5.2
 
 USER opam
 
+# Rust channel must match Octez pin (deps/tezos/rust-toolchain).
+COPY deps/tezos/rust-toolchain /tmp/octez-rust-toolchain
+
 # Install system dependencies and Rust
 RUN sudo apt-get update &&                                                       \
     sudo apt-get -y install wget git &&                                          \
-    RUSTUP_TOOLCHAIN=1.86.0 &&                                                   \
+    RUSTUP_TOOLCHAIN=$(tr -d ' \n\r\t' < /tmp/octez-rust-toolchain) &&                                                   \
     wget https://sh.rustup.rs/rustup-init.sh &&                                  \
     chmod +x rustup-init.sh &&                                                   \
     ./rustup-init.sh --profile minimal --default-toolchain $RUSTUP_TOOLCHAIN -y && \

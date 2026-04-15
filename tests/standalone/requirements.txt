@@ -1,0 +1,12 @@
+base58>=2.1.1
+coincurve>=20.0.0
+fastecdsa>=2.2.3
+py-ecc==7.0.1
+PyNaCl>=1.5.0
+# Test framework
+GitPython
+pytest-xdist
+ledgered
+speculos>=0.25.11
+ragger[tests,speculos,ledgerwallet]>=1.44.0
+types-requests

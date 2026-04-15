@@ -25,7 +25,7 @@
  */
 typedef struct {
     uint16_t size;      /// size of the number
-    uint8_t  sign : 1;  /// sign ot the number
+    uint8_t  sign : 1;  /// sign of the number
     uint8_t  stop : 1;  /// number as been fully parsed
 } tz_num_parser_regs;
 

@@ -69,7 +69,8 @@ typedef enum {
     TZ_OPERATION_STEP_READ_SORU_KIND,
     TZ_OPERATION_STEP_READ_BALLOT,
     TZ_OPERATION_STEP_READ_PROTOS,
-    TZ_OPERATION_STEP_READ_PKH_LIST
+    TZ_OPERATION_STEP_READ_PKH_LIST,
+    TZ_OPERATION_STEP_READ_FA2_TRANSFER
 } tz_operation_parser_step_kind;
 
 /**
@@ -207,10 +208,11 @@ typedef struct {
             uint8_t ofs : 3;   /// number offset
         } step_read_int32;     /// TZ_OPERATION_STEP_READ_INT32
         struct {
-            uint16_t ofs;       /// current buffer string offset
-            uint8_t  skip : 1;  /// if the field is skipped
-        } step_read_string;     /// TZ_OPERATION_STEP_READ_STRING
-                                /// TZ_OPERATION_STEP_READ_BINARY
+            uint16_t ofs;            /// current buffer string offset
+            uint8_t  skip : 1;       /// if the field is skipped
+            uint8_t  check_fa2 : 1;  /// check FA2 candidate after read
+        } step_read_string;          /// TZ_OPERATION_STEP_READ_STRING
+                                     /// TZ_OPERATION_STEP_READ_BINARY
         struct {
             const char *name;  /// field name
             uint8_t
@@ -223,10 +225,22 @@ typedef struct {
             uint8_t     skip : 1;  /// if the field is skipped
         } step_read_list;          /// TZ_OPERATION_STEP_READ_PROTOS
                                    /// TZ_OPERATION_STEP_READ_SORU_MESSAGES
+        struct {
+            uint8_t            sub_step;   /// current FA2 parsing sub-step
+            uint16_t           addr_ofs;   /// offset within address buffer
+            uint8_t            addr_tag;   /// address encoding tag
+            uint8_t            size_ofs;   /// bytes consumed of 4-byte size
+            uint32_t           size_val;   /// accumulator for 4-byte size
+            uint16_t           addr_len;   /// remaining bytes for address
+            tz_num_parser_regs num_state;  /// num parser state for amount
+            int16_t token_idx;  /// matched token index, -1 if unknown
+        } step_read_fa2;        /// TZ_OPERATION_STEP_READ_FA2_TRANSFER
     };
 } tz_operation_parser_frame;
 
-#define TZ_OPERATION_STACK_DEPTH 6  /// Maximum operations depth handled
+#define TZ_OPERATION_STACK_DEPTH      6  /// Maximum operations depth handled
+#define TZ_OPERATION_SOURCE_SIZE      22
+#define TZ_OPERATION_DESTINATION_SIZE 22
 
 /**
  * @brief This struct represents the parser of operations
@@ -241,10 +255,14 @@ typedef struct {
         stack[TZ_OPERATION_STACK_DEPTH];  /// stack of frames
     tz_operation_parser_frame *frame;     /// current frame
                                           /// init == stack, NULL when done
-    uint8_t  seen_reveal : 1;             /// check at most one reveal
-    uint8_t  source[22];                  /// check consistent source in batch
-    uint8_t  destination[22];             /// saved for entrypoint dispatch
-    uint16_t batch_index;                 /// to print a sequence number
+    uint8_t seen_reveal : 1;              /// check at most one reveal
+    uint8_t is_fa2_candidate : 1;  /// KT1 destination + transfer entrypoint
+    uint8_t source[TZ_OPERATION_SOURCE_SIZE];  /// check consistent source in
+                                               /// batch
+    uint8_t
+        destination[TZ_OPERATION_DESTINATION_SIZE];  /// saved for entrypoint
+                                                     /// dispatch
+    uint16_t batch_index;  /// to print a sequence number
 #ifdef HAVE_SWAP
     tz_operation_tag last_tag;   /// last operations tag encountered
     uint16_t         nb_reveal;  /// number of reveal encountered

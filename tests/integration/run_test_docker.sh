@@ -30,9 +30,11 @@ docker run --rm -it -v "$(realpath .):/app"              	\
        -e APPVERSION=$APPVERSION                        \
        -e VERSION_BYTES=$VERSION_BYTES                  \
     --entrypoint=/bin/bash ledger-app-tezos-integration-tests	   \
-    -c " apt install -y libsodium-dev; \
+    -c "apt update && apt install -y libsodium-dev; \
 		python3 -m venv tezos_test_env --system-site-package;      \
 		source ./tezos_test_env/bin/activate;                      \
 		python3 -m pip install --upgrade pip -q;    \
+		python3 -m pip install --no-deps pytezos==3.16.1 -q;    \
+    python3 -m pip install base58==2.1.0 -q;    \
 		python3 -m pip install -r tests/requirements.txt -q;    \
      ./tests/integration/run_test_local.sh -F -m $*"

@@ -59,7 +59,7 @@ void ui_strings_init(void);
 
 /**
  * @brief Push a new string to the ring buffer.
- *          Throws error if len can not be accomodated in the empty space of
+ *          Throws error if len can not be accommodated in the empty space of
  * ring buffer. Therefore, it is important to call ui_strings_can_fit before
  * pushing the string on the buffer.
  *

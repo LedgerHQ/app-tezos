@@ -226,12 +226,18 @@ typedef struct {
         } step_read_list;          /// TZ_OPERATION_STEP_READ_PROTOS
                                    /// TZ_OPERATION_STEP_READ_SORU_MESSAGES
         struct {
-            uint8_t            sub_step;   /// current FA2 parsing sub-step
-            uint16_t           addr_ofs;   /// offset within address buffer
-            uint8_t            addr_tag;   /// address encoding tag
-            uint8_t            size_ofs;   /// bytes consumed of 4-byte size
-            uint32_t           size_val;   /// accumulator for 4-byte size
-            uint16_t           addr_len;   /// remaining bytes for address
+            uint8_t  sub_step;        /// current FA2 parsing sub-step
+            uint16_t addr_ofs;        /// offset within address buffer
+            uint8_t  addr_tag;        /// address encoding tag
+            uint8_t  size_ofs;        /// bytes consumed of 4-byte size
+            uint32_t size_val;        /// accumulator for 4-byte size
+            uint16_t addr_len;        /// remaining bytes for address
+            uint8_t  token_id_shift;  /// parsed token_id bit shift
+
+            /// parsed token_id value - documentation defines it as nat but
+            /// the typescript sdk defines it as string or int64, using a
+            /// uint64 type here matches the typescript sdk
+            uint64_t           token_id_val;
             tz_num_parser_regs num_state;  /// num parser state for amount
             int16_t token_idx;  /// matched token index, -1 if unknown
         } step_read_fa2;        /// TZ_OPERATION_STEP_READ_FA2_TRANSFER

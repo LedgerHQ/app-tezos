@@ -716,6 +716,33 @@ test_check_fa2_transfer_fallback_uses_complex_parameter(void **state)
 }
 
 static void
+test_check_fa2_transfer_clear_signing_token_id_gt0(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000100f42eb1"
+          "f25677dd7b0a94aba3a7aea61e2fd30d0001ff087472616e736665720000006802"
+          "00000063070701000000244b543151576462415376615458573847576668664e68"
+          "334a4d6a6758766e5a4141544a570200000033070701000000247372314d794377"
+          "523833685a70684353716159535141705078504d65796b734a57576e6807070001"
+          "00a0843d";
+    const tz_fields_check fields_check[] = {
+        {"Source",             false, 1 },
+        {"Fee",                false, 2 },
+        {"Storage limit",      false, 3 },
+        {"Amount",             false, 4 },
+        {"Destination",        false, 5 },
+        //     {"Option",        _,     6},
+        //    {"Tuple",         _,     7},
+        {"Entrypoint",         false, 8 },
+        {"Transfer tokens to", false, 10},
+        {"Token Amount",       false, 11},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+static void
 test_check_fa2_transfer_multi_item_fallback(void **state)
 {
     operation_parser_data *data = *state;
@@ -796,6 +823,7 @@ main(void)
         cmocka_unit_test_setup_teardown(test_check_sc_rollup_originate_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_fa2_transfer_clear_signing_fields, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_fa2_transfer_fallback_uses_complex_parameter, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_fa2_transfer_clear_signing_token_id_gt0, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_fa2_transfer_multi_item_fallback, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_fa2_transfer_negative_amount_fallback, operation_parser_setup, operation_parser_teardown),
     };

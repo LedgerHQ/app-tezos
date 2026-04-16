@@ -165,6 +165,15 @@ class TestOperation(ABC):
         """Reason why skipping the `test_sign_operation` test."""
         return None
 
+    def field_test_nav_anchor(self) -> str:
+        """Row label to scroll to before the field under test.
+
+        Tag-108 transactions defer the ``Operation (n)`` line until the smart
+        entrypoint is known, so ``Source`` appears first. Most manager ops have
+        ``Source``; subclasses without it (e.g. failing noop) must override.
+        """
+        return "Source"
+
     def test_sign_operation(
             self,
             backend: TezosBackend,
@@ -239,9 +248,9 @@ class TestOperation(ABC):
             validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
             if device.is_nano:
                 validation_instructions = [NavInsID.RIGHT_CLICK]
-            # Navigates until fields
+            # Navigates until a stable first row (see `field_test_nav_anchor`).
             tezos_navigator.navigate_forward(
-                text="Operation",
+                text=self.field_test_nav_anchor(),
                 validation_instructions=validation_instructions,
                 screen_change_before_first_instruction=True,
             )

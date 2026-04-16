@@ -27,6 +27,10 @@ class TestFailingNoop(TestOperation):
     def op_class(self):
         return FailingNoop
 
+    def field_test_nav_anchor(self) -> str:
+        """No manager ``Source`` row; operation kind is shown first."""
+        return "Operation"
+
     flows = [Flow('basic', message="message")]
 
     fields = [

@@ -20,3 +20,9 @@ unit-tests/build
 
 tags
 __pycache__
+
+# .vscode
+.vscode/
+
+# tmp
+tmp/

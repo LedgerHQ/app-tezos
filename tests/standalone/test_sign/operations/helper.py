@@ -137,11 +137,12 @@ def parametrize_test_operation_field(metafunc) -> None:
             for case_ in field.cases
         ]
 
-    metafunc.parametrize(
-        args_names,
-        args_values,
-        ids=args_ids
-    )
+    if args_values:
+        metafunc.parametrize(
+            args_names,
+            args_values,
+            ids=args_ids
+        )
 
 
 def pytest_generate_tests(metafunc) -> None:
@@ -168,9 +169,8 @@ class TestOperation(ABC):
     def field_test_nav_anchor(self) -> str:
         """Row label to scroll to before the field under test.
 
-        Tag-108 transactions defer the ``Operation (n)`` line until the smart
-        entrypoint is known, so ``Source`` appears first. Most manager ops have
-        ``Source``; subclasses without it (e.g. failing noop) must override.
+        Most operations show ``Source`` early in the review flow; subclasses
+        without it (e.g. failing noop) must override (e.g. with ``Operation``).
         """
         return "Source"
 
@@ -221,7 +221,7 @@ class TestOperation(ABC):
         with backend.sign(account, message):
             tezos_navigator.accept_sign(snap_path=snapshot_dir)
 
-    def test_operation_field(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    def il(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             backend: TezosBackend,
             device: Device,

@@ -70,7 +70,8 @@ typedef enum {
     TZ_OPERATION_STEP_READ_BALLOT,
     TZ_OPERATION_STEP_READ_PROTOS,
     TZ_OPERATION_STEP_READ_PKH_LIST,
-    TZ_OPERATION_STEP_READ_FA2_TRANSFER
+    TZ_OPERATION_STEP_READ_FA2_TRANSFER,
+    TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS
 } tz_operation_parser_step_kind;
 
 /**
@@ -234,7 +235,11 @@ typedef struct {
             uint16_t           addr_len;   /// remaining bytes for address
             tz_num_parser_regs num_state;  /// num parser state for amount
             int16_t token_idx;  /// matched token index, -1 if unknown
-        } step_read_fa2;        /// TZ_OPERATION_STEP_READ_FA2_TRANSFER
+        } step_read_fa2;  /// TZ_OPERATION_STEP_READ_FA2_TRANSFER
+        struct {
+            uint8_t            sub_step;
+            tz_num_parser_regs int_regs;  /// Micheline int (zarith) parse state
+        } step_read_sdp;  /// TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS
     };
 } tz_operation_parser_frame;
 
@@ -257,6 +262,13 @@ typedef struct {
                                           /// init == stack, NULL when done
     uint8_t seen_reveal : 1;              /// check at most one reveal
     uint8_t is_fa2_candidate : 1;  /// KT1 destination + transfer entrypoint
+    uint8_t emit_finalize_note : 1;  /// show Seoul+ sponsored-finalize note before param
+    char manager_entrypoint[28];  /// last manager entrypoint name (ASCII)
+    char sdp_limit_decimal[32];  /// clear-sign set_delegate_parameters
+    char sdp_edge_decimal[32];
+    char sdp_reparse_field_name[30];  /// same as TZ_FIELD_NAME_SIZE (parser_state.h)
+    uint16_t sdp_payload_start;  /// rewind Micheline fallback on SDP mismatch
+    uint8_t  sdp_expr_skip : 1;
     uint8_t source[TZ_OPERATION_SOURCE_SIZE];  /// check consistent source in
                                                /// batch
     uint8_t

@@ -327,6 +327,14 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 wait_for_screen_change=True
             )
             idx += 1
+            cur_shot = getattr(self._backend, '_last_screenshot', None)
+            # On the final Accept/Reject page, further RIGHT presses often do not
+            # change the framebuffer while OCR can still match a field label
+            # (e.g. "Source") from the session. Stop instead of spinning until
+            # timeout — this is not a device stack overflow.
+            if (cur_shot is not None and cur_shot == prev_shot and idx >= 1):
+                break
+            prev_shot = cur_shot
         # pylint: enable=protected-access
 
         if validation_instructions:

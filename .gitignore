@@ -26,3 +26,7 @@ __pycache__
 
 # tmp
 tmp/
+
+# Claude
+.claude/
+build-unit-tests/

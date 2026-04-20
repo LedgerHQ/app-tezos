@@ -1127,8 +1127,12 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
 static tz_parser_result
 sdp_fail_to_micheline(tz_parser_state *state)
 {
-    tz_operation_state *op = &state->operation;
+    tz_operation_state *op   = &state->operation;
+    tz_parser_regs     *regs = &state->regs;
+    size_t consumed          = (size_t)(state->ofs - op->sdp_payload_start);
 
+    regs->ilen                            += consumed;
+    regs->iofs                            -= consumed;
     state->ofs                            = op->sdp_payload_start;
     state->field_info.is_field_complex    = true;
     op->frame->step                       = TZ_OPERATION_STEP_READ_MICHELINE;

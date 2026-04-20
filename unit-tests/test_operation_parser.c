@@ -424,6 +424,30 @@ test_check_set_delegate_parameters_complexity(void **state)
         {"Destination",   false, 5},
         //     {"Option",        _,     6},
         //    {"Tuple",         _,     7},
+        {"Entrypoint",         false, 8},
+        {"Limit (stake/bake)", false, 9},
+        {"Edge (bake/stake)",  false, 9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* SDP with non-Pair parameter falls back to raw binary display. */
+static void
+test_check_set_delegate_parameters_sdp_fallback(void **state)
+{
+    operation_parser_data *data = *state;
+    /* set_delegate_parameters with {int: 0} → sdp fallback to binary.
+     * Reuses same source/dest/fee bytes as finalize_unstake test. */
+    char str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad"
+          "922d045c068660fabe19576f8506a1fa8fa3ff09000000020000";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
         {"Entrypoint",    false, 8},
         {"Parameter",     true,  9},
     };
@@ -767,6 +791,32 @@ test_check_fa2_transfer_negative_amount_fallback(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
+/* FA2 transfer where amount is a whole number (no fractional part). */
+static void
+test_check_fa2_transfer_whole_number_amount(void **state)
+{
+    operation_parser_data *data = *state;
+    /* amount = 2000000, QUIPU 6 decimals → "2 QUIPU" (no_decimals=1 path) */
+    char str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
+          "f813094ee8bf162ac2093a8937e8ba8300ffff087472616e736665720000006902"
+          "00000064070701000000244b543151576462415376615458573847576668664e68"
+          "334a4d6a6758766e5a4141544a570200000034070701000000247372314d794377"
+          "523833685a70684353716159535141705078504d65796b734a57576e6807070000"
+          "008092f401";
+    const tz_fields_check fields_check[] = {
+        {"Source",             false, 1 },
+        {"Fee",                false, 2 },
+        {"Storage limit",      false, 3 },
+        {"Amount",             false, 4 },
+        {"Entrypoint",         false, 8 },
+        {"Transfer tokens to", false, 10},
+        {"Token Amount",       false, 11},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
 
 int
 main(void)
@@ -783,6 +833,7 @@ main(void)
         cmocka_unit_test_setup_teardown(test_check_unstake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_finalize_unstake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_complexity, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_origination_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_delegation_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_register_global_constant_complexity, operation_parser_setup, operation_parser_teardown),
@@ -798,6 +849,7 @@ main(void)
         cmocka_unit_test_setup_teardown(test_check_fa2_transfer_fallback_uses_complex_parameter, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_fa2_transfer_multi_item_fallback, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_fa2_transfer_negative_amount_fallback, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_fa2_transfer_whole_number_amount, operation_parser_setup, operation_parser_teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

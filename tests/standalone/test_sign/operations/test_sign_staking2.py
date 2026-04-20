@@ -53,14 +53,16 @@ class TestStaking2DocExamples(TestOperation):
     """Sign flows for Staking 2.0 doc-shaped tag-108 operations."""
 
     def skip_signature_check(self) -> Optional[str]:
-        """Same ``Transaction`` class as ``TestTransaction``; avoid duplicate hash/signature test."""
+        """Same ``Transaction`` class as ``TestTransaction``;
+        avoid duplicate hash/signature test."""
         return "Signature check for Transaction is already run in test_sign_transaction."
 
     @property
     def op_class(self):
         return Transaction
 
-    # Flow names are stable: snapshot dirs are ``flow-staking2_*`` (see test_sign_transaction history).
+    # Flow names are stable: snapshot dirs are ``flow-staking2_*``
+    # (see test_sign_transaction history).
     flows = [
         # Paris doc § pseudo-ops: stake — non-zero amount, self-transfer, Unit parameter.
         Flow(
@@ -86,7 +88,8 @@ class TestStaking2DocExamples(TestOperation):
             entrypoint='finalize_unstake',
             parameter={'prim': 'Unit'},
         ),
-        # Seoul doc: third party pays fee; destination = staker implicit, zero amount, finalize_unstake.
+        # Seoul doc: third party pays fee;
+        # destination = staker implicit, zero amount, finalize_unstake.
         Flow(
             'staking2_finalize_unstake_sponsored',
             amount=0,
@@ -94,7 +97,8 @@ class TestStaking2DocExamples(TestOperation):
             entrypoint='finalize_unstake',
             parameter={'prim': 'Unit'},
         ),
-        # set_delegate_parameters — zero amount self-call; Pair limits (illustrative values, Paris doc shape).
+        # set_delegate_parameters — zero amount self-call;
+        # Pair limits (illustrative values, Paris doc shape).
         Flow(
             'staking2_set_delegate_parameters',
             amount=0,
@@ -110,7 +114,7 @@ class TestStaking2DocExamples(TestOperation):
         ),
     ]
 
-    def test_operation_field(
+    def test_operation_field(  # pylint: disable=unused-argument
             self,
             backend: TezosBackend,
             tezos_navigator: TezosNavigator,

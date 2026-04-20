@@ -32,37 +32,40 @@
 static tz_parser_result push_frame(tz_parser_state              *state,
                                    tz_operation_parser_step_kind step);
 static tz_parser_result pop_frame(tz_parser_state *state);
-static tz_parser_result tz_step_read_set_delegate_params(tz_parser_state *state);
-static void           tz_manager_entrypoint_set(tz_operation_state *op,
-                                                const char         *name);
-static bool tz_implicit_fee_payer_differs_from_dest(const tz_operation_state *op);
+static tz_parser_result tz_step_read_set_delegate_params(
+    tz_parser_state *state);
+static void tz_manager_entrypoint_set(tz_operation_state *op,
+                                      const char         *name);
+static bool tz_implicit_fee_payer_differs_from_dest(
+    const tz_operation_state *op);
 
 #ifdef TEZOS_DEBUG
-const char *const tz_operation_parser_step_name[] = {"OPTION",
-                                                     "TUPLE",
-                                                     "MAGIC",
-                                                     "READ_BINARY",
-                                                     "BRANCH",
-                                                     "BATCH",
-                                                     "TAG",
-                                                     "SIZE",
-                                                     "FIELD",
-                                                     "PRINT",
-                                                     "PARTIAL_PRINT",
-                                                     "READ_NUM",
-                                                     "READ_INT32",
-                                                     "READ_PK",
-                                                     "READ_BYTES",
-                                                     "READ_STRING",
-                                                     "READ_SMART_ENTRYPOINT",
-                                                     "READ_MICHELINE",
-                                                     "READ_SORU_MESSAGES",
-                                                     "READ_SORU_KIND",
-                                                     "READ_BALLOT",
-                                                     "READ_PROTOS",
-                                                     "READ_PKH_LIST",
-                                                     "READ_FA2_TRANSFER",
-                                                     "READ_SET_DELEGATE_PARAMS"};
+const char *const tz_operation_parser_step_name[]
+    = {"OPTION",
+       "TUPLE",
+       "MAGIC",
+       "READ_BINARY",
+       "BRANCH",
+       "BATCH",
+       "TAG",
+       "SIZE",
+       "FIELD",
+       "PRINT",
+       "PARTIAL_PRINT",
+       "READ_NUM",
+       "READ_INT32",
+       "READ_PK",
+       "READ_BYTES",
+       "READ_STRING",
+       "READ_SMART_ENTRYPOINT",
+       "READ_MICHELINE",
+       "READ_SORU_MESSAGES",
+       "READ_SORU_KIND",
+       "READ_BALLOT",
+       "READ_PROTOS",
+       "READ_PKH_LIST",
+       "READ_FA2_TRANSFER",
+       "READ_SET_DELEGATE_PARAMS"};
 
 /**
  * @brief Get the string format of an operations step
@@ -346,11 +349,11 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     tz_operation_state *op = &state->operation;
 
     tz_parser_init(state);
-    state->operation.seen_reveal      = 0;
-    state->operation.is_fa2_candidate   = 0;
-    state->operation.emit_finalize_note = 0;
-    state->operation.manager_entrypoint[0]     = 0;
-    state->operation.sdp_payload_start           = 0;
+    state->operation.seen_reveal           = 0;
+    state->operation.is_fa2_candidate      = 0;
+    state->operation.emit_finalize_note    = 0;
+    state->operation.manager_entrypoint[0] = 0;
+    state->operation.sdp_payload_start     = 0;
     memset(&state->operation.source, 0, 22);
     memset(&state->operation.destination, 0, 22);
     op->batch_index = 0;
@@ -1126,9 +1129,9 @@ sdp_fail_to_micheline(tz_parser_state *state)
 {
     tz_operation_state *op = &state->operation;
 
-    state->ofs                         = op->sdp_payload_start;
-    state->field_info.is_field_complex = true;
-    op->frame->step                    = TZ_OPERATION_STEP_READ_MICHELINE;
+    state->ofs                            = op->sdp_payload_start;
+    state->field_info.is_field_complex    = true;
+    op->frame->step                       = TZ_OPERATION_STEP_READ_MICHELINE;
     op->frame->step_read_micheline.inited = 0;
     op->frame->step_read_micheline.skip   = op->sdp_expr_skip;
     op->frame->step_read_micheline.name   = op->sdp_reparse_field_name;
@@ -1189,14 +1192,14 @@ tz_step_read_set_delegate_params(tz_parser_state *state)
             tz_continue;
         }
         tz_parse_num_state_init(&state->buffers.num,
-                               &op->frame->step_read_sdp.int_regs);
+                                &op->frame->step_read_sdp.int_regs);
         op->frame->step_read_sdp.int_regs.stop = 0;
         op->frame->step_read_sdp.sub_step      = SDP_STEP_FIRST_INT_READ;
         tz_continue;
     case SDP_STEP_FIRST_INT_READ:
         tz_must(tz_parser_read(state, &b));
         tz_must(tz_parse_int_step(&state->buffers.num,
-                                   &op->frame->step_read_sdp.int_regs, b));
+                                  &op->frame->step_read_sdp.int_regs, b));
         if (!op->frame->step_read_sdp.int_regs.stop) {
             tz_continue;
         }
@@ -1227,14 +1230,14 @@ tz_step_read_set_delegate_params(tz_parser_state *state)
             tz_continue;
         }
         tz_parse_num_state_init(&state->buffers.num,
-                               &op->frame->step_read_sdp.int_regs);
+                                &op->frame->step_read_sdp.int_regs);
         op->frame->step_read_sdp.int_regs.stop = 0;
         op->frame->step_read_sdp.sub_step      = SDP_STEP_EDGE_INT_READ;
         tz_continue;
     case SDP_STEP_EDGE_INT_READ:
         tz_must(tz_parser_read(state, &b));
         tz_must(tz_parse_int_step(&state->buffers.num,
-                                   &op->frame->step_read_sdp.int_regs, b));
+                                  &op->frame->step_read_sdp.int_regs, b));
         if (!op->frame->step_read_sdp.int_regs.stop) {
             tz_continue;
         }
@@ -1304,8 +1307,7 @@ tz_step_read_micheline(tz_parser_state *state)
     if (op->emit_finalize_note) {
         op->emit_finalize_note = 0;
         STRLCPY(state->field_info.field_name, "Note");
-        strlcpy((char *)CAPTURE,
-                "Fee payer is Source; staker is Destination",
+        strlcpy((char *)CAPTURE, "Fee payer is Source; staker is Destination",
                 sizeof(CAPTURE));
         tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
         op->frame->step_print.str = (char *)CAPTURE;
@@ -1913,7 +1915,7 @@ tz_step_field(tz_parser_state *state)
                    && !field->skip) {
             op->frame->step = TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS;
             op->frame->step_read_sdp.sub_step = SDP_STEP_SAVE_START;
-            op->sdp_expr_skip = field->skip;
+            op->sdp_expr_skip                 = field->skip;
             STRLCPY(op->sdp_reparse_field_name, name);
             state->field_info.is_field_complex = false;
         } else {

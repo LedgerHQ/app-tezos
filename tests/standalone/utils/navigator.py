@@ -285,6 +285,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
         path = self._root_dir
         test_case_name = snap_path
         idx = 0
+        prev_shot: Optional[Any] = None
         start = time.time()
         if not isinstance(self._backend, SpeculosBackend):
             if timeout == 30:

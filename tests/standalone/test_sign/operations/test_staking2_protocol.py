@@ -25,6 +25,7 @@ from utils.tezos_encoding import forge_entrypoint
 
 
 def test_builtin_entrypoint_bytes_match_protocol_table():
+    """Verify built-in entrypoint bytes match Octez smart_encoding table."""
     assert forge_entrypoint("stake") == b"\x06"
     assert forge_entrypoint("unstake") == b"\x07"
     assert forge_entrypoint("finalize_unstake") == b"\x08"

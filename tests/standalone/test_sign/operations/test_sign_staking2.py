@@ -23,7 +23,8 @@ These are ordinary **tag-108 transactions** with built-in entrypoints
 **Sources (examples aligned with protocol docs):**
 
 - Paris: https://tezos.gitlab.io/paris/staking.html
-- Seoul: https://tezos.gitlab.io/seoul/staking.html (third-party ``finalize_unstake`` when source ≠ destination)
+- Seoul: https://tezos.gitlab.io/seoul/staking.html
+  (third-party ``finalize_unstake`` when source ≠ destination)
 - In-repo: ``docs/PROTOCOL_ALIGNMENT_STAKING2.md``
 
 Field-level matrix for generic transactions (including the same entrypoint

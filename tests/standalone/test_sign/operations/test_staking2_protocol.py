@@ -15,9 +15,6 @@
 # limitations under the License.
 
 """Regression tests for Staking 2.0 wire encoding (Paris+ pseudo-operations).
-
-See ``docs/PROTOCOL_ALIGNMENT_STAKING2.md`` §3.2 — these builtins must match
-Octez ``Entrypoint_repr.smart_encoding`` so forged ops match wallets / nodes.
 """
 
 from utils.message import Default, Transaction

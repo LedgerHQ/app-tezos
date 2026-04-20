@@ -25,7 +25,6 @@ These are ordinary **tag-108 transactions** with built-in entrypoints
 - Paris: https://tezos.gitlab.io/paris/staking.html
 - Seoul: https://tezos.gitlab.io/seoul/staking.html
   (third-party ``finalize_unstake`` when source ≠ destination)
-- In-repo: ``docs/PROTOCOL_ALIGNMENT_STAKING2.md``
 
 Field-level matrix for generic transactions (including the same entrypoint
 names) stays in ``test_sign_transaction.py``. This module only runs **full

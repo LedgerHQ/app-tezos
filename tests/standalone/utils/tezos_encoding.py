@@ -257,8 +257,7 @@ operation_tags = {
     "smart_rollup_execute_outbox_message": 206,
 }
 
-# Builtin smart entrypoints (Octez `Entrypoint_repr.smart_encoding`; see
-# docs/PROTOCOL_ALIGNMENT_STAKING2.md §3.2).
+# Builtin smart entrypoints (Octez `Entrypoint_repr.smart_encoding`)
 reserved_entrypoints = {
     "default": b"\x00",
     "root": b"\x01",

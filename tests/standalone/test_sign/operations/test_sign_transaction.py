@@ -17,7 +17,6 @@
 """Gathering of tests related to Transaction operations.
 
 Staking 2.0 doc-shaped **sign flows** live in ``test_sign_staking2.py``.
-Builtin entrypoints 6–9 are described in ``docs/PROTOCOL_ALIGNMENT_STAKING2.md``.
 """
 
 from utils.message import Transaction

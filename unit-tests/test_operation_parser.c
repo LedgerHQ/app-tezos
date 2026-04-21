@@ -534,6 +534,90 @@ test_check_sponsored_finalize_unstake(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
+/* finalize_unstake: KT1 (originated) destination.
+ * destination[0] = 0x01 ≠ 0x00 → tz_implicit_fee_payer_differs_from_dest
+ * returns true (line 409), Note field shown. */
+static void
+test_check_finalize_unstake_kt1_dest(void **state)
+{
+    operation_parser_data *data = *state;
+    /* Same source/fee/NATs as sponsored test; destination replaced with
+     * KT1 (type=0x01, 20-byte zeroed hash, trailing 0x00). */
+    char str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd8c0b80200310200"
+          "01000000000000000000000000000000000000000000ff0800000002030b";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Note",          false, 9},
+        {"Parameter",     false, 9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* Ballot operation: intercept at TZ_OPERATION_STEP_READ_BALLOT FEED_ME,
+ * set skip=1 to exercise tz_print_string skip path (lines 419-421). */
+static void
+test_check_print_string_skip(void **state)
+{
+    operation_parser_data *data = *state;
+    /* All ballot bytes except the final ballot byte (fed separately). */
+    static const uint8_t ballot_body[] = {
+        0x03,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+        0x06,
+        0x00,
+        0xff,0xdd,0x61,0x02,0x32,0x1b,0xc2,0x51,
+        0xe4,0xa5,0x19,0x0a,0xd5,0xb1,0x2b,0x25,
+        0x10,0x69,0xd9,0xb4,
+        0x00,0x00,0x00,0x20,
+        0x0b,0xcd,0x7b,0x2c,0xad,0xcd,0x87,0xec,
+        0xb0,0xd5,0xc5,0x03,0x30,0xfb,0x59,0xfe,
+        0xed,0x74,0x32,0xbf,0xfe,0xce,0xde,0x8a,
+        0x09,0xa2,0xb8,0x6c,0xfb,0x33,0x84,0x7b,
+    };
+    static const uint8_t ballot_vote = 0x00;
+
+    tz_operation_parser_set_size(data->state,
+                                 (uint16_t)(sizeof(ballot_body) + 1));
+    tz_parser_state *st = data->state;
+    tz_parser_refill(st, ballot_body, sizeof(ballot_body));
+
+    bool skipped = false;
+    while (true) {
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+        switch (st->errno) {
+        case TZ_BLO_FEED_ME:
+            if (!skipped
+                && st->operation.frame != NULL
+                && st->operation.frame->step
+                       == TZ_OPERATION_STEP_READ_BALLOT) {
+                st->operation.frame->step_read_string.skip = 1;
+                skipped = true;
+            }
+            tz_parser_refill(st, &ballot_vote, 1);
+            continue;
+        case TZ_BLO_IM_FULL:
+            tz_parser_flush(st, data->obuf, data->olen);
+            continue;
+        case TZ_BLO_DONE:
+            assert_true(skipped);
+            return;
+        default:
+            fail_msg("unexpected error: %s",
+                     tz_parser_result_name(st->errno));
+        }
+    }
+}
+
 static void
 test_check_set_delegate_parameters_complexity(void **state)
 {
@@ -702,6 +786,101 @@ test_check_set_delegate_parameters_sdp_fallback_unit_prim0(void **state)
                  "ff090000000a" "07070001070700010001";
     const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* SDP_STEP_UNIT_OP: declared param_size=17 but only 16 bytes are valid SDP
+ * (Pair int (Pair int Unit)).  After reading Unit the stop check fires
+ * (lines 1260-1263), sdp_fail_to_micheline rewinds, micheline then sees
+ * 16 consumed < 17 declared → tz_raise(TOO_LARGE). */
+static void
+test_check_sdp_unit_op_trailing_data(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff090000001107070080a4e80307070080b48913030b00";
+    check_parser_error(data, str, TZ_ERR_TOO_LARGE);
+}
+
+/* SDP_STEP_DONE: call parser once without flush after "Edge (bake/stake)"
+ * PRINT completes, so oofs>0 when SDP_DONE runs → tz_stop(IM_FULL) line 1285. */
+static void
+test_check_sdp_done_oofs(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff090000001007070080a4e8030707"
+                 "0080b48913030b";
+    fill_data_str(data, str);
+    tz_operation_parser_set_size(data->state, (uint16_t)data->str_len);
+    tz_parser_state *st = data->state;
+    bool sdp_done_tested = false;
+    while (true) {
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+        switch (st->errno) {
+        case TZ_BLO_FEED_ME:
+            refill(data);
+            tz_parser_refill(st, data->ibuf, data->ilen);
+            continue;
+        case TZ_BLO_IM_FULL:
+            if (!sdp_done_tested
+                && strcmp(st->field_info.field_name,
+                          "Edge (bake/stake)") == 0
+                && st->operation.frame != NULL
+                && st->operation.frame->step
+                       == TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS) {
+                sdp_done_tested = true;
+                while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+                assert_int_equal(st->errno, TZ_BLO_IM_FULL);
+            }
+            tz_parser_flush(st, data->obuf, data->olen);
+            continue;
+        case TZ_BLO_DONE:
+            assert_true(sdp_done_tested);
+            return;
+        default:
+            fail_msg("unexpected: %s", tz_parser_result_name(st->errno));
+        }
+    }
+}
+
+/* SDP default branch (lines 1288-1289): intercept at FEED_ME when the SDP
+ * frame is active, set sub_step=255, provide no more bytes → switch(255)
+ * → default → tz_raise(INVALID_STATE). */
+static void
+test_check_sdp_invalid_sub_step(void **state)
+{
+    operation_parser_data *data = *state;
+    /* One-byte SDP payload (0x07 = PRIM_2_NOANNOTS).  Parser reaches
+     * SDP_STEP_OUTER_PAIR_OP and needs another byte → FEED_ME. */
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff090000000107";
+    fill_data_str(data, str);
+    tz_operation_parser_set_size(data->state, (uint16_t)data->str_len);
+    tz_parser_state *st = data->state;
+    bool invalid_tested = false;
+    while (true) {
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+        switch (st->errno) {
+        case TZ_BLO_FEED_ME:
+            if (!invalid_tested
+                && st->operation.frame != NULL
+                && st->operation.frame->step
+                       == TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS) {
+                st->operation.frame->step_read_sdp.sub_step = 255;
+                invalid_tested = true;
+            }
+            refill(data);
+            tz_parser_refill(st, data->ibuf, data->ilen);
+            continue;
+        case TZ_BLO_IM_FULL:
+            tz_parser_flush(st, data->obuf, data->olen);
+            continue;
+        default:
+            assert_true(invalid_tested);
+            assert_int_equal(st->errno, TZ_ERR_INVALID_STATE);
+            return;
+        }
+    }
 }
 
 #undef _SDP_FALLBACK_HEX_PREFIX
@@ -1092,6 +1271,8 @@ main(void)
         cmocka_unit_test_setup_teardown(test_check_unstake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_finalize_unstake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_sponsored_finalize_unstake, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_finalize_unstake_kt1_dest, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_print_string_skip, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_late, operation_parser_setup, operation_parser_teardown),
@@ -1101,6 +1282,9 @@ main(void)
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_inner_pair_op, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_edge_int_tag, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_unit_prim0, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sdp_unit_op_trailing_data, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sdp_done_oofs, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sdp_invalid_sub_step, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_origination_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_delegation_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_register_global_constant_complexity, operation_parser_setup, operation_parser_teardown),

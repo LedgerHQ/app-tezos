@@ -341,6 +341,73 @@ test_check_double_transaction_complexity(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
+/* Builtin entrypoints 0x00–0x05 not covered by other tests.
+ * Base hex = finalize_unstake with the entrypoint byte swapped. */
+#define _BUILTIN_EP_HEX_PREFIX \
+    "030000000000000000000000000000000000000000000000000000000000000000" \
+    "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad" \
+    "922d045c068660fabe19576f8506a1fa8fa3"
+
+#define _BUILTIN_EP_HEX_SUFFIX  "00000002030b"
+
+#define _BUILTIN_EP_FIELDS \
+    {"Source",        false, 1}, \
+    {"Fee",           false, 2}, \
+    {"Storage limit", false, 3}, \
+    {"Amount",        false, 4}, \
+    {"Destination",   false, 5}, \
+    {"Entrypoint",    false, 8}, \
+    {"Parameter",     false, 9}
+
+static void
+test_check_builtin_entrypoint_default(void **state)
+{
+    operation_parser_data    *data = *state;
+    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff00" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+static void
+test_check_builtin_entrypoint_root(void **state)
+{
+    operation_parser_data    *data = *state;
+    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff01" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+static void
+test_check_builtin_entrypoint_set_delegate(void **state)
+{
+    operation_parser_data    *data = *state;
+    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff03" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+static void
+test_check_builtin_entrypoint_remove_delegate(void **state)
+{
+    operation_parser_data    *data = *state;
+    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff04" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+static void
+test_check_builtin_entrypoint_deposit(void **state)
+{
+    operation_parser_data    *data = *state;
+    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff05" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+#undef _BUILTIN_EP_HEX_PREFIX
+#undef _BUILTIN_EP_HEX_SUFFIX
+#undef _BUILTIN_EP_FIELDS
+
 static void
 test_check_stake_complexity(void **state)
 {
@@ -442,6 +509,30 @@ test_check_set_delegate_parameters_sdp_fallback(void **state)
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad"
           "922d045c068660fabe19576f8506a1fa8fa3ff09000000020000";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* SDP fallback triggered deep in the state machine (SDP_STEP_UNIT_OP).
+ * Same structure as the working SDP test but final Unit opcode (0x0b) replaced
+ * with 0x12.  Verifies the buffer rewind is correct after 15 bytes consumed. */
+static void
+test_check_set_delegate_parameters_sdp_fallback_late(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad"
+          "922d045c068660fabe19576f8506a1fa8fa3ff090000001007070080a4e8030707"
+          "0080b489130312";
     const tz_fields_check fields_check[] = {
         {"Source",        false, 1},
         {"Fee",           false, 2},
@@ -829,11 +920,17 @@ main(void)
         cmocka_unit_test_setup_teardown(test_check_simple_transaction_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_transaction_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_double_transaction_complexity, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_default, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_root, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_set_delegate, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_remove_delegate, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_deposit, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_stake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_unstake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_finalize_unstake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_late, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_origination_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_delegation_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_register_global_constant_complexity, operation_parser_setup, operation_parser_teardown),

@@ -405,8 +405,8 @@ tz_manager_entrypoint_set(tz_operation_state *op, const char *name)
 static bool
 tz_implicit_fee_payer_differs_from_dest(const tz_operation_state *op)
 {
-    char src_addr[TZ_BASE58_BUFFER_SIZE(21)];
-    char dst_addr[TZ_BASE58_BUFFER_SIZE(22)];
+    char src_addr[TZ_BASE58CHECK_BUFFER_SIZE(20, 3)];
+    char dst_addr[TZ_BASE58CHECK_BUFFER_SIZE(20, 3)];
 
     if (tz_format_pkh(op->source, 21, src_addr, sizeof(src_addr))) {
         return false;
@@ -1131,8 +1131,8 @@ sdp_fail_to_micheline(tz_parser_state *state)
     tz_parser_regs     *regs = &state->regs;
     size_t consumed          = (size_t)(state->ofs - op->sdp_payload_start);
 
-    regs->ilen                            += consumed;
-    regs->iofs                            -= consumed;
+    regs->ilen += consumed;
+    regs->iofs -= consumed;
     state->ofs                            = op->sdp_payload_start;
     state->field_info.is_field_complex    = true;
     op->frame->step                       = TZ_OPERATION_STEP_READ_MICHELINE;
@@ -1309,7 +1309,8 @@ tz_step_read_micheline(tz_parser_state *state)
     tz_operation_state *op   = &state->operation;
     tz_parser_regs     *regs = &state->regs;
     if (op->emit_finalize_note) {
-        op->emit_finalize_note = 0;
+        op->emit_finalize_note             = 0;
+        state->field_info.is_field_complex = false;
         STRLCPY(state->field_info.field_name, "Note");
         strlcpy((char *)CAPTURE, "Fee payer is Source; staker is Destination",
                 sizeof(CAPTURE));

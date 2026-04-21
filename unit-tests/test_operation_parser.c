@@ -452,10 +452,36 @@ test_check_unstake_complexity(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
+/* finalize_unstake: source == destination (Paris self-call, no sponsored note). */
 static void
 test_check_finalize_unstake_complexity(void **state)
 {
     operation_parser_data *data = *state;
+    /* Source and destination are the same tz2 address: no Note emitted. */
+    char str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b802003102000001f6"
+          "552df4f5ff51c3d13347cab045cfdb8b9bd803ff0800000002030b";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        //     {"Option",        _,     6},
+        //    {"Tuple",         _,     7},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     false, 9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* finalize_unstake: source != destination (Seoul sponsored fee payer). */
+static void
+test_check_sponsored_finalize_unstake(void **state)
+{
+    operation_parser_data *data = *state;
+    /* Source (fee payer) differs from destination (staker): Note emitted. */
     char str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad"
@@ -469,6 +495,7 @@ test_check_finalize_unstake_complexity(void **state)
         //     {"Option",        _,     6},
         //    {"Tuple",         _,     7},
         {"Entrypoint",    false, 8},
+        {"Note",          false, 9},
         {"Parameter",     false, 9},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
@@ -544,6 +571,108 @@ test_check_set_delegate_parameters_sdp_fallback_late(void **state)
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
+
+/*
+ * SDP fallback at each SDP sub-step.  Each parameter starts with bytes that
+ * pass all earlier SDP checks then intentionally fails one, triggering
+ * sdp_fail_to_micheline().  After the rewind the Micheline parser parses
+ * the bytes from the start — so each parameter must also be valid Micheline.
+ *
+ * Prefixes common to all six tests:
+ *   header(32) + tag(1) + source(21) + fee+counter+gas+storage+amount(7)
+ *   + destination(22)  →  same as the other SDP tests.
+ */
+#define _SDP_FALLBACK_HEX_PREFIX \
+    "030000000000000000000000000000000000000000000000000000000000000000" \
+    "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad" \
+    "922d045c068660fabe19576f8506a1fa8fa3"
+
+#define _SDP_FALLBACK_FIELDS \
+    {"Source",        false, 1}, \
+    {"Fee",           false, 2}, \
+    {"Storage limit", false, 3}, \
+    {"Amount",        false, 4}, \
+    {"Destination",   false, 5}, \
+    {"Entrypoint",    false, 8}, \
+    {"Parameter",     true,  9}
+
+/* SDP_STEP_OUTER_PAIR_OP: tag=0x07 OK, opcode=0x08 (≠Pair 0x07) → fallback.
+ * Micheline: PRIM_2_NOANNOTS(Right, Unit, Unit) = 6 bytes. */
+static void
+test_check_set_delegate_parameters_sdp_fallback_outer_pair_op(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff0900000006" "0708030b030b";
+    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* SDP_STEP_FIRST_INT_TAG: tag=0x07 OK, opcode=0x07 OK, byte=0x03 (≠INT 0x00) → fallback.
+ * Micheline: PRIM_2_NOANNOTS(Pair, Unit, Unit) = 6 bytes. */
+static void
+test_check_set_delegate_parameters_sdp_fallback_first_int_tag(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff0900000006" "0707030b030b";
+    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* SDP_STEP_INNER_PAIR_TAG: outer Pair+INT(1) OK, next byte=0x03 (≠0x07) → fallback.
+ * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), Unit) = 6 bytes. */
+static void
+test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff0900000006" "07070001030b";
+    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* SDP_STEP_INNER_PAIR_OP: inner tag=0x07 OK, opcode=0x03 (≠0x07) → fallback.
+ * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(False, Unit, Unit))
+ * = 10 bytes. */
+static void
+test_check_set_delegate_parameters_sdp_fallback_inner_pair_op(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff090000000a" "070700010703030b030b";
+    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* SDP_STEP_EDGE_INT_TAG: inner Pair OK, next byte=0x03 (≠INT 0x00) → fallback.
+ * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(Pair, Unit, Unit))
+ * = 10 bytes. */
+static void
+test_check_set_delegate_parameters_sdp_fallback_edge_int_tag(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff090000000a" "070700010707030b030b";
+    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* SDP_STEP_UNIT_PRIM0: both ints OK, next byte=0x00 (≠PRIM_0 0x03) → fallback.
+ * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(Pair, INT(1), INT(1)))
+ * = 10 bytes. */
+static void
+test_check_set_delegate_parameters_sdp_fallback_unit_prim0(void **state)
+{
+    operation_parser_data *data = *state;
+    char str[] = _SDP_FALLBACK_HEX_PREFIX
+                 "ff090000000a" "07070001070700010001";
+    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+#undef _SDP_FALLBACK_HEX_PREFIX
+#undef _SDP_FALLBACK_FIELDS
 
 static void
 test_check_origination_complexity(void **state)
@@ -928,9 +1057,16 @@ main(void)
         cmocka_unit_test_setup_teardown(test_check_stake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_unstake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_finalize_unstake_complexity, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sponsored_finalize_unstake, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_late, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_outer_pair_op, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_first_int_tag, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_inner_pair_op, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_edge_int_tag, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_unit_prim0, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_origination_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_delegation_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_register_global_constant_complexity, operation_parser_setup, operation_parser_teardown),

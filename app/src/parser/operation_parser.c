@@ -405,16 +405,10 @@ tz_manager_entrypoint_set(tz_operation_state *op, const char *name)
 static bool
 tz_implicit_fee_payer_differs_from_dest(const tz_operation_state *op)
 {
-    char src_addr[TZ_BASE58CHECK_BUFFER_SIZE(20, 3)];
-    char dst_addr[TZ_BASE58CHECK_BUFFER_SIZE(20, 3)];
-
-    if (tz_format_pkh(op->source, 21, src_addr, sizeof(src_addr))) {
-        return false;
+    if (op->destination[0] != 0x00) {
+        return true;
     }
-    if (tz_format_address(op->destination, 22, dst_addr, sizeof(dst_addr))) {
-        return false;
-    }
-    return strcmp(src_addr, dst_addr) != 0;
+    return memcmp(op->source, op->destination + 1, 21) != 0;
 }
 
 static tz_parser_result

@@ -196,6 +196,30 @@ check_field_complexity(operation_parser_data *data, char *str,
 }
 
 static void
+check_parser_error(operation_parser_data *data, char *str,
+                   tz_parser_result expected)
+{
+    fill_data_str(data, str);
+    tz_operation_parser_set_size(data->state, (uint16_t)data->str_len);
+    tz_parser_state *st = data->state;
+    while (true) {
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+        switch (st->errno) {
+        case TZ_BLO_FEED_ME:
+            refill(data);
+            tz_parser_refill(st, data->ibuf, data->ilen);
+            continue;
+        case TZ_BLO_IM_FULL:
+            tz_parser_flush(st, data->obuf, data->olen);
+            continue;
+        default:
+            assert_int_equal(st->errno, expected);
+            return;
+        }
+    }
+}
+
+static void
 test_check_proposals_complexity(void **state)
 {
     operation_parser_data *data = *state;
@@ -402,6 +426,15 @@ test_check_builtin_entrypoint_deposit(void **state)
     char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff05" _BUILTIN_EP_HEX_SUFFIX;
     const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+static void
+test_check_builtin_entrypoint_invalid(void **state)
+{
+    operation_parser_data *data = *state;
+    /* Entrypoint byte 0x0a (10) is not a valid builtin: triggers default branch. */
+    char str[] = _BUILTIN_EP_HEX_PREFIX "ff0a" _BUILTIN_EP_HEX_SUFFIX;
+    check_parser_error(data, str, TZ_ERR_INVALID_TAG);
 }
 
 #undef _BUILTIN_EP_HEX_PREFIX
@@ -1054,6 +1087,7 @@ main(void)
         cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_set_delegate, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_remove_delegate, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_deposit, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_invalid, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_stake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_unstake_complexity, operation_parser_setup, operation_parser_teardown),
         cmocka_unit_test_setup_teardown(test_check_finalize_unstake_complexity, operation_parser_setup, operation_parser_teardown),

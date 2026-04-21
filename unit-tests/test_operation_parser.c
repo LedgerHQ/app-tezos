@@ -189,7 +189,7 @@ check_field_complexity(operation_parser_data *data, char *str,
 
         default:
             fail_msg("%s:%d parsing error: %s", __FILE__, __LINE__,
-                      tz_parser_result_name(st->errno));
+                     tz_parser_result_name(st->errno));
         }
         break;
     }
@@ -203,7 +203,8 @@ check_parser_error(operation_parser_data *data, char *str,
     tz_operation_parser_set_size(data->state, (uint16_t)data->str_len);
     tz_parser_state *st = data->state;
     while (true) {
-        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+        }
         switch (st->errno) {
         case TZ_BLO_FEED_ME:
             refill(data);
@@ -223,7 +224,7 @@ static void
 test_check_proposals_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "0500ffdd6102321bc251e4a5190ad5b12b251069d9b400000020000000400bcd7b"
           "2cadcd87ecb0d5c50330fb59feed7432bffecede8a09a2b86cfb33847b0bcd7b2c"
@@ -240,7 +241,7 @@ static void
 test_check_ballot_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "0600ffdd6102321bc251e4a5190ad5b12b251069d9b4000000200bcd7b2cadcd87"
           "ecb0d5c50330fb59feed7432bffecede8a09a2b86cfb33847b00";
@@ -257,7 +258,7 @@ static void
 test_check_failing_noop_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "11000000c639663039663239353264333435323863373333663934363135636663"
           "333962633535353631396663353530646434613637626132323038636538653836"
@@ -276,7 +277,7 @@ static void
 test_check_reveal_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6b00ffdd6102321bc251e4a5190ad5b12b251069d9b4904e02030400747884d9ab"
           "df16b3ab745158925f567e222f71225501826fa83347f6cbe9c393ff0000006097"
@@ -298,7 +299,7 @@ static void
 test_check_simple_transaction_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4a0c21e020304904e010000"
           "0000000000000000000000000000000000000000";
@@ -317,7 +318,7 @@ static void
 test_check_transaction_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e0100"
           "0000000000000000000000000000000000000000ff02000000020316";
@@ -339,7 +340,7 @@ static void
 test_check_double_transaction_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4a0c21e020304904e010000"
           "0000000000000000000000000000000000000000"
@@ -367,64 +368,60 @@ test_check_double_transaction_complexity(void **state)
 
 /* Builtin entrypoints 0x00–0x05 not covered by other tests.
  * Base hex = finalize_unstake with the entrypoint byte swapped. */
-#define _BUILTIN_EP_HEX_PREFIX \
+#define _BUILTIN_EP_HEX_PREFIX                                           \
     "030000000000000000000000000000000000000000000000000000000000000000" \
     "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad" \
     "922d045c068660fabe19576f8506a1fa8fa3"
 
-#define _BUILTIN_EP_HEX_SUFFIX  "00000002030b"
+#define _BUILTIN_EP_HEX_SUFFIX "00000002030b"
 
-#define _BUILTIN_EP_FIELDS \
-    {"Source",        false, 1}, \
-    {"Fee",           false, 2}, \
-    {"Storage limit", false, 3}, \
-    {"Amount",        false, 4}, \
-    {"Destination",   false, 5}, \
-    {"Entrypoint",    false, 8}, \
-    {"Parameter",     false, 9}
+#define _BUILTIN_EP_FIELDS                                                \
+    {"Source", false, 1}, {"Fee", false, 2}, {"Storage limit", false, 3}, \
+        {"Amount", false, 4}, {"Destination", false, 5},                  \
+        {"Entrypoint", false, 8}, {"Parameter", false, 9}
 
 static void
 test_check_builtin_entrypoint_default(void **state)
 {
-    operation_parser_data    *data = *state;
-    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff00" _BUILTIN_EP_HEX_SUFFIX;
-    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    operation_parser_data *data = *state;
+    char str[] = _BUILTIN_EP_HEX_PREFIX "ff00" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check fields_check[] = {_BUILTIN_EP_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
 static void
 test_check_builtin_entrypoint_root(void **state)
 {
-    operation_parser_data    *data = *state;
-    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff01" _BUILTIN_EP_HEX_SUFFIX;
-    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    operation_parser_data *data = *state;
+    char str[] = _BUILTIN_EP_HEX_PREFIX "ff01" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check fields_check[] = {_BUILTIN_EP_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
 static void
 test_check_builtin_entrypoint_set_delegate(void **state)
 {
-    operation_parser_data    *data = *state;
-    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff03" _BUILTIN_EP_HEX_SUFFIX;
-    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    operation_parser_data *data = *state;
+    char str[] = _BUILTIN_EP_HEX_PREFIX "ff03" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check fields_check[] = {_BUILTIN_EP_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
 static void
 test_check_builtin_entrypoint_remove_delegate(void **state)
 {
-    operation_parser_data    *data = *state;
-    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff04" _BUILTIN_EP_HEX_SUFFIX;
-    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    operation_parser_data *data = *state;
+    char str[] = _BUILTIN_EP_HEX_PREFIX "ff04" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check fields_check[] = {_BUILTIN_EP_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
 static void
 test_check_builtin_entrypoint_deposit(void **state)
 {
-    operation_parser_data    *data = *state;
-    char                      str[] = _BUILTIN_EP_HEX_PREFIX "ff05" _BUILTIN_EP_HEX_SUFFIX;
-    const tz_fields_check     fields_check[] = { _BUILTIN_EP_FIELDS };
+    operation_parser_data *data = *state;
+    char str[] = _BUILTIN_EP_HEX_PREFIX "ff05" _BUILTIN_EP_HEX_SUFFIX;
+    const tz_fields_check fields_check[] = {_BUILTIN_EP_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
@@ -432,7 +429,8 @@ static void
 test_check_builtin_entrypoint_invalid(void **state)
 {
     operation_parser_data *data = *state;
-    /* Entrypoint byte 0x0a (10) is not a valid builtin: triggers default branch. */
+    /* Entrypoint byte 0x0a (10) is not a valid builtin: triggers default
+     * branch. */
     char str[] = _BUILTIN_EP_HEX_PREFIX "ff0a" _BUILTIN_EP_HEX_SUFFIX;
     check_parser_error(data, str, TZ_ERR_INVALID_TAG);
 }
@@ -445,7 +443,7 @@ static void
 test_check_stake_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031028094ebdc03"
           "00012bad922d045c068660fabe19576f8506a1fa8fa3ff0600000002030b";
@@ -467,7 +465,7 @@ static void
 test_check_unstake_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b80200310280cab5ee01"
           "00012bad922d045c068660fabe19576f8506a1fa8fa3ff0700000002030b";
@@ -485,7 +483,8 @@ test_check_unstake_complexity(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
-/* finalize_unstake: source == destination (Paris self-call, no sponsored note). */
+/* finalize_unstake: source == destination (Paris self-call, no sponsored
+ * note). */
 static void
 test_check_finalize_unstake_complexity(void **state)
 {
@@ -568,21 +567,15 @@ test_check_print_string_skip(void **state)
     operation_parser_data *data = *state;
     /* All ballot bytes except the final ballot byte (fed separately). */
     static const uint8_t ballot_body[] = {
-        0x03,
-        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-        0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-        0x06,
-        0x00,
-        0xff,0xdd,0x61,0x02,0x32,0x1b,0xc2,0x51,
-        0xe4,0xa5,0x19,0x0a,0xd5,0xb1,0x2b,0x25,
-        0x10,0x69,0xd9,0xb4,
-        0x00,0x00,0x00,0x20,
-        0x0b,0xcd,0x7b,0x2c,0xad,0xcd,0x87,0xec,
-        0xb0,0xd5,0xc5,0x03,0x30,0xfb,0x59,0xfe,
-        0xed,0x74,0x32,0xbf,0xfe,0xce,0xde,0x8a,
-        0x09,0xa2,0xb8,0x6c,0xfb,0x33,0x84,0x7b,
+        0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x06, 0x00, 0xff, 0xdd, 0x61, 0x02, 0x32, 0x1b, 0xc2, 0x51, 0xe4,
+        0xa5, 0x19, 0x0a, 0xd5, 0xb1, 0x2b, 0x25, 0x10, 0x69, 0xd9, 0xb4,
+        0x00, 0x00, 0x00, 0x20, 0x0b, 0xcd, 0x7b, 0x2c, 0xad, 0xcd, 0x87,
+        0xec, 0xb0, 0xd5, 0xc5, 0x03, 0x30, 0xfb, 0x59, 0xfe, 0xed, 0x74,
+        0x32, 0xbf, 0xfe, 0xce, 0xde, 0x8a, 0x09, 0xa2, 0xb8, 0x6c, 0xfb,
+        0x33, 0x84, 0x7b,
     };
     static const uint8_t ballot_vote = 0x00;
 
@@ -593,15 +586,15 @@ test_check_print_string_skip(void **state)
 
     bool skipped = false;
     while (true) {
-        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+        }
         switch (st->errno) {
         case TZ_BLO_FEED_ME:
-            if (!skipped
-                && st->operation.frame != NULL
+            if (!skipped && st->operation.frame != NULL
                 && st->operation.frame->step
                        == TZ_OPERATION_STEP_READ_BALLOT) {
                 st->operation.frame->step_read_string.skip = 1;
-                skipped = true;
+                skipped                                    = true;
             }
             tz_parser_refill(st, &ballot_vote, 1);
             continue;
@@ -622,17 +615,17 @@ static void
 test_check_set_delegate_parameters_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad"
           "922d045c068660fabe19576f8506a1fa8fa3ff090000001007070080a4e8030707"
           "0080b48913030b";
     const tz_fields_check fields_check[] = {
-        {"Source",        false, 1},
-        {"Fee",           false, 2},
-        {"Storage limit", false, 3},
-        {"Amount",        false, 4},
-        {"Destination",   false, 5},
+        {"Source",             false, 1},
+        {"Fee",                false, 2},
+        {"Storage limit",      false, 3},
+        {"Amount",             false, 4},
+        {"Destination",        false, 5},
         //     {"Option",        _,     6},
         //    {"Tuple",         _,     7},
         {"Entrypoint",         false, 8},
@@ -666,13 +659,14 @@ test_check_set_delegate_parameters_sdp_fallback(void **state)
 }
 
 /* SDP fallback triggered deep in the state machine (SDP_STEP_UNIT_OP).
- * Same structure as the working SDP test but final Unit opcode (0x0b) replaced
- * with 0x12.  Verifies the buffer rewind is correct after 15 bytes consumed. */
+ * Same structure as the working SDP test but final Unit opcode (0x0b)
+ * replaced with 0x12.  Verifies the buffer rewind is correct after 15 bytes
+ * consumed. */
 static void
 test_check_set_delegate_parameters_sdp_fallback_late(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad"
           "922d045c068660fabe19576f8506a1fa8fa3ff090000001007070080a4e8030707"
@@ -699,92 +693,94 @@ test_check_set_delegate_parameters_sdp_fallback_late(void **state)
  *   header(32) + tag(1) + source(21) + fee+counter+gas+storage+amount(7)
  *   + destination(22)  →  same as the other SDP tests.
  */
-#define _SDP_FALLBACK_HEX_PREFIX \
+#define _SDP_FALLBACK_HEX_PREFIX                                         \
     "030000000000000000000000000000000000000000000000000000000000000000" \
     "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad" \
     "922d045c068660fabe19576f8506a1fa8fa3"
 
-#define _SDP_FALLBACK_FIELDS \
-    {"Source",        false, 1}, \
-    {"Fee",           false, 2}, \
-    {"Storage limit", false, 3}, \
-    {"Amount",        false, 4}, \
-    {"Destination",   false, 5}, \
-    {"Entrypoint",    false, 8}, \
-    {"Parameter",     true,  9}
+#define _SDP_FALLBACK_FIELDS                                              \
+    {"Source", false, 1}, {"Fee", false, 2}, {"Storage limit", false, 3}, \
+        {"Amount", false, 4}, {"Destination", false, 5},                  \
+        {"Entrypoint", false, 8}, {"Parameter", true, 9}
 
 /* SDP_STEP_OUTER_PAIR_OP: tag=0x07 OK, opcode=0x08 (≠Pair 0x07) → fallback.
  * Micheline: PRIM_2_NOANNOTS(Right, Unit, Unit) = 6 bytes. */
 static void
 test_check_set_delegate_parameters_sdp_fallback_outer_pair_op(void **state)
 {
-    operation_parser_data *data = *state;
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff0900000006" "0708030b030b";
-    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff0900000006"
+        "0708030b030b";
+    const tz_fields_check fields_check[] = {_SDP_FALLBACK_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
-/* SDP_STEP_FIRST_INT_TAG: tag=0x07 OK, opcode=0x07 OK, byte=0x03 (≠INT 0x00) → fallback.
- * Micheline: PRIM_2_NOANNOTS(Pair, Unit, Unit) = 6 bytes. */
+/* SDP_STEP_FIRST_INT_TAG: tag=0x07 OK, opcode=0x07 OK, byte=0x03 (≠INT 0x00)
+ * → fallback. Micheline: PRIM_2_NOANNOTS(Pair, Unit, Unit) = 6 bytes. */
 static void
 test_check_set_delegate_parameters_sdp_fallback_first_int_tag(void **state)
 {
-    operation_parser_data *data = *state;
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff0900000006" "0707030b030b";
-    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff0900000006"
+        "0707030b030b";
+    const tz_fields_check fields_check[] = {_SDP_FALLBACK_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
-/* SDP_STEP_INNER_PAIR_TAG: outer Pair+INT(1) OK, next byte=0x03 (≠0x07) → fallback.
- * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), Unit) = 6 bytes. */
+/* SDP_STEP_INNER_PAIR_TAG: outer Pair+INT(1) OK, next byte=0x03 (≠0x07) →
+ * fallback. Micheline: PRIM_2_NOANNOTS(Pair, INT(1), Unit) = 6 bytes. */
 static void
 test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag(void **state)
 {
-    operation_parser_data *data = *state;
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff0900000006" "07070001030b";
-    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff0900000006"
+        "07070001030b";
+    const tz_fields_check fields_check[] = {_SDP_FALLBACK_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
 /* SDP_STEP_INNER_PAIR_OP: inner tag=0x07 OK, opcode=0x03 (≠0x07) → fallback.
- * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(False, Unit, Unit))
- * = 10 bytes. */
+ * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(False, Unit,
+ * Unit)) = 10 bytes. */
 static void
 test_check_set_delegate_parameters_sdp_fallback_inner_pair_op(void **state)
 {
-    operation_parser_data *data = *state;
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff090000000a" "070700010703030b030b";
-    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff090000000a"
+        "070700010703030b030b";
+    const tz_fields_check fields_check[] = {_SDP_FALLBACK_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
-/* SDP_STEP_EDGE_INT_TAG: inner Pair OK, next byte=0x03 (≠INT 0x00) → fallback.
- * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(Pair, Unit, Unit))
- * = 10 bytes. */
+/* SDP_STEP_EDGE_INT_TAG: inner Pair OK, next byte=0x03 (≠INT 0x00) →
+ * fallback. Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(Pair,
+ * Unit, Unit)) = 10 bytes. */
 static void
 test_check_set_delegate_parameters_sdp_fallback_edge_int_tag(void **state)
 {
-    operation_parser_data *data = *state;
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff090000000a" "070700010707030b030b";
-    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff090000000a"
+        "070700010707030b030b";
+    const tz_fields_check fields_check[] = {_SDP_FALLBACK_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
-/* SDP_STEP_UNIT_PRIM0: both ints OK, next byte=0x00 (≠PRIM_0 0x03) → fallback.
- * Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(Pair, INT(1), INT(1)))
- * = 10 bytes. */
+/* SDP_STEP_UNIT_PRIM0: both ints OK, next byte=0x00 (≠PRIM_0 0x03) →
+ * fallback. Micheline: PRIM_2_NOANNOTS(Pair, INT(1), PRIM_2_NOANNOTS(Pair,
+ * INT(1), INT(1))) = 10 bytes. */
 static void
 test_check_set_delegate_parameters_sdp_fallback_unit_prim0(void **state)
 {
-    operation_parser_data *data = *state;
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff090000000a" "07070001070700010001";
-    const tz_fields_check fields_check[] = { _SDP_FALLBACK_FIELDS };
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff090000000a"
+        "07070001070700010001";
+    const tz_fields_check fields_check[] = {_SDP_FALLBACK_FIELDS};
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
@@ -795,27 +791,29 @@ test_check_set_delegate_parameters_sdp_fallback_unit_prim0(void **state)
 static void
 test_check_sdp_unit_op_trailing_data(void **state)
 {
-    operation_parser_data *data = *state;
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff090000001107070080a4e80307070080b48913030b00";
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff090000001107070080a4e80307070080b48913030b00";
     check_parser_error(data, str, TZ_ERR_TOO_LARGE);
 }
 
 /* SDP_STEP_DONE: call parser once without flush after "Edge (bake/stake)"
- * PRINT completes, so oofs>0 when SDP_DONE runs → tz_stop(IM_FULL) line 1285. */
+ * PRINT completes, so oofs>0 when SDP_DONE runs → tz_stop(IM_FULL) line 1285.
+ */
 static void
 test_check_sdp_done_oofs(void **state)
 {
-    operation_parser_data *data = *state;
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff090000001007070080a4e8030707"
-                 "0080b48913030b";
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff090000001007070080a4e8030707"
+        "0080b48913030b";
     fill_data_str(data, str);
     tz_operation_parser_set_size(data->state, (uint16_t)data->str_len);
-    tz_parser_state *st = data->state;
-    bool sdp_done_tested = false;
+    tz_parser_state *st              = data->state;
+    bool             sdp_done_tested = false;
     while (true) {
-        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+        }
         switch (st->errno) {
         case TZ_BLO_FEED_ME:
             refill(data);
@@ -823,13 +821,13 @@ test_check_sdp_done_oofs(void **state)
             continue;
         case TZ_BLO_IM_FULL:
             if (!sdp_done_tested
-                && strcmp(st->field_info.field_name,
-                          "Edge (bake/stake)") == 0
+                && strcmp(st->field_info.field_name, "Edge (bake/stake)") == 0
                 && st->operation.frame != NULL
                 && st->operation.frame->step
                        == TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS) {
                 sdp_done_tested = true;
-                while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+                while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+                }
                 assert_int_equal(st->errno, TZ_BLO_IM_FULL);
             }
             tz_parser_flush(st, data->obuf, data->olen);
@@ -852,22 +850,21 @@ test_check_sdp_invalid_sub_step(void **state)
     operation_parser_data *data = *state;
     /* One-byte SDP payload (0x07 = PRIM_2_NOANNOTS).  Parser reaches
      * SDP_STEP_OUTER_PAIR_OP and needs another byte → FEED_ME. */
-    char str[] = _SDP_FALLBACK_HEX_PREFIX
-                 "ff090000000107";
+    char str[] = _SDP_FALLBACK_HEX_PREFIX "ff090000000107";
     fill_data_str(data, str);
     tz_operation_parser_set_size(data->state, (uint16_t)data->str_len);
-    tz_parser_state *st = data->state;
-    bool invalid_tested = false;
+    tz_parser_state *st             = data->state;
+    bool             invalid_tested = false;
     while (true) {
-        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {}
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+        }
         switch (st->errno) {
         case TZ_BLO_FEED_ME:
-            if (!invalid_tested
-                && st->operation.frame != NULL
+            if (!invalid_tested && st->operation.frame != NULL
                 && st->operation.frame->step
                        == TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS) {
                 st->operation.frame->step_read_sdp.sub_step = 255;
-                invalid_tested = true;
+                invalid_tested                              = true;
             }
             refill(data);
             tz_parser_refill(st, data->ibuf, data->ilen);
@@ -890,7 +887,7 @@ static void
 test_check_origination_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6d00ffdd6102321bc251e4a5190ad5b12b251069d9b4904e020304a0c21e000000"
           "0002037a0000000a07650100000001310002";
@@ -910,7 +907,7 @@ static void
 test_check_delegation_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6e01774d99da021b92d8c3dfc2e814c7658440319be2c09a0cf40509f906ff0059"
           "1e842444265757d6a65e3670ca18b5e662f9c0";
@@ -928,7 +925,7 @@ static void
 test_check_register_global_constant_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6f00ffdd6102321bc251e4a5190ad5b12b251069d9b4904e0203040000000a0707"
           "0100000001310002";
@@ -945,7 +942,7 @@ static void
 test_check_set_deposit_limit_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "70027c252d3806e6519ed064026bdb98edf866117331e0d40304f80204ffa09c0"
           "1";
@@ -963,7 +960,7 @@ static void
 test_check_increase_paid_storage_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "7100ffdd6102321bc251e4a5190ad5b12b251069d9b4904e020304050100000000"
           "0000000000000000000000000000000000";
@@ -981,7 +978,7 @@ static void
 test_check_set_consensus_key_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "7200c921d4487c90b4472da6cc566a58d79f0d991dbf904e02030400747884d9ab"
           "df16b3ab745158925f567e222f71225501826fa83347f6cbe9c393ff0000006086"
@@ -1003,7 +1000,7 @@ static void
 test_check_set_companion_key_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "7300c921d4487c90b4472da6cc566a58d79f0d991dbf904e02030400747884d9ab"
           "df16b3ab745158925f567e222f71225501826fa83347f6cbe9c393ff0000006086"
@@ -1025,7 +1022,7 @@ static void
 test_check_transfer_ticket_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "9e00ffdd6102321bc251e4a5190ad5b12b251069d9b4904e02030400000002037a"
           "0000000a076501000000013100020000ffdd6102321bc251e4a5190ad5b12b2510"
@@ -1049,7 +1046,7 @@ static void
 test_check_sc_rollup_add_messages_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "c900ffdd6102321bc251e4a5190ad5b12b251069d9b4904e020304000000140000"
           "000301234500000001670000000489abcdef";
@@ -1066,7 +1063,7 @@ static void
 test_check_sc_rollup_execute_outbox_message_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "ce00ffdd6102321bc251e4a5190ad5b12b251069d9b4904e020304000000000000"
           "000000000000000000000000000000000000000000000000000000000000000000"
@@ -1092,7 +1089,7 @@ static void
 test_check_sc_rollup_originate_complexity(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "c800ffdd6102321bc251e4a5190ad5b12b251069d9b4904e02030400000000c639"
           "663039663239353264333435323863373333663934363135636663333962633535"
@@ -1123,7 +1120,7 @@ static void
 test_check_fa2_transfer_clear_signing_fields(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
           "f813094ee8bf162ac2093a8937e8ba830001ff087472616e7366657200000068"
@@ -1150,7 +1147,7 @@ static void
 test_check_fa2_transfer_fallback_uses_complex_parameter(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
           "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006702"
@@ -1175,7 +1172,7 @@ static void
 test_check_fa2_transfer_multi_item_fallback(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
           "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000009902"
@@ -1202,7 +1199,7 @@ static void
 test_check_fa2_transfer_negative_amount_fallback(void **state)
 {
     operation_parser_data *data = *state;
-    char str[]
+    char                   str[]
         = "030000000000000000000000000000000000000000000000000000000000000000"
           "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
           "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006602"
@@ -1249,58 +1246,151 @@ test_check_fa2_transfer_whole_number_amount(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
-
 int
 main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup_teardown(test_check_proposals_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_ballot_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_failing_noop_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_reveal_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_simple_transaction_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_transaction_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_double_transaction_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_default, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_root, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_set_delegate, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_remove_delegate, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_deposit, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_invalid, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_stake_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_unstake_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_finalize_unstake_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sponsored_finalize_unstake, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_finalize_unstake_kt1_dest, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_print_string_skip, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_late, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_outer_pair_op, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_first_int_tag, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_inner_pair_op, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_edge_int_tag, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_delegate_parameters_sdp_fallback_unit_prim0, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sdp_unit_op_trailing_data, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sdp_done_oofs, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sdp_invalid_sub_step, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_origination_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_delegation_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_register_global_constant_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_deposit_limit_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_increase_paid_storage_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_consensus_key_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_set_companion_key_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_transfer_ticket_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sc_rollup_add_messages_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sc_rollup_execute_outbox_message_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sc_rollup_originate_complexity, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_fa2_transfer_clear_signing_fields, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_fa2_transfer_fallback_uses_complex_parameter, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_fa2_transfer_multi_item_fallback, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_fa2_transfer_negative_amount_fallback, operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_fa2_transfer_whole_number_amount, operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_proposals_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_ballot_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_failing_noop_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_reveal_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_simple_transaction_complexity, operation_parser_setup,
+            operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_transaction_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_double_transaction_complexity, operation_parser_setup,
+            operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_default,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_root,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_builtin_entrypoint_set_delegate,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_builtin_entrypoint_remove_delegate,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_deposit,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_invalid,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_stake_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_unstake_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_finalize_unstake_complexity, operation_parser_setup,
+            operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sponsored_finalize_unstake,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_finalize_unstake_kt1_dest,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_print_string_skip,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_complexity,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_sdp_fallback,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_sdp_fallback_late,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_sdp_fallback_outer_pair_op,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_sdp_fallback_first_int_tag,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_sdp_fallback_inner_pair_op,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_sdp_fallback_edge_int_tag,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_delegate_parameters_sdp_fallback_unit_prim0,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sdp_unit_op_trailing_data,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sdp_done_oofs,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_sdp_invalid_sub_step,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_origination_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_delegation_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_register_global_constant_complexity,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_deposit_limit_complexity, operation_parser_setup,
+            operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_increase_paid_storage_complexity,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_consensus_key_complexity, operation_parser_setup,
+            operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_set_companion_key_complexity, operation_parser_setup,
+            operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(test_check_transfer_ticket_complexity,
+                                        operation_parser_setup,
+                                        operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_sc_rollup_add_messages_complexity,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_sc_rollup_execute_outbox_message_complexity,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_sc_rollup_originate_complexity, operation_parser_setup,
+            operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_fa2_transfer_clear_signing_fields,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_fa2_transfer_fallback_uses_complex_parameter,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_fa2_transfer_multi_item_fallback,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_fa2_transfer_negative_amount_fallback,
+            operation_parser_setup, operation_parser_teardown),
+        cmocka_unit_test_setup_teardown(
+            test_check_fa2_transfer_whole_number_amount,
+            operation_parser_setup, operation_parser_teardown),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

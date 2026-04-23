@@ -17,6 +17,18 @@ tests/samples
 tests/standalone/snapshots-tmp
 unit-tests/build
 *env/
+ledger/
+.vscode/
+.mypy_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+.coverage.*.*
 
 tags
 __pycache__
+**/.pytest_cache/
+**/.mypy_cache/
+**/.coverage
+**/.coverage.*
+**/.coverage.*.*

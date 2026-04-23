@@ -257,7 +257,7 @@ TZ_OPERATION_FIELDS(soru_origin_fields,
 #define FA2_REQUIRE(state, cond) \
     do { \
         if (!(cond)) \
-            return fa2_fallback_to_binary(state); \
+            return fa2_fallback_to_micheline(state); \
     } while (0)
 
 /**
@@ -601,7 +601,7 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_INNER_PAIR_TAG  16 /* expect 0x07 (PRIM_2_NOANNOTS) */
 #define FA2_STEP_INNER_PAIR_OP   17 /* expect 0x07 (Pair opcode) */
 #define FA2_STEP_TOKEN_ID_TAG    18 /* expect 0x00 (INT) */
-#define FA2_STEP_TOKEN_ID_VAL    19 /* read varint (must be 0) */
+#define FA2_STEP_TOKEN_ID_VAL    19 /* read Zarith token_id */
 #define FA2_STEP_AMOUNT_TAG      20 /* expect 0x00 (INT) */
 #define FA2_STEP_AMOUNT_VAL      21 /* read varint */
 #define FA2_STEP_VERIFY_END      22 /* verify no extra outer items */
@@ -721,21 +721,21 @@ tz_format_token_amount(char *str, size_t buf_size, uint8_t decimals,
 }
 
 /**
- * @brief Switch FA2 parser to binary fallback for remaining bytes
+ * @brief Switch FA2 parser to Micheline fallback for remaining bytes
  *
  *        Called when the FA2 structure does not match the expected
- *        single-item token_id=0 pattern.  Remaining bytes are displayed
- *        as hex with the complex flag set.
+ *        single-item transfer pattern. Remaining bytes are displayed
+ *        as Micheline with the complex flag set.
  */
 static tz_parser_result
-fa2_fallback_to_binary(tz_parser_state *state)
+fa2_fallback_to_micheline(tz_parser_state *state)
 {
     tz_operation_state *op = &state->operation;
 
-    op->frame->step                       = TZ_OPERATION_STEP_READ_BINARY;
-    op->frame->step_read_string.ofs       = 0;
-    op->frame->step_read_string.skip      = 0;
-    op->frame->step_read_string.check_fa2 = 0;
+    op->frame->step                       = TZ_OPERATION_STEP_READ_MICHELINE;
+    op->frame->step_read_micheline.inited = 0;
+    op->frame->step_read_micheline.skip   = 0;
+    op->frame->step_read_micheline.name   = "Parameter";
     state->field_info.is_field_complex    = true;
     STRLCPY(state->field_info.field_name, "Parameter");
     tz_continue;
@@ -744,7 +744,7 @@ fa2_fallback_to_binary(tz_parser_state *state)
 /**
  * @brief Read and parse an FA2 transfer parameter for clear signing
  *
- *        Supports single-item transfers with token_id = 0.
+ *        Supports single-item transfers where token_id is any nat.
  *        The innermost list(pair(token_id, amount)) may be Micheline-encoded
  *        either as SEQ[Pair(...)] or as a direct Pair (single-element list).
  *        Falls back to raw Micheline display for unsupported patterns.
@@ -958,7 +958,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
              * Wallet) */
             op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_PAIR_OP;
         } else {
-            return fa2_fallback_to_binary(state);
+            return fa2_fallback_to_micheline(state);
         }
         tz_continue;
 
@@ -992,22 +992,55 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         op->frame->step_read_fa2.sub_step = FA2_STEP_TOKEN_ID_TAG;
         tz_continue;
 
-    /* ---- token_id (must be 0) ---- */
+    /* ---- token_id (uint64) ---- */
     case FA2_STEP_TOKEN_ID_TAG:
         tz_must(tz_parser_read(state, &b));
 
         FA2_REQUIRE(state, b == 0x00);
 
-        op->frame->step_read_fa2.sub_step = FA2_STEP_TOKEN_ID_VAL;
+        op->frame->step_read_fa2.token_id_val   = 0;
+        op->frame->step_read_fa2.token_id_shift = 0;
+        op->frame->step_read_fa2.sub_step       = FA2_STEP_TOKEN_ID_VAL;
         tz_continue;
 
     case FA2_STEP_TOKEN_ID_VAL: {
-        /* Read a single Zarith byte; must be 0x00 (value 0, no more bytes) */
+        const fa2_token_metadata_t *token;
+        uint8_t                     chunk;
+        uint8_t                     chunk_bits;
+
         tz_must(tz_parser_read(state, &b));
 
-        /* Zarith: MSB=1 means more bytes follow; value bits are low 7 bits.
-           For token_id=0, the only valid encoding is a single byte 0x00. */
-        FA2_REQUIRE(state, b == 0x00);
+        /* Micheline INT uses signed Zarith; token_id must be non-negative. */
+        if (op->frame->step_read_fa2.token_id_shift == 0) {
+            FA2_REQUIRE(state, (b & 0x40u) == 0);
+            chunk      = b & 0x3Fu;
+            chunk_bits = 6;
+        } else {
+            chunk      = b & 0x7Fu;
+            chunk_bits = 7;
+        }
+
+        FA2_REQUIRE(
+            state,
+            op->frame->step_read_fa2.token_id_shift < 64
+                && chunk <= (UINT64_MAX
+                             >> op->frame->step_read_fa2.token_id_shift));
+
+        op->frame->step_read_fa2.token_id_val
+            |= ((uint64_t)chunk << op->frame->step_read_fa2.token_id_shift);
+
+        if (b & 0x80u) {
+            op->frame->step_read_fa2.token_id_shift += chunk_bits;
+            FA2_REQUIRE(state, op->frame->step_read_fa2.token_id_shift < 64);
+            tz_continue;
+        }
+
+        token = fa2_find_token(op->destination,
+                               op->frame->step_read_fa2.token_id_val);
+
+        FA2_REQUIRE(state, token != NULL);
+
+        op->frame->step_read_fa2.token_idx = fa2_token_index(token);
 
         op->frame->step_read_fa2.sub_step = FA2_STEP_AMOUNT_TAG;
         tz_continue;
@@ -1324,7 +1357,7 @@ tz_step_read_bytes(tz_parser_state *state)
             break;
         case TZ_OPERATION_FIELD_DESTINATION:
             memcpy(op->destination, CAPTURE, 22);
-            if (fa2_find_token(op->destination)) {
+            if (fa2_find_token(op->destination, 0)) {
                 tz_must(pop_frame(state));
                 tz_continue;
             }
@@ -1671,19 +1704,16 @@ tz_step_field(tz_parser_state *state)
     }
     case TZ_OPERATION_FIELD_EXPR: {
         if (op->is_fa2_candidate && !field->skip) {
-            const fa2_token_metadata_t *token;
             state->field_info.is_field_complex = false;
             op->frame->step = TZ_OPERATION_STEP_READ_FA2_TRANSFER;
-            op->frame->step_read_fa2.sub_step  = FA2_STEP_OUTER_SEQ_TAG;
-            op->frame->step_read_fa2.addr_ofs  = 0;
-            op->frame->step_read_fa2.size_ofs  = 0;
-            op->frame->step_read_fa2.size_val  = 0;
-            op->frame->step_read_fa2.addr_len  = 0;
-            op->frame->step_read_fa2.token_idx = -1;
-            token = fa2_find_token(op->destination);
-            if (token != NULL) {
-                op->frame->step_read_fa2.token_idx = fa2_token_index(token);
-            }
+            op->frame->step_read_fa2.sub_step       = FA2_STEP_OUTER_SEQ_TAG;
+            op->frame->step_read_fa2.addr_ofs       = 0;
+            op->frame->step_read_fa2.size_ofs       = 0;
+            op->frame->step_read_fa2.size_val       = 0;
+            op->frame->step_read_fa2.addr_len       = 0;
+            op->frame->step_read_fa2.token_id_shift = 0;
+            op->frame->step_read_fa2.token_id_val   = 0;
+            op->frame->step_read_fa2.token_idx      = -1;
         } else {
             op->frame->step = TZ_OPERATION_STEP_READ_MICHELINE;
             op->frame->step_read_micheline.inited = 0;

@@ -1,9 +1,6 @@
-.PHONY: all parser ctest
+.PHONY: all parser
 
-all: ctest parser
+all: parser
 
 parser: Makefile
 	make -C parser all
-
-ctest: Makefile
-	make -C ctest all

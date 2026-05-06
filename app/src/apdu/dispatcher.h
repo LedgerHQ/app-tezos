@@ -33,6 +33,6 @@
  * code instruction, parse the instruction parameters in order to supply them,
  * in addition to the potential command data, to the corresponding process.
  *
- * @param cmd: command containg APDU received
+ * @param cmd: command containing APDU received
  */
 void dispatch(const command_t *cmd);

@@ -55,8 +55,8 @@ end
 let send_apdu ppf packet =
   Format.fprintf ppf "send_apdu %a@." pp_hex_bytes packet
 
-let expect_apdu_return ppf ans =
-  Format.fprintf ppf "expect_apdu_return %a" pp_hex_bytes ans
+let expect_apdu_return ppf resp =
+  Format.fprintf ppf "expect_apdu_return %a" pp_hex_bytes resp
 
 type async_apdu = { packet : bytes; check : Format.formatter -> unit -> unit }
 

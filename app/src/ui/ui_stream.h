@@ -102,7 +102,7 @@ typedef uint8_t tz_ui_cb_type_t;
  * BNP - refers to Bold Title, normal text/picture below the title.
  * BP  - refers to Bold tile and picture below the title(optional).
  * NP  - Normal text and picture below the text(optional)
- * PB  - Picture and Bold title below it,left/rigth arrow all vertically
+ * PB  - Picture and Bold title below it,left/right arrow all vertically
  *       centered.
  * HOME_X - X layout for home/settings screens
  * with left/right arrows vertically centered.

@@ -5,7 +5,6 @@ IndentWidth:      4
 ColumnLimit:      78
 UseTab:           Never
 IndentCaseLabels: false
-InsertBraces:     true
 PointerAlignment: Right
 
 AlwaysBreakAfterReturnType: TopLevelDefinitions
@@ -17,20 +16,9 @@ BinPackParameters: true
 
 AlignAfterOpenBracket: Align
 
-AlignConsecutiveMacros:
-  Enabled: true
-  AcrossComments: true
-  AcrossEmptyLines: false
-
-AlignConsecutiveDeclarations:
-  Enabled: true
-  AcrossComments: false
-  AcrossEmptyLines: false
-
-AlignConsecutiveAssignments:
-  Enabled: true
-  AcrossComments: false
-  AcrossEmptyLines: false
+AlignConsecutiveMacros:      AcrossComments
+AlignConsecutiveDeclarations: Consecutive
+AlignConsecutiveAssignments:  Consecutive
 
 AlignArrayOfStructures: Left
 SortIncludes: Never

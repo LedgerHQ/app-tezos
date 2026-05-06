@@ -47,7 +47,7 @@ send_pubkey_response(bool confirm)
 
     if (confirm) {
         buffer_t bufs[2] = {
-            {.ptr    = (const uint8_t *)&global.keys.pubkey.W_len,
+            {.ptr    = (uint8_t *)&global.keys.pubkey.W_len,
              .size   = 1,
              .offset = 0u},
             {.ptr    = global.keys.pubkey.W,

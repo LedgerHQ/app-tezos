@@ -1,4 +1,6 @@
 compat.h
+fa2_tokens.c
+fa2_tokens.h
 formatting.c
 formatting.h
 micheline_parser.c

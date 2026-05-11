@@ -354,8 +354,8 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     state->operation.emit_finalize_note    = 0;
     state->operation.manager_entrypoint[0] = 0;
     state->operation.sdp_payload_start     = 0;
-    memset(&state->operation.source, 0, 22);
-    memset(&state->operation.destination, 0, 22);
+    memset(&state->operation.source, 0, TZ_OPERATION_SOURCE_SIZE);
+    memset(&state->operation.destination, 0, TZ_OPERATION_DESTINATION_SIZE);
     op->batch_index = 0;
 #ifdef HAVE_SWAP
     op->last_tag  = TZ_OPERATION_TAG_END;

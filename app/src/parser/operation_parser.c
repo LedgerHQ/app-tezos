@@ -1929,6 +1929,7 @@ tz_step_field(tz_parser_state *state)
     }
     case TZ_OPERATION_FIELD_EXPR: {
         if (op->is_fa2_candidate && !field->skip) {
+            const fa2_token_metadata_t *token;
             state->field_info.is_field_complex = false;
             op->frame->step = TZ_OPERATION_STEP_READ_FA2_TRANSFER;
             op->frame->step_read_fa2.sub_step       = FA2_STEP_OUTER_SEQ_TAG;
@@ -1940,7 +1941,8 @@ tz_step_field(tz_parser_state *state)
             op->frame->step_read_fa2.token_id_val   = 0;
             op->frame->step_read_fa2.token_idx      = -1;
 
-            token = fa2_find_token(op->destination);
+            token = fa2_find_token(op->destination,
+                                   op->frame->step_read_fa2.token_id_val);
             if (token != NULL) {
                 op->frame->step_read_fa2.token_idx = fa2_token_index(token);
             }

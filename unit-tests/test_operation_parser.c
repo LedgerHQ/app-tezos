@@ -20,7 +20,7 @@
 #include <cmocka.h>
 #include "operation_parser.h"
 
-#define OPERATION_PARSER_TEST(test) \
+#define OPERATION_PARSER_TEST(test)                               \
     cmocka_unit_test_setup_teardown(test, operation_parser_setup, \
                                     operation_parser_teardown)
 
@@ -1280,8 +1280,6 @@ test_check_fa2_transfer_whole_number_amount(void **state)
 int
 main(void)
 {
-
-    
     const struct CMUnitTest tests[] = {
         OPERATION_PARSER_TEST(test_check_proposals_complexity),
         OPERATION_PARSER_TEST(test_check_ballot_complexity),
@@ -1303,14 +1301,22 @@ main(void)
         OPERATION_PARSER_TEST(test_check_finalize_unstake_kt1_dest),
         OPERATION_PARSER_TEST(test_check_print_string_skip),
         OPERATION_PARSER_TEST(test_check_set_delegate_parameters_complexity),
-        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback),
-        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_late),
-        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_outer_pair_op),
-        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_first_int_tag),
-        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag),
-        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_inner_pair_op),
-        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_edge_int_tag),
-        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_unit_prim0),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_sdp_fallback),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_sdp_fallback_late),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_sdp_fallback_outer_pair_op),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_sdp_fallback_first_int_tag),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_sdp_fallback_inner_pair_op),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_sdp_fallback_edge_int_tag),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_sdp_fallback_unit_prim0),
         OPERATION_PARSER_TEST(test_check_sdp_unit_op_trailing_data),
         OPERATION_PARSER_TEST(test_check_sdp_done_oofs),
         OPERATION_PARSER_TEST(test_check_sdp_invalid_sub_step),
@@ -1323,13 +1329,17 @@ main(void)
         OPERATION_PARSER_TEST(test_check_set_companion_key_complexity),
         OPERATION_PARSER_TEST(test_check_transfer_ticket_complexity),
         OPERATION_PARSER_TEST(test_check_sc_rollup_add_messages_complexity),
-        OPERATION_PARSER_TEST(test_check_sc_rollup_execute_outbox_message_complexity),
+        OPERATION_PARSER_TEST(
+            test_check_sc_rollup_execute_outbox_message_complexity),
         OPERATION_PARSER_TEST(test_check_sc_rollup_originate_complexity),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_clear_signing_fields),
-        OPERATION_PARSER_TEST(test_check_fa2_transfer_fallback_uses_complex_parameter),
-        OPERATION_PARSER_TEST(test_check_fa2_transfer_clear_signing_token_id_gt0),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_fallback_uses_complex_parameter),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_clear_signing_token_id_gt0),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),
-        OPERATION_PARSER_TEST(test_check_fa2_transfer_negative_amount_fallback),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_negative_amount_fallback),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_whole_number_amount),
     };
 

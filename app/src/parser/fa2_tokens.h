@@ -29,6 +29,7 @@ typedef struct {
     const char    name[FA2_TOKEN_NAME_LENGTH];
     const char    symbol[FA2_TOKEN_SYMBOL_LENGTH];
     uint8_t       decimals;
+    uint64_t      token_id;
     const uint8_t contract_hash[FA2_TOKEN_CONTRACT_HASH_LENGTH];
 } fa2_token_metadata_t;
 
@@ -38,6 +39,6 @@ const fa2_token_metadata_t *fa2_token_by_index(int16_t idx);
 
 int16_t fa2_token_index(const fa2_token_metadata_t *token);
 
-const fa2_token_metadata_t *fa2_find_token(
-    const uint8_t *destination_22bytes);
+const fa2_token_metadata_t *fa2_find_token(const uint8_t *destination,
+                                           uint64_t       token_id);
 #endif  // FA_TOKENS_H

@@ -23,7 +23,7 @@ from utils.message import Transaction
 from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
 
 # FA2 transfer parameter: single item, token_id=0 (clear-signing supported).
-# Inner list(pair(nat,nat)) as direct Pair (common wallet encoding, e.g. Temple).
+# Inner list(pair(uint64,uint64)) as direct Pair (common wallet encoding, e.g. Temple).
 _FA2_TRANSFER_PARAMETER = [
     {'prim': 'Pair', 'args': [
         {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
@@ -51,8 +51,8 @@ _FA2_TRANSFER_PARAMETER_SEQ_WRAPPED = [
     ]}
 ]
 
-# FA2 transfer parameter: token_id != 0 (fallback to generic display)
-_FA2_TRANSFER_FALLBACK_PARAMETER = [
+# FA2 transfer parameter: token_id!=0 (clear-signing supported when registered).
+_FA2_TRANSFER_PARAMETER_TOKEN_ID_1 = [
     {'prim': 'Pair', 'args': [
         {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
         [{'prim': 'Pair', 'args': [
@@ -65,7 +65,22 @@ _FA2_TRANSFER_FALLBACK_PARAMETER = [
     ]}
 ]
 
-_FA2_KT1_DESTINATION = 'KT193D4vozYnhGJQVtw7CoxxqphqUEEwK6Vb'
+# FA2 transfer parameter: token_id not in registry (fallback to generic display).
+_FA2_TRANSFER_UNREGISTERED_TOKEN_ID_PARAMETER = [
+    {'prim': 'Pair', 'args': [
+        {'string': 'KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW'},
+        [{'prim': 'Pair', 'args': [
+            {'string': 'sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh'},
+            {'prim': 'Pair', 'args': [
+                {'int': 42},
+                {'int': 100}
+            ]}
+        ]}]
+    ]}
+]
+
+_FA2_KT1_DESTINATION = 'KT18fp5rcTW7mbWDmzFwjLDUhs5MeJmagDSZ'
+_FA2_KT1_TOKEN_ID_0_DESTINATION = 'KT193D4vozYnhGJQVtw7CoxxqphqUEEwK6Vb'
 
 
 class TestTransaction(TestOperation):
@@ -79,7 +94,7 @@ class TestTransaction(TestOperation):
         Flow('basic', amount=5),
         Flow(
             'contract_call',
-            destination=_FA2_KT1_DESTINATION,
+            destination=_FA2_KT1_TOKEN_ID_0_DESTINATION,
             entrypoint="transfer",
             parameter=_FA2_TRANSFER_PARAMETER,
         ),
@@ -87,7 +102,13 @@ class TestTransaction(TestOperation):
             'contract_call_fa2_fallback',
             destination=_FA2_KT1_DESTINATION,
             entrypoint="transfer",
-            parameter=_FA2_TRANSFER_FALLBACK_PARAMETER,
+            parameter=_FA2_TRANSFER_UNREGISTERED_TOKEN_ID_PARAMETER,
+        ),
+        Flow(
+            'contract_call_fa2_token_id_not_0',
+            destination=_FA2_KT1_DESTINATION,
+            entrypoint="transfer",
+            parameter=_FA2_TRANSFER_PARAMETER_TOKEN_ID_1,
         ),
     ]
 
@@ -132,11 +153,17 @@ class TestTransaction(TestOperation):
                 _FA2_TRANSFER_PARAMETER,
                 "fa2_transfer_to",
                 entrypoint='transfer',
-                destination=_FA2_KT1_DESTINATION,
+                destination=_FA2_KT1_TOKEN_ID_0_DESTINATION,
             ),
             Field.Case(
                 _FA2_TRANSFER_PARAMETER_SEQ_WRAPPED,
                 "fa2_transfer_to_seq_wrapped",
+                entrypoint='transfer',
+                destination=_FA2_KT1_TOKEN_ID_0_DESTINATION,
+            ),
+            Field.Case(
+                _FA2_TRANSFER_PARAMETER_TOKEN_ID_1,
+                "fa2_transfer_to_token_id_1",
                 entrypoint='transfer',
                 destination=_FA2_KT1_DESTINATION,
             ),
@@ -146,11 +173,17 @@ class TestTransaction(TestOperation):
                 _FA2_TRANSFER_PARAMETER,
                 "fa2_amount",
                 entrypoint='transfer',
-                destination=_FA2_KT1_DESTINATION,
+                destination=_FA2_KT1_TOKEN_ID_0_DESTINATION,
             ),
             Field.Case(
                 _FA2_TRANSFER_PARAMETER_SEQ_WRAPPED,
                 "fa2_amount_seq_wrapped",
+                entrypoint='transfer',
+                destination=_FA2_KT1_TOKEN_ID_0_DESTINATION,
+            ),
+            Field.Case(
+                _FA2_TRANSFER_PARAMETER_TOKEN_ID_1,
+                "fa2_amount_token_id_1",
                 entrypoint='transfer',
                 destination=_FA2_KT1_DESTINATION,
             ),

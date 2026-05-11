@@ -240,6 +240,27 @@ _FA2_NEG = [
     }
 ]
 
+_FA2_TRANSFER_TOKEN_ID_GT0_PARAMETER = [
+    {
+        "prim": "Pair",
+        "args": [
+            {"string": "KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW"},
+            [
+                {
+                    "prim": "Pair",
+                    "args": [
+                        {"string": "sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh"},
+                        {
+                            "prim": "Pair",
+                            "args": [{"int": 1}, {"int": 500000}],
+                        },
+                    ],
+                }
+            ],
+        ],
+    }
+]
+
 _DEFAULT_TX = {
     "kind": "transaction",
     "source": "tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa",
@@ -256,8 +277,10 @@ _DEFAULT_TX = {
 }
 
 
-def forge_batch_hex(parameter_value: list) -> str:
+def forge_batch_hex(parameter_value: list, destination: str | None = None) -> str:
     content = dict(_DEFAULT_TX)
+    if destination is not None:
+        content["destination"] = destination
     content["parameters"] = {"entrypoint": "transfer", "value": parameter_value}
     body = forge_transaction(content)
     batch = b"\x03" + bytes(32) + body
@@ -276,6 +299,11 @@ def main() -> None:
     print()
     print("/* FA2 negative amount (fallback): */")
     print(f'    "{forge_batch_hex(_FA2_NEG)}"')
+    print()
+    print("/* FA2 clear-signing (token_id=1, wrapped token registry): */")
+    print(
+        f'    "{forge_batch_hex(_FA2_TRANSFER_TOKEN_ID_GT0_PARAMETER, "KT18fp5rcTW7mbWDmzFwjLDUhs5MeJmagDSZ")}"'
+    )
 
 
 if __name__ == "__main__":

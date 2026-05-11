@@ -20,6 +20,10 @@
 #include <cmocka.h>
 #include "operation_parser.h"
 
+#define OPERATION_PARSER_TEST(test) \
+    cmocka_unit_test_setup_teardown(test, operation_parser_setup, \
+                                    operation_parser_teardown)
+
 typedef struct {
     tz_parser_state *state;
     char            *obuf;
@@ -1169,6 +1173,33 @@ test_check_fa2_transfer_fallback_uses_complex_parameter(void **state)
 }
 
 static void
+test_check_fa2_transfer_clear_signing_token_id_gt0(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000100f42eb1"
+          "f25677dd7b0a94aba3a7aea61e2fd30d0001ff087472616e736665720000006802"
+          "00000063070701000000244b543151576462415376615458573847576668664e68"
+          "334a4d6a6758766e5a4141544a570200000033070701000000247372314d794377"
+          "523833685a70684353716159535141705078504d65796b734a57576e6807070001"
+          "00a0843d";
+    const tz_fields_check fields_check[] = {
+        {"Source",             false, 1 },
+        {"Fee",                false, 2 },
+        {"Storage limit",      false, 3 },
+        {"Amount",             false, 4 },
+        {"Destination",        false, 5 },
+        //     {"Option",        _,     6},
+        //    {"Tuple",         _,     7},
+        {"Entrypoint",         false, 8 },
+        {"Transfer tokens to", false, 10},
+        {"Token Amount",       false, 11},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+static void
 test_check_fa2_transfer_multi_item_fallback(void **state)
 {
     operation_parser_data *data = *state;
@@ -1249,148 +1280,57 @@ test_check_fa2_transfer_whole_number_amount(void **state)
 int
 main(void)
 {
+
+    
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup_teardown(test_check_proposals_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_ballot_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_failing_noop_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_reveal_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_simple_transaction_complexity, operation_parser_setup,
-            operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_transaction_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_double_transaction_complexity, operation_parser_setup,
-            operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_default,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_root,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_builtin_entrypoint_set_delegate,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_builtin_entrypoint_remove_delegate,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_deposit,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_builtin_entrypoint_invalid,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_stake_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_unstake_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_finalize_unstake_complexity, operation_parser_setup,
-            operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sponsored_finalize_unstake,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_finalize_unstake_kt1_dest,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_print_string_skip,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_complexity,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_sdp_fallback,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_sdp_fallback_late,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_sdp_fallback_outer_pair_op,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_sdp_fallback_first_int_tag,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_sdp_fallback_inner_pair_op,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_sdp_fallback_edge_int_tag,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_delegate_parameters_sdp_fallback_unit_prim0,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sdp_unit_op_trailing_data,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sdp_done_oofs,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_sdp_invalid_sub_step,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_origination_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_delegation_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_register_global_constant_complexity,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_deposit_limit_complexity, operation_parser_setup,
-            operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_increase_paid_storage_complexity,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_consensus_key_complexity, operation_parser_setup,
-            operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_set_companion_key_complexity, operation_parser_setup,
-            operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(test_check_transfer_ticket_complexity,
-                                        operation_parser_setup,
-                                        operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_sc_rollup_add_messages_complexity,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_sc_rollup_execute_outbox_message_complexity,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_sc_rollup_originate_complexity, operation_parser_setup,
-            operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_fa2_transfer_clear_signing_fields,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_fa2_transfer_fallback_uses_complex_parameter,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_fa2_transfer_multi_item_fallback,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_fa2_transfer_negative_amount_fallback,
-            operation_parser_setup, operation_parser_teardown),
-        cmocka_unit_test_setup_teardown(
-            test_check_fa2_transfer_whole_number_amount,
-            operation_parser_setup, operation_parser_teardown),
+        OPERATION_PARSER_TEST(test_check_proposals_complexity),
+        OPERATION_PARSER_TEST(test_check_ballot_complexity),
+        OPERATION_PARSER_TEST(test_check_failing_noop_complexity),
+        OPERATION_PARSER_TEST(test_check_reveal_complexity),
+        OPERATION_PARSER_TEST(test_check_simple_transaction_complexity),
+        OPERATION_PARSER_TEST(test_check_transaction_complexity),
+        OPERATION_PARSER_TEST(test_check_double_transaction_complexity),
+        OPERATION_PARSER_TEST(test_check_builtin_entrypoint_default),
+        OPERATION_PARSER_TEST(test_check_builtin_entrypoint_root),
+        OPERATION_PARSER_TEST(test_check_builtin_entrypoint_set_delegate),
+        OPERATION_PARSER_TEST(test_check_builtin_entrypoint_remove_delegate),
+        OPERATION_PARSER_TEST(test_check_builtin_entrypoint_deposit),
+        OPERATION_PARSER_TEST(test_check_builtin_entrypoint_invalid),
+        OPERATION_PARSER_TEST(test_check_stake_complexity),
+        OPERATION_PARSER_TEST(test_check_unstake_complexity),
+        OPERATION_PARSER_TEST(test_check_finalize_unstake_complexity),
+        OPERATION_PARSER_TEST(test_check_sponsored_finalize_unstake),
+        OPERATION_PARSER_TEST(test_check_finalize_unstake_kt1_dest),
+        OPERATION_PARSER_TEST(test_check_print_string_skip),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_complexity),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_late),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_outer_pair_op),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_first_int_tag),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_inner_pair_tag),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_inner_pair_op),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_edge_int_tag),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_sdp_fallback_unit_prim0),
+        OPERATION_PARSER_TEST(test_check_sdp_unit_op_trailing_data),
+        OPERATION_PARSER_TEST(test_check_sdp_done_oofs),
+        OPERATION_PARSER_TEST(test_check_sdp_invalid_sub_step),
+        OPERATION_PARSER_TEST(test_check_origination_complexity),
+        OPERATION_PARSER_TEST(test_check_delegation_complexity),
+        OPERATION_PARSER_TEST(test_check_register_global_constant_complexity),
+        OPERATION_PARSER_TEST(test_check_set_deposit_limit_complexity),
+        OPERATION_PARSER_TEST(test_check_increase_paid_storage_complexity),
+        OPERATION_PARSER_TEST(test_check_set_consensus_key_complexity),
+        OPERATION_PARSER_TEST(test_check_set_companion_key_complexity),
+        OPERATION_PARSER_TEST(test_check_transfer_ticket_complexity),
+        OPERATION_PARSER_TEST(test_check_sc_rollup_add_messages_complexity),
+        OPERATION_PARSER_TEST(test_check_sc_rollup_execute_outbox_message_complexity),
+        OPERATION_PARSER_TEST(test_check_sc_rollup_originate_complexity),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_clear_signing_fields),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_fallback_uses_complex_parameter),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_clear_signing_token_id_gt0),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_negative_amount_fallback),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_whole_number_amount),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

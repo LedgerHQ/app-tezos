@@ -62,17 +62,15 @@ def account(request) -> Account:
 def _override_seed(args: List[str], seed: str) -> List[str]:  # pylint: disable=redefined-outer-name
     """Replace any existing --seed argument with the one provided."""
     result: List[str] = []
-    skip_next = False
-    for idx, arg in enumerate(args):
-        if skip_next:
-            skip_next = False
+    i = 0
+    while i < len(args):
+        if args[i] == "--seed":
+            i += 1
+            if i < len(args):
+                i += 1
             continue
-        if arg == "--seed":
-            skip_next = True
-            continue
-        result.append(arg)
-        if idx + 1 < len(args) and args[idx + 1] == "--seed":
-            skip_next = True
+        result.append(args[i])
+        i += 1
     result.extend(["--seed", seed])
     return result
 

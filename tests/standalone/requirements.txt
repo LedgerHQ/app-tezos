@@ -4,6 +4,7 @@ fastecdsa>=2.2.3
 py-ecc==7.0.1
 PyNaCl>=1.5.0
 # Test framework
+pytest>=7.4.0
 GitPython
 pytest-xdist
 ledgered

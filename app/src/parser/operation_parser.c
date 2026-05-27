@@ -46,6 +46,7 @@ const char *const tz_operation_parser_step_name[] = {"OPTION",
                                                      "READ_NUM",
                                                      "READ_INT32",
                                                      "READ_PK",
+                                                     "READ_BLS_SIG",
                                                      "READ_BYTES",
                                                      "READ_STRING",
                                                      "READ_SMART_ENTRYPOINT",
@@ -261,6 +262,37 @@ TZ_OPERATION_FIELDS(soru_origin_fields,
     } while (0)
 
 /**
+ * @brief Read one byte, require it equals @p expected_byte, then advance
+ *        sub_step to @p next.  Falls back to Micheline on mismatch.
+ */
+#define FA2_READ_EXPECT_BYTE(state, op, b, expected_byte, next) \
+    do { \
+        tz_must(tz_parser_read((state), &(b))); \
+        FA2_REQUIRE((state), (b) == (expected_byte)); \
+        (op)->frame->step_read_fa2.sub_step = (next); \
+        tz_continue; \
+    } while (0)
+
+/**
+ * @brief Accumulate one byte of a big-endian 4-byte size field.
+ *        When all 4 bytes have been read, require the result is non-zero
+ *        and advance sub_step to @p next.
+ */
+#define FA2_READ_SIZE_BYTE(state, op, b, next) \
+    do { \
+        tz_must(tz_parser_read((state), &(b))); \
+        (op)->frame->step_read_fa2.size_val = \
+            ((op)->frame->step_read_fa2.size_val << 8) | (b); \
+        (op)->frame->step_read_fa2.size_ofs++; \
+        if ((op)->frame->step_read_fa2.size_ofs < 4) { \
+            tz_continue; \
+        } \
+        FA2_REQUIRE((state), (op)->frame->step_read_fa2.size_val != 0); \
+        (op)->frame->step_read_fa2.sub_step = (next); \
+        tz_continue; \
+    } while (0)
+
+/**
  * @brief Array of all handled operations
  */
 const tz_operation_descriptor tz_operation_descriptors[] = {
@@ -341,8 +373,8 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     tz_parser_init(state);
     state->operation.seen_reveal      = 0;
     state->operation.is_fa2_candidate = 0;
-    memset(&state->operation.source, 0, 22);
-    memset(&state->operation.destination, 0, 22);
+    memset(&state->operation.source, 0, TZ_OPERATION_SOURCE_SIZE);
+    memset(&state->operation.destination, 0, TZ_OPERATION_DESTINATION_SIZE);
     op->batch_index = 0;
 #ifdef HAVE_SWAP
     op->last_tag  = TZ_OPERATION_TAG_END;
@@ -565,7 +597,7 @@ tz_step_tag(tz_parser_state *state)
     }
 #endif  // HAVE_SWAP
     op->is_fa2_candidate = 0;
-    memset(&op->destination, 0, 22);
+    memset(&op->destination, 0, TZ_OPERATION_DESTINATION_SIZE);
     for (d = tz_operation_descriptors; d->tag != TZ_OPERATION_TAG_END; d++) {
         if (d->tag == t) {
             op->frame->step                   = TZ_OPERATION_STEP_TUPLE;
@@ -775,34 +807,13 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         tz_continue;
 
     case FA2_STEP_OUTER_SEQ_SIZE:
-        tz_must(tz_parser_read(state, &b));
-        op->frame->step_read_fa2.size_val
-            = (op->frame->step_read_fa2.size_val << 8) | b;
-        op->frame->step_read_fa2.size_ofs++;
-        if (op->frame->step_read_fa2.size_ofs < 4) {
-            tz_continue;
-        }
-
-        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val != 0);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_PAIR_TAG;
-        tz_continue;
+        FA2_READ_SIZE_BYTE(state, op, b, FA2_STEP_OUTER_PAIR_TAG);
 
     case FA2_STEP_OUTER_PAIR_TAG:
-        tz_must(tz_parser_read(state, &b));
-
-        FA2_REQUIRE(state, b == 0x07);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_OUTER_PAIR_OP;
-        tz_continue;
+        FA2_READ_EXPECT_BYTE(state, op, b, 0x07, FA2_STEP_OUTER_PAIR_OP);
 
     case FA2_STEP_OUTER_PAIR_OP:
-        tz_must(tz_parser_read(state, &b));
-
-        FA2_REQUIRE(state, b == 0x07);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_TAG;
-        tz_continue;
+        FA2_READ_EXPECT_BYTE(state, op, b, 0x07, FA2_STEP_FROM_ADDR_TAG);
 
     /* ---- from_ address ---- */
     case FA2_STEP_FROM_ADDR_TAG:
@@ -824,10 +835,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-
         FA2_REQUIRE(state,
                     op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
-
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
         op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_BYTES;
@@ -858,43 +867,20 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
     /* ---- txs list ---- */
     case FA2_STEP_TXS_SEQ_TAG:
         tz_must(tz_parser_read(state, &b));
-
         FA2_REQUIRE(state, b == 0x02);
-
         op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_SEQ_SIZE;
         op->frame->step_read_fa2.size_ofs = 0;
         op->frame->step_read_fa2.size_val = 0;
         tz_continue;
 
     case FA2_STEP_TXS_SEQ_SIZE:
-        tz_must(tz_parser_read(state, &b));
-        op->frame->step_read_fa2.size_val
-            = (op->frame->step_read_fa2.size_val << 8) | b;
-        op->frame->step_read_fa2.size_ofs++;
-        if (op->frame->step_read_fa2.size_ofs < 4) {
-            tz_continue;
-        }
-
-        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val != 0);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_PAIR_TAG;
-        tz_continue;
+        FA2_READ_SIZE_BYTE(state, op, b, FA2_STEP_TXS_PAIR_TAG);
 
     case FA2_STEP_TXS_PAIR_TAG:
-        tz_must(tz_parser_read(state, &b));
-
-        FA2_REQUIRE(state, b == 0x07);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_TXS_PAIR_OP;
-        tz_continue;
+        FA2_READ_EXPECT_BYTE(state, op, b, 0x07, FA2_STEP_TXS_PAIR_OP);
 
     case FA2_STEP_TXS_PAIR_OP:
-        tz_must(tz_parser_read(state, &b));
-
-        FA2_REQUIRE(state, b == 0x07);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_TAG;
-        tz_continue;
+        FA2_READ_EXPECT_BYTE(state, op, b, 0x07, FA2_STEP_TO_ADDR_TAG);
 
     /* ---- to_ address ---- */
     case FA2_STEP_TO_ADDR_TAG:
@@ -916,10 +902,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-
         FA2_REQUIRE(state,
                     op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
-
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
         op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_BYTES;
@@ -963,41 +947,18 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         tz_continue;
 
     case FA2_STEP_INNER_SEQ_SIZE:
-        tz_must(tz_parser_read(state, &b));
-        op->frame->step_read_fa2.size_val
-            = (op->frame->step_read_fa2.size_val << 8) | b;
-        op->frame->step_read_fa2.size_ofs++;
-        if (op->frame->step_read_fa2.size_ofs < 4) {
-            tz_continue;
-        }
-
-        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val != 0);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_PAIR_TAG;
-        tz_continue;
+        FA2_READ_SIZE_BYTE(state, op, b, FA2_STEP_INNER_PAIR_TAG);
 
     case FA2_STEP_INNER_PAIR_TAG:
-        tz_must(tz_parser_read(state, &b));
-
-        FA2_REQUIRE(state, b == 0x07);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_INNER_PAIR_OP;
-        tz_continue;
+        FA2_READ_EXPECT_BYTE(state, op, b, 0x07, FA2_STEP_INNER_PAIR_OP);
 
     case FA2_STEP_INNER_PAIR_OP:
-        tz_must(tz_parser_read(state, &b));
-
-        FA2_REQUIRE(state, b == 0x07);
-
-        op->frame->step_read_fa2.sub_step = FA2_STEP_TOKEN_ID_TAG;
-        tz_continue;
+        FA2_READ_EXPECT_BYTE(state, op, b, 0x07, FA2_STEP_TOKEN_ID_TAG);
 
     /* ---- token_id (uint64) ---- */
     case FA2_STEP_TOKEN_ID_TAG:
         tz_must(tz_parser_read(state, &b));
-
         FA2_REQUIRE(state, b == 0x00);
-
         op->frame->step_read_fa2.token_id_val   = 0;
         op->frame->step_read_fa2.token_id_shift = 0;
         op->frame->step_read_fa2.sub_step       = FA2_STEP_TOKEN_ID_VAL;
@@ -1049,9 +1010,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
     /* ---- amount ---- */
     case FA2_STEP_AMOUNT_TAG:
         tz_must(tz_parser_read(state, &b));
-
         FA2_REQUIRE(state, b == 0x00);
-
         /* Initialize num parser for amount */
         tz_parse_num_state_init(&state->buffers.num,
                                 &op->frame->step_read_fa2.num_state);

@@ -262,6 +262,9 @@ fa2_token_by_index(int16_t idx)
 int16_t
 fa2_token_index(const fa2_token_metadata_t *token)
 {
+    if (token == NULL) {
+        return -1;
+    }
     ptrdiff_t idx = token - FA2_TOKEN_REGISTRY;
     if (idx < 0 || (size_t)idx >= FA2_TOKEN_REGISTRY_SIZE) {
         return -1;
@@ -272,13 +275,16 @@ fa2_token_index(const fa2_token_metadata_t *token)
 const fa2_token_metadata_t *
 fa2_find_token(const uint8_t *destination, uint64_t token_id)
 {
+    if (destination == NULL) {
+        return NULL;
+    }
     if (destination[0] != 1) {
         return NULL;
     }
     for (size_t i = 0; i < FA2_TOKEN_REGISTRY_SIZE; i++) {
         if (FA2_TOKEN_REGISTRY[i].token_id == token_id
             && memcmp(destination + 1, FA2_TOKEN_REGISTRY[i].contract_hash,
-                      20)
+                      FA2_TOKEN_CONTRACT_HASH_LENGTH)
                    == 0) {
             return &FA2_TOKEN_REGISTRY[i];
         }

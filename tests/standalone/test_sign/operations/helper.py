@@ -137,11 +137,12 @@ def parametrize_test_operation_field(metafunc) -> None:
             for case_ in field.cases
         ]
 
-    metafunc.parametrize(
-        args_names,
-        args_values,
-        ids=args_ids
-    )
+    if args_values:
+        metafunc.parametrize(
+            args_names,
+            args_values,
+            ids=args_ids
+        )
 
 
 def pytest_generate_tests(metafunc) -> None:
@@ -164,6 +165,14 @@ class TestOperation(ABC):
     def skip_signature_check(self) -> Optional[str]:
         """Reason why skipping the `test_sign_operation` test."""
         return None
+
+    def field_test_nav_anchor(self) -> str:
+        """Row label to scroll to before the field under test.
+
+        Most operations show ``Source`` early in the review flow; subclasses
+        without it (e.g. failing noop) must override (e.g. with ``Operation``).
+        """
+        return "Source"
 
     def test_sign_operation(
             self,
@@ -212,7 +221,7 @@ class TestOperation(ABC):
         with backend.sign(account, message):
             tezos_navigator.accept_sign(snap_path=snapshot_dir)
 
-    def test_operation_field(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    def il(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self,
             backend: TezosBackend,
             device: Device,
@@ -239,9 +248,9 @@ class TestOperation(ABC):
             validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
             if device.is_nano:
                 validation_instructions = [NavInsID.RIGHT_CLICK]
-            # Navigates until fields
+            # Navigates until a stable first row (see `field_test_nav_anchor`).
             tezos_navigator.navigate_forward(
-                text="Operation",
+                text=self.field_test_nav_anchor(),
                 validation_instructions=validation_instructions,
                 screen_change_before_first_instruction=True,
             )

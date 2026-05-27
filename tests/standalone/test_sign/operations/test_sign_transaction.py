@@ -14,7 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Gathering of tests related to Transaction operations."""
+"""Gathering of tests related to Transaction operations.
+
+Staking 2.0 doc-shaped **sign flows** live in ``test_sign_staking2.py``.
+"""
 
 from utils.message import Transaction
 from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
@@ -106,20 +109,6 @@ class TestTransaction(TestOperation):
             destination=_FA2_KT1_DESTINATION,
             entrypoint="transfer",
             parameter=_FA2_TRANSFER_PARAMETER_TOKEN_ID_1,
-        ),
-        Flow('stake', amount=1000000000, entrypoint='stake'),
-        Flow('unstake', amount=500000000, entrypoint='unstake'),
-        Flow('finalize_unstake', entrypoint='finalize_unstake'),
-        Flow(
-            'delegate_parameters',
-            entrypoint='delegate_parameters',
-            parameter={'prim': 'Pair', 'args': [
-                {'int': 4000000},
-                {'prim': 'Pair', 'args': [
-                    {'int': 20000000},
-                    {'prim': 'Unit'}
-                ]}
-            ]}
         ),
     ]
 

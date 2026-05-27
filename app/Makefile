@@ -166,3 +166,12 @@ include $(BOLOS_SDK)/Makefile.standard_app
 .PHONY: mrproper
 mrproper: clean
 	rm -f .target
+
+
+.PHONY: app-size-report
+app-size-report: $(BIN_TARGETS) $(DBG_TARGETS)
+	@echo ""
+	@echo "Finished Concordium Ledger app ($(TARGET_NAME)) → $(BIN_DIR)/app.elf"
+	$(L)$(GCCPATH)arm-none-eabi-size $(BIN_DIR)/app.elf
+
+default: app-size-report

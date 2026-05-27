@@ -55,7 +55,7 @@ const char *const tz_operation_parser_step_name[]
        "READ_NUM",
        "READ_INT32",
        "READ_PK",
-                                                     "READ_BLS_SIG",
+       "READ_BLS_SIG",
        "READ_BYTES",
        "READ_STRING",
        "READ_SMART_ENTRYPOINT",

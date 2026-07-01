@@ -176,8 +176,8 @@ redisplay_screen(tz_ui_layout_type_t layout, uint8_t icon_pos)
     layout                     = layout & ~TZ_UI_LAYOUT_HOME_MASK;
 
     bagl_element_t init[] = {
-  //  {type, userid, x, y, width, height, stroke, radius,
-  //   fill, fgcolor, bgcolor, font_id, icon_id}, text/icon
+        //  {type, userid, x, y, width, height, stroke, radius,
+        //   fill, fgcolor, bgcolor, font_id, icon_id}, text/icon
         {{BAGL_RECTANGLE, 0x00, 0, 0, 128, BAGL_HEIGHT, 0, 0, BAGL_FILL,
           0x000000, 0xFFFFFF, 0, 0},
          NULL                      },

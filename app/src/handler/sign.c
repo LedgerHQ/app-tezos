@@ -909,18 +909,18 @@ get_blindsign_type(char *type, size_t type_size)
     switch (global.keys.apdu.sign.tag) {
     case 0x01:
     case 0x11:
-        memcpy(type,"Block\nproposal", OPERATION_TYPE_STR_LENGTH);
+        strlcpy(type, "Block\nproposal", type_size);
         break;
     case 0x03:
-        memcpy(type,"Manager\noperation", OPERATION_TYPE_STR_LENGTH);
+        strlcpy(type, "Manager\noperation", type_size);
         break;
     case 0x02:
     case 0x12:
     case 0x13:
-        memcpy(type,"Consensus\noperation", OPERATION_TYPE_STR_LENGTH);
+        strlcpy(type, "Consensus\noperation", type_size);
         break;
     case 0x05:
-        memcpy(type,"Micheline\nexpression", OPERATION_TYPE_STR_LENGTH);
+        strlcpy(type, "Micheline\nexpression", type_size);
         break;
     default:
         break;

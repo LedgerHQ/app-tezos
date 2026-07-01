@@ -626,6 +626,9 @@ tz_step_tag(tz_parser_state *state)
 #endif  // HAVE_SWAP
     op->is_fa2_candidate = 0;
     memset(&op->destination, 0, TZ_OPERATION_DESTINATION_SIZE);
+    /* Reset per-operation so a stale entrypoint from a previous batched
+       operation cannot drive the SDP clear-signing path (F-04). */
+    op->manager_entrypoint[0] = '\0';
     for (d = tz_operation_descriptors; d->tag != TZ_OPERATION_TAG_END; d++) {
         if (d->tag == t) {
             op->frame->step                   = TZ_OPERATION_STEP_TUPLE;

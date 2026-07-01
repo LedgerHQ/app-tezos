@@ -298,7 +298,7 @@ tz_ui_stream_init(void (*cb)(tz_ui_cb_type_t cb_type))
     if (N_settings.blindsigning) {
         op_type |= SKIPPABLE_OPERATION;
     }
-    nbgl_useCaseReviewStreamingStart(op_type, &C_tezos,
+    nbgl_useCaseReviewStreamingStart(op_type, &C_TZ_APP_ICON,
                                      "Review request to sign operation", NULL,
                                      tz_transaction_choice);
 

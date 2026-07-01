@@ -63,7 +63,7 @@ ui_pubkey_review(cx_ecfp_public_key_t *pubkey,
     TZ_LIB_CHECK(derive_pkh(pubkey, derivation_type, G_pubkey.address,
                             sizeof(G_pubkey.address)));
 
-    nbgl_useCaseAddressReview(G_pubkey.address, NULL, &C_tezos,
+    nbgl_useCaseAddressReview(G_pubkey.address, NULL, &C_TZ_APP_ICON,
                               "Verify Tezos\naddress", NULL,
                               ux_pubkey_callback);
 

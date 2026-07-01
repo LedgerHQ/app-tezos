@@ -1088,7 +1088,7 @@ continue_blindsign_cb(void)
            useCaseTagValueList.nbPairs);
     useCaseTagValueList.smallCaseForValue = false;
     useCaseTagValueList.wrapping          = false;
-    nbgl_useCaseReviewBlindSigning(op, &useCaseTagValueList, &C_tezos,
+    nbgl_useCaseReviewBlindSigning(op, &useCaseTagValueList, &C_TZ_APP_ICON,
                                    REVIEW("Transaction"), NULL,
                                    SIGN("Transaction"), NULL, reviewChoice);
 

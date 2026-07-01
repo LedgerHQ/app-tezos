@@ -864,7 +864,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_continue;
         }
         FA2_REQUIRE(state,
-                    op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
+                    op->frame->step_read_fa2.size_val > 0
+                        && op->frame->step_read_fa2.size_val
+                               <= FA2_ADDR_MAX_LEN);
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
         op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_BYTES;
@@ -931,7 +933,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_continue;
         }
         FA2_REQUIRE(state,
-                    op->frame->step_read_fa2.size_val <= FA2_ADDR_MAX_LEN);
+                    op->frame->step_read_fa2.size_val > 0
+                        && op->frame->step_read_fa2.size_val
+                               <= FA2_ADDR_MAX_LEN);
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
         op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_BYTES;

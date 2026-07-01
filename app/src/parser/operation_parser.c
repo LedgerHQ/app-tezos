@@ -911,10 +911,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-        FA2_REQUIRE(state,
-                    op->frame->step_read_fa2.size_val > 0
-                        && op->frame->step_read_fa2.size_val
-                               <= FA2_ADDR_MAX_LEN);
+        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val > 0
+                               && op->frame->step_read_fa2.size_val
+                                      <= FA2_ADDR_MAX_LEN);
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
         op->frame->step_read_fa2.sub_step = FA2_STEP_FROM_ADDR_BYTES;
@@ -980,10 +979,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (op->frame->step_read_fa2.size_ofs < 4) {
             tz_continue;
         }
-        FA2_REQUIRE(state,
-                    op->frame->step_read_fa2.size_val > 0
-                        && op->frame->step_read_fa2.size_val
-                               <= FA2_ADDR_MAX_LEN);
+        FA2_REQUIRE(state, op->frame->step_read_fa2.size_val > 0
+                               && op->frame->step_read_fa2.size_val
+                                      <= FA2_ADDR_MAX_LEN);
         op->frame->step_read_fa2.addr_len = op->frame->step_read_fa2.size_val;
         op->frame->step_read_fa2.addr_ofs = 0;
         op->frame->step_read_fa2.sub_step = FA2_STEP_TO_ADDR_BYTES;
@@ -1148,7 +1146,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
         }
-        tz_u64_to_string((char *)(CAPTURE + FA2_FROM_ADDR_OFS), FA2_ADDR_MAX_LEN,
+        tz_u64_to_string((char *)(CAPTURE + FA2_FROM_ADDR_OFS),
+                         FA2_ADDR_MAX_LEN,
                          op->frame->step_read_fa2.token_id_val);
         STRLCPY(state->field_info.field_name, "Token ID");
         state->field_info.is_field_complex = false;

@@ -344,7 +344,8 @@ refill_error(void)
 #endif
 
     /* Do not offer blind-signing on a parse error when the user has disabled
-       the setting; reject immediately, matching the clear-sign flow (F-09). */
+       the setting; reject immediately, matching the clear-sign flow (F-09).
+     */
     if (!N_settings.blindsigning) {
         TZ_FAIL(EXC_PARSE_ERROR);
     }

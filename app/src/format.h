@@ -28,8 +28,8 @@
  *
  *        Provided by the Ledger standard-app library. Declared here because
  *        the project's own format.h shadows the SDK header on the include
- *        path; without this prototype, call sites emit an implicit-declaration
- *        warning (and wrongly assume an int return).
+ *        path; without this prototype, call sites emit an
+ * implicit-declaration warning (and wrongly assume an int return).
  *
  * @param dst: output buffer
  * @param dst_len: length of the output buffer

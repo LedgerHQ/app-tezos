@@ -212,7 +212,7 @@ typedef enum {
 
 /* +2 (not +1): the widest value uses all ((_l)*241/100) decimal digits, and
    the conversion writes a trailing NUL one past the last digit. */
-#define TZ_DECIMAL_BUFFER_SIZE(_l) ((((_l)*241) / 100) + 2)
+#define TZ_DECIMAL_BUFFER_SIZE(_l) ((((_l) * 241) / 100) + 2)
 
 /**
  * @brief Formats a positive number of arbitrary to decimal.
@@ -229,7 +229,7 @@ typedef enum {
  */
 int tz_format_decimal(const uint8_t *n, size_t l, char *obuf, size_t olen);
 
-#define TZ_BASE58_BUFFER_SIZE(_l) ((((_l)*138) / 100) + 1)
+#define TZ_BASE58_BUFFER_SIZE(_l) ((((_l) * 138) / 100) + 1)
 
 /**
  * @brief Formats a data `n` of size `l` in base58 using Tezos'

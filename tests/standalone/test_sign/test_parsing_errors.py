@@ -65,6 +65,10 @@ def test_parsing_error(
     """Check parsing error handling"""
 
     tezos_navigator.toggle_expert_mode()
+    # Blind-signing must be enabled to reach the parse-error warning/reject
+    # flow. With it disabled the app rejects immediately (see F-09 regression
+    # test `test_parsing_error_blindsign_disabled`).
+    tezos_navigator.toggle_blindsign()
 
     with StatusCode.PARSE_ERROR.expected():
         with backend.sign(
@@ -73,6 +77,27 @@ def test_parsing_error(
                 with_hash=True
         ):
             tezos_navigator.refuse_sign_error_risk(snap_path=snapshot_dir)
+
+
+def test_parsing_error_blindsign_disabled(
+        backend: TezosBackend,
+        account: Account
+):
+    """F-09: with blind-signing disabled (the default), a parse error must be
+    rejected immediately with EXC_PARSE_ERROR, without offering a blind-sign
+    prompt (app/src/handler/sign.c refill_error)."""
+
+    # An unknown operation tag: parsing fails up-front. Blind-signing is left
+    # disabled, so no on-device prompt is shown and no navigation is needed.
+    unknown_operation = "03000000000000000000000000000000000000000000000000000000000000000001016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff02000000020316"  # pylint: disable=line-too-long
+
+    with StatusCode.PARSE_ERROR.expected():
+        with backend.sign(
+                account,
+                RawMessage(unknown_operation),
+                with_hash=True
+        ):
+            pass
 
 @pytest.mark.parametrize(
     "raw_msg", [

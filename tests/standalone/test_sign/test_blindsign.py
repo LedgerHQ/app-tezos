@@ -516,6 +516,8 @@ def test_blindsign_too_deep(
         snapshot_dir: Path):
     """Check blindsigning on too deep expression"""
 
+    tezos_navigator.toggle_blindsign()
+
     expression = MichelineExpr([[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[{'int':42}]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]])  # pylint: disable=line-too-long
 
     with backend.sign(account, expression, with_hash=True) as result:
@@ -563,6 +565,8 @@ def test_blindsign_too_large(
 ):
     """Check blindsigning on too large expression"""
 
+    tezos_navigator.toggle_blindsign()
+
     message = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})  # pylint: disable=line-too-long
 
     with backend.sign(account, message, with_hash=True) as result:
@@ -589,6 +593,8 @@ def test_blindsign_reject_from_clear(
 
     expression = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})  # pylint: disable=line-too-long
 
+    tezos_navigator.toggle_blindsign()
+
     with StatusCode.PARSE_ERROR.expected():
         with backend.sign(account, expression):
             tezos_navigator.refuse_sign_error_risk(snap_path=snapshot_dir)
@@ -603,6 +609,8 @@ def test_blindsign_reject_from_blind(
     """Check blindsigning rejection"""
 
     expression = MichelineExpr({'int':12345678901234567890123456789012345678901234567890123456789012345678901234567890})  # pylint: disable=line-too-long
+
+    tezos_navigator.toggle_blindsign()
 
     if device.is_nano:
         error = StatusCode.REJECT

@@ -666,7 +666,8 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_AMOUNT_VAL      21 /* read varint */
 #define FA2_STEP_VERIFY_END      22 /* verify no extra outer items */
 #define FA2_STEP_EMIT_TO_ADDR    23 /* emit "Transfer tokens to" field */
-#define FA2_STEP_EMIT_AMOUNT     24 /* emit "Token Amount" field */
+#define FA2_STEP_EMIT_TOKEN_ID   25 /* emit "Token ID" (unregistered token) */
+#define FA2_STEP_EMIT_AMOUNT     24 /* emit amount field */
 
 /* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
 #define FA2_FROM_ADDR_OFS 0
@@ -778,6 +779,34 @@ tz_format_token_amount(char *str, size_t buf_size, uint8_t decimals,
             strlcat(str, symbol, buf_size);
         }
     }
+}
+
+/**
+ * @brief Format an unsigned 64-bit integer as a decimal string
+ *
+ * @param out: output buffer
+ * @param out_size: size of the output buffer
+ * @param value: value to format
+ */
+static void
+tz_u64_to_string(char *out, size_t out_size, uint64_t value)
+{
+    char   tmp[20];  // uint64 max is 20 decimal digits
+    size_t i = 0;
+    size_t j = 0;
+
+    if (value == 0) {
+        tmp[i++] = '0';
+    }
+    while ((value > 0) && (i < sizeof(tmp))) {
+        tmp[i++] = (char)('0' + (value % 10));
+        value /= 10;
+    }
+    // digits were produced least-significant first; reverse into `out`
+    while ((i > 0) && ((j + 1) < out_size)) {
+        out[j++] = tmp[--i];
+    }
+    out[j] = '\0';
 }
 
 /**
@@ -1047,9 +1076,15 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         token = fa2_find_token(op->destination,
                                op->frame->step_read_fa2.token_id_val);
 
-        FA2_REQUIRE(state, token != NULL);
-
-        op->frame->step_read_fa2.token_idx = fa2_token_index(token);
+        if (token != NULL) {
+            op->frame->step_read_fa2.token_idx = fa2_token_index(token);
+        } else {
+            /* Unregistered token: decimals/symbol are unknown. Rather than
+               falling back to raw Micheline, display the decoded fields with
+               the raw (integer) amount. token_idx == -1 selects that path in
+               the emit steps. */
+            op->frame->step_read_fa2.token_idx = -1;
+        }
 
         op->frame->step_read_fa2.sub_step = FA2_STEP_AMOUNT_TAG;
         tz_continue;
@@ -1093,13 +1128,37 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         STRLCPY(state->field_info.field_name, "Transfer tokens to");
         state->field_info.is_field_complex = false;
         state->field_info.field_index++;
-        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
+        /* For an unregistered token, show the raw token id before the raw
+           amount so the user can tell which token is being moved. */
+        op->frame->step_read_fa2.sub_step
+            = (op->frame->step_read_fa2.token_idx < 0)
+                  ? FA2_STEP_EMIT_TOKEN_ID
+                  : FA2_STEP_EMIT_AMOUNT;
         tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
         op->frame->step_print.str = (char *)(CAPTURE + FA2_TO_ADDR_OFS);
         tz_continue;
 
+    case FA2_STEP_EMIT_TOKEN_ID:
+        /* Emit "Token ID" for unregistered tokens. The sender address slot
+           (FROM_ADDR half of CAPTURE) is no longer needed and is reused as
+           scratch for the formatted id. */
+        if (regs->oofs > 0) {
+            tz_stop(IM_FULL);
+        }
+        tz_u64_to_string((char *)(CAPTURE + FA2_FROM_ADDR_OFS), FA2_ADDR_MAX_LEN,
+                         op->frame->step_read_fa2.token_id_val);
+        STRLCPY(state->field_info.field_name, "Token ID");
+        state->field_info.is_field_complex = false;
+        state->field_info.field_index++;
+        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
+        tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
+        op->frame->step_print.str = (char *)(CAPTURE + FA2_FROM_ADDR_OFS);
+        tz_continue;
+
     case FA2_STEP_EMIT_AMOUNT:
-        /* Emit "Token Amount" field: push a PRINT frame, then pop FA2 */
+        /* Emit the amount: "Token Amount" (with symbol) for a registered
+           token, or "Amount (raw)" (the on-chain integer, decimals unknown)
+           for an unregistered one. */
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
         }
@@ -1110,9 +1169,11 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
                 tz_format_token_amount((char *)state->buffers.num.decimal,
                                        sizeof(state->buffers.num.decimal),
                                        token->decimals, token->symbol);
+                STRLCPY(state->field_info.field_name, "Token Amount");
+            } else {
+                STRLCPY(state->field_info.field_name, "Amount (raw)");
             }
         }
-        STRLCPY(state->field_info.field_name, "Token Amount");
         state->field_info.is_field_complex = false;
         state->field_info.field_index++;
         /* Pop the FA2 frame first, then push PRINT so PRINT pops to parent */

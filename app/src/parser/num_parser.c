@@ -92,7 +92,14 @@ tz_string_to_mutez(const char *str, uint64_t *res)
             PRINTF("[ERROR] Non-digit character: %c\n", str[i]);
             return false;
         }
-        *res = (*res * 10) + (str[i] - '0');
+        uint64_t digit = (uint64_t)(str[i] - '0');
+        /* Reject values that would overflow uint64 rather than wrapping to a
+           smaller total on summary screens (F-10). */
+        if (*res > ((UINT64_MAX - digit) / 10)) {
+            PRINTF("[ERROR] Value exceeds uint64\n");
+            return false;
+        }
+        *res = (*res * 10) + digit;
     }
 
     return true;

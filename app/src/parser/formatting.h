@@ -210,7 +210,9 @@ typedef enum {
     TZ_MICHELSON_OP_GET_ADDRESS_INDEX              = 160
 } tz_michelson_opcode;
 
-#define TZ_DECIMAL_BUFFER_SIZE(_l) ((((_l)*241) / 100) + 1)
+/* +2 (not +1): the widest value uses all ((_l)*241/100) decimal digits, and
+   the conversion writes a trailing NUL one past the last digit. */
+#define TZ_DECIMAL_BUFFER_SIZE(_l) ((((_l)*241) / 100) + 2)
 
 /**
  * @brief Formats a positive number of arbitrary to decimal.

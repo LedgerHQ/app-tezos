@@ -1419,14 +1419,22 @@ tz_step_read_micheline(tz_parser_state *state)
 /**
  * @brief Format a string as an amount
  *
- * @param str: string to format
+ * @param str: string to format (in place)
+ * @param size: capacity of the str buffer
+ * @return bool: true on success, false if the result would not fit
  */
-static void
-tz_format_amount(char *str)
+static bool
+tz_format_amount(char *str, size_t size)
 {
     int len = 0;
     while (str[len]) {
         len++;
+    }
+    /* Worst case the formatting adds a '.' (1 byte), the " XTZ" suffix
+       (4 bytes) and a NUL terminator on top of `len`. Reject rather than
+       writing past the buffer (F-08). */
+    if (((size_t)len + 6U) > size) {
+        return false;
     }
     if ((len == 1) && (str[0] == 0)) {
         // just 0
@@ -1473,6 +1481,7 @@ add_currency:
     str[len + 3] = 'Z';
     len += 4;
     str[len] = 0;
+    return true;
 }
 
 /**
@@ -1518,7 +1527,9 @@ tz_step_read_num(tz_parser_state *state)
             break;
         case TZ_OPERATION_FIELD_FEE:
         case TZ_OPERATION_FIELD_AMOUNT: {
-            tz_format_amount(str);
+            if (!tz_format_amount(str, sizeof(state->buffers.num.decimal))) {
+                tz_raise(INVALID_DATA);
+            }
             break;
         }
         default:

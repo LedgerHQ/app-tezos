@@ -790,7 +790,19 @@ tz_format_token_amount(char *str, size_t buf_size, uint8_t decimals,
 static tz_parser_result
 fa2_fallback_to_micheline(tz_parser_state *state)
 {
-    tz_operation_state *op = &state->operation;
+    tz_operation_state *op   = &state->operation;
+    tz_parser_regs     *regs = &state->regs;
+    size_t consumed          = (size_t)(state->ofs - op->fa2_payload_start);
+
+    /* Rewind the input stream to the FA2 parse start so the Micheline
+       fallback re-reads the bytes already consumed by the FA2 parser.
+       Guard against underflow across an APDU refill boundary. */
+    if (consumed > regs->iofs) {
+        tz_raise(UNSUPPORTED);
+    }
+    regs->ilen += consumed;
+    regs->iofs -= consumed;
+    state->ofs = op->fa2_payload_start;
 
     op->frame->step                       = TZ_OPERATION_STEP_READ_MICHELINE;
     op->frame->step_read_micheline.inited = 0;
@@ -1892,6 +1904,7 @@ tz_step_field(tz_parser_state *state)
             const fa2_token_metadata_t *token;
             state->field_info.is_field_complex = false;
             op->frame->step = TZ_OPERATION_STEP_READ_FA2_TRANSFER;
+            op->fa2_payload_start                   = state->ofs;
             op->frame->step_read_fa2.sub_step       = FA2_STEP_OUTER_SEQ_TAG;
             op->frame->step_read_fa2.addr_ofs       = 0;
             op->frame->step_read_fa2.size_ofs       = 0;

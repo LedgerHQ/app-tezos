@@ -277,6 +277,7 @@ typedef struct {
     char sdp_reparse_field_name[30];  /// same as TZ_FIELD_NAME_SIZE
                                       /// (parser_state.h)
     uint16_t sdp_payload_start;  /// rewind Micheline fallback on SDP mismatch
+    uint16_t fa2_payload_start;  /// rewind Micheline fallback on FA2 mismatch
     uint8_t  sdp_expr_skip : 1;
     uint8_t  source[TZ_OPERATION_SOURCE_SIZE];  /// check consistent source in
                                                 /// batch

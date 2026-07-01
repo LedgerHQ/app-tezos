@@ -1544,17 +1544,26 @@ tz_step_read_bytes(tz_parser_state *state)
                 tz_raise(INVALID_TAG);
             }
             break;
-        case TZ_OPERATION_FIELD_DESTINATION:
+        case TZ_OPERATION_FIELD_DESTINATION: {
+            const fa2_token_metadata_t *token;
             memcpy(op->destination, CAPTURE, 22);
-            if (fa2_find_token(op->destination, 0)) {
-                tz_must(pop_frame(state));
-                tz_continue;
-            }
+            /* Always display the destination so the user can verify which
+               contract they interact with, even for registered tokens and
+               non-"transfer" entrypoints (e.g. approve, update_operators). */
+            token = fa2_find_token(op->destination, 0);
             if (tz_format_address(CAPTURE, 22, (char *)CAPTURE,
                                   sizeof(CAPTURE))) {
                 tz_raise(INVALID_TAG);
             }
+            if ((token != NULL) && token->name[0]) {
+                /* Show the token name alongside the contract address for
+                   recognized tokens. */
+                strlcat((char *)CAPTURE, " (", sizeof(CAPTURE));
+                strlcat((char *)CAPTURE, token->name, sizeof(CAPTURE));
+                strlcat((char *)CAPTURE, ")", sizeof(CAPTURE));
+            }
             break;
+        }
         case TZ_OPERATION_FIELD_OPH:
             if (tz_format_oph(CAPTURE, 32, (char *)CAPTURE,
                               sizeof(CAPTURE))) {

@@ -1166,6 +1166,7 @@ test_check_fa2_transfer_fallback_uses_complex_parameter(void **state)
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
+        {"Destination",   false, 5},
         {"Entrypoint",    false, 8},
         {"Parameter",     true,  9},
     };

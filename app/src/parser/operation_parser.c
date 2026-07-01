@@ -1195,6 +1195,13 @@ sdp_fail_to_micheline(tz_parser_state *state)
     tz_parser_regs     *regs = &state->regs;
     size_t consumed          = (size_t)(state->ofs - op->sdp_payload_start);
 
+    /* If SDP parsing spanned an APDU refill boundary, `consumed` (a global
+       byte count) can exceed the current window offset; rewinding would
+       underflow regs->iofs to ~2^64 and let the Micheline parser read
+       arbitrary memory. Reject instead. */
+    if (consumed > regs->iofs) {
+        tz_raise(UNSUPPORTED);
+    }
     regs->ilen += consumed;
     regs->iofs -= consumed;
     state->ofs                            = op->sdp_payload_start;

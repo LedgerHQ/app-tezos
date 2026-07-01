@@ -838,6 +838,10 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
     switch (op->frame->step_read_fa2.sub_step) {
     /* ---- outer list ---- */
     case FA2_STEP_OUTER_SEQ_TAG:
+        /* Record the payload start (after the 4-byte size prefix) so the
+           Micheline fallback can rewind the consumed bytes. Safe to set on
+           each re-entry: state->ofs has not advanced if the read blocked. */
+        op->fa2_payload_start = state->ofs;
         tz_must(tz_parser_read(state, &b));
         FA2_REQUIRE(state, b == 0x02);
 
@@ -1904,7 +1908,6 @@ tz_step_field(tz_parser_state *state)
             const fa2_token_metadata_t *token;
             state->field_info.is_field_complex = false;
             op->frame->step = TZ_OPERATION_STEP_READ_FA2_TRANSFER;
-            op->fa2_payload_start                   = state->ofs;
             op->frame->step_read_fa2.sub_step       = FA2_STEP_OUTER_SEQ_TAG;
             op->frame->step_read_fa2.addr_ofs       = 0;
             op->frame->step_read_fa2.size_ofs       = 0;

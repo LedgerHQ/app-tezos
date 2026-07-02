@@ -791,12 +791,16 @@ tz_format_token_amount(char *str, size_t buf_size, uint8_t decimals,
  * @param out_size: size of the output buffer
  * @param value: value to format
  */
-static void
+static bool
 tz_u64_to_string(char *out, size_t out_size, uint64_t value)
 {
     char   tmp[20];  // uint64 max is 20 decimal digits
     size_t i = 0;
     size_t j = 0;
+
+    if ((out == NULL) || (out_size == 0)) {
+        return false;
+    }
 
     if (value == 0) {
         tmp[i++] = '0';
@@ -805,11 +809,18 @@ tz_u64_to_string(char *out, size_t out_size, uint64_t value)
         tmp[i++] = (char)('0' + (value % 10));
         value /= 10;
     }
+    // Reject rather than silently emit a truncated (and therefore wrong)
+    // value when the buffer cannot hold every digit plus the NUL.
+    if ((i + 1U) > out_size) {
+        out[0] = '\0';
+        return false;
+    }
     // digits were produced least-significant first; reverse into `out`
-    while ((i > 0) && ((j + 1) < out_size)) {
+    while (i > 0) {
         out[j++] = tmp[--i];
     }
     out[j] = '\0';
+    return true;
 }
 
 /**
@@ -1146,9 +1157,11 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
         }
-        tz_u64_to_string((char *)(CAPTURE + FA2_FROM_ADDR_OFS),
-                         FA2_ADDR_MAX_LEN,
-                         op->frame->step_read_fa2.token_id_val);
+        if (!tz_u64_to_string((char *)(CAPTURE + FA2_FROM_ADDR_OFS),
+                              FA2_ADDR_MAX_LEN,
+                              op->frame->step_read_fa2.token_id_val)) {
+            tz_raise(INVALID_STATE);
+        }
         STRLCPY(state->field_info.field_name, "Token ID");
         state->field_info.is_field_complex = false;
         state->field_info.field_index++;

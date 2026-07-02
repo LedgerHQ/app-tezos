@@ -1,0 +1,9 @@
+# Paths ignored by GitHub Copilot (code review / completions).
+#
+# Device-UI golden snapshots are generated binary images, not source. They
+# dominate PR file counts (thousands of PNGs) and add no review value.
+# NOTE: `.copilotignore` is not officially documented; the supported path is
+# repo/org "content exclusion" settings. Also, Copilot code review's 300-file
+# cap is applied *before* exclusions, so this may not unblock huge PRs on its
+# own — if it doesn't, split the snapshot changes into a separate PR.
+tests/**/*.png

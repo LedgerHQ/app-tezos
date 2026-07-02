@@ -1429,10 +1429,10 @@ tz_format_amount(char *str, size_t size)
     while (str[len]) {
         len++;
     }
-    /* Sub-1-XTZ values are left-padded up to 7 digits ("0.xxxxxx") before the
-       decimal point, so the effective length is at least 7. On top of that the
-       output adds a '.' (1 byte), the " XTZ" suffix (4 bytes) and a NUL
-       terminator. Reject rather than writing past the buffer (F-08). */
+    /* Sub-1-XTZ values are left-padded up to 7 digits ("0.xxxxxx"), so the
+       effective length is at least 7. On top of that the output adds a '.'
+       (1 byte), the " XTZ" suffix (4 bytes) and a NUL terminator. Reject
+       rather than writing past the buffer (F-08). */
     size_t out_len = ((len < 7) ? 7U : (size_t)len) + 6U;
     if (out_len > size) {
         return false;

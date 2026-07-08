@@ -32,6 +32,15 @@
 #define TZ_SCREEN_LINES_11PX 5
 #endif
 
+/* Application logo used in NBGL flows. Apex only allows 24/32/48 px
+ * glyphs, so it uses a dedicated 48x48 icon; Stax and Flex keep the
+ * 64x64 one. */
+#ifdef TARGET_APEX_P
+#define C_TZ_APP_ICON C_tezos_48px
+#else
+#define C_TZ_APP_ICON C_tezos
+#endif
+
 #include "sign.h"
 #include "exception.h"
 #include "keys.h"

@@ -114,7 +114,7 @@ tz_ui_home_redisplay(void)
 
     initSettings();
 
-    nbgl_useCaseHomeAndSettings("Tezos Wallet", &C_tezos, HOME_TEXT,
+    nbgl_useCaseHomeAndSettings("Tezos Wallet", &C_TZ_APP_ICON, HOME_TEXT,
                                 INIT_HOME_PAGE, &tezos_settingContents,
                                 &infoList, NULL, app_exit);
 

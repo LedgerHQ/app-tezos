@@ -1166,6 +1166,7 @@ test_check_fa2_transfer_fallback_uses_complex_parameter(void **state)
         {"Fee",           false, 2},
         {"Storage limit", false, 3},
         {"Amount",        false, 4},
+        {"Destination",   false, 5},
         {"Entrypoint",    false, 8},
         {"Parameter",     true,  9},
     };
@@ -1277,6 +1278,80 @@ test_check_fa2_transfer_whole_number_amount(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
+/* Parse `str` and concatenate into `out` the full display value of the first
+   field whose name matches `field_name` (a value may span several IM_FULL
+   pages). Used to assert the exact rendered string, which
+   check_field_complexity does not verify. */
+static void
+capture_field_value(operation_parser_data *data, char *str,
+                    const char *field_name, char *out, size_t out_size)
+{
+    /* Re-initialize the parser so the helper can be called several times (for
+       different fields) on the same test data. */
+    memset(data->obuf, 0, data->olen + 1);
+    tz_operation_parser_init(data->state, TZ_UNKNOWN_SIZE, false);
+    tz_parser_refill(data->state, NULL, 0);
+    tz_parser_flush(data->state, data->obuf, data->olen);
+
+    fill_data_str(data, str);
+    tz_operation_parser_set_size(data->state, (uint16_t)data->str_len);
+    tz_parser_state *st = data->state;
+    out[0]              = '\0';
+    bool seen           = false;
+
+    while (true) {
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+            // Loop while the result is successful and not blocking
+        }
+        switch (st->errno) {
+        case TZ_BLO_FEED_ME:
+            refill(data);
+            tz_parser_refill(data->state, data->ibuf, data->ilen);
+            continue;
+        case TZ_BLO_IM_FULL:
+            if (strcmp(st->field_info.field_name, field_name) == 0) {
+                strncat(out, data->obuf, out_size - strlen(out) - 1);
+                seen = true;
+            }
+            tz_parser_flush(st, data->obuf, data->olen);
+            continue;
+        case TZ_BLO_DONE:
+            assert_true(seen);
+            return;
+        default:
+            fail_msg("%s:%d parsing error: %s", __FILE__, __LINE__,
+                     tz_parser_result_name(st->errno));
+        }
+        break;
+    }
+}
+
+/* An FA2 transfer to a contract/token_id that is not in the registry is
+   decoded into labeled fields with the raw (integer) amount, rather than
+   falling back to a raw Micheline blob. */
+static void
+test_check_fa2_transfer_unregistered_decodes_fields(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
+          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006702"
+          "00000062070701000000244b543151576462415376615458573847576668664e68"
+          "33"
+          "4a4d6a6758766e5a4141544a570200000032070701000000247372314d79437752"
+          "38"
+          "33685a70684353716159535141705078504d65796b734a57576e680707000100a4"
+          "01";
+    char value[256];
+    capture_field_value(data, str, "Transfer tokens to", value, sizeof(value));
+    assert_string_equal(value, "sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh");
+    capture_field_value(data, str, "Token ID", value, sizeof(value));
+    assert_string_equal(value, "1");
+    capture_field_value(data, str, "Amount (raw)", value, sizeof(value));
+    assert_string_equal(value, "100");
+}
+
 int
 main(void)
 {
@@ -1335,6 +1410,8 @@ main(void)
         OPERATION_PARSER_TEST(test_check_fa2_transfer_clear_signing_fields),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_fallback_uses_complex_parameter),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_unregistered_decodes_fields),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_clear_signing_token_id_gt0),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),

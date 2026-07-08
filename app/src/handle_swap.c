@@ -28,6 +28,7 @@
 #include <string.h>
 #include <swap.h>
 
+#include "format.h"
 #include "handle_swap.h"
 #include "keys.h"
 #include "utils.h"

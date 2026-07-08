@@ -24,6 +24,23 @@
 #include <string.h>
 
 /**
+ * @brief Formats a fixed-point number, trimming trailing zeros
+ *
+ *        Provided by the Ledger standard-app library. Declared here because
+ *        the project's own format.h shadows the SDK header on the include
+ *        path; without this prototype, call sites emit an
+ * implicit-declaration warning (and wrongly assume an int return).
+ *
+ * @param dst: output buffer
+ * @param dst_len: length of the output buffer
+ * @param value: value to format
+ * @param decimals: number of decimals
+ * @return bool: true on success
+ */
+bool format_fpu64_trimmed(char *dst, size_t dst_len, const uint64_t value,
+                          uint8_t decimals);
+
+/**
  * @brief Prints mutez as XTZ
  *
  * @param obuf: output buffer

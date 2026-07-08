@@ -1344,7 +1344,8 @@ test_check_fa2_transfer_unregistered_decodes_fields(void **state)
           "33685a70684353716159535141705078504d65796b734a57576e680707000100a4"
           "01";
     char value[256];
-    capture_field_value(data, str, "Transfer tokens to", value, sizeof(value));
+    capture_field_value(data, str, "Transfer tokens to", value,
+                        sizeof(value));
     assert_string_equal(value, "sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh");
     capture_field_value(data, str, "Token ID", value, sizeof(value));
     assert_string_equal(value, "1");

@@ -19,25 +19,33 @@
 from pathlib import Path
 
 import pytest
-
 from utils.account import Account, PublicKey, SigType
-from utils.backend import TezosBackend, StatusCode
+from utils.backend import StatusCode, TezosBackend
 from utils.navigator import TezosNavigator
 
 accounts = [
-    Account("m/44'/1729'/0'/0'",
-            SigType.ED25519,
-            "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY"),
-    Account("m/44'/1729'/0'/0'",
-            SigType.SECP256K1,
-            "sppk7bVy617DmGvXsMqcwsiLtnedTN2trUi5ugXcNig7en4rHJyunK1"),
-    Account("m/44'/1729'/0'/0'",
-            SigType.SECP256R1,
-            "p2pk67fq5pzuMMABZ9RDrooYbLrgmnQbLt8z7PTGM9mskf7LXS5tdBG"),
-    Account("m/44'/1729'/0'/0'",
-            SigType.BIP32_ED25519,
-            "edpkumJgSsSxkpiB5hmTq6eZcrmc6BsJtLAhYceFTiziFqje4mongz")
+    Account(
+        "m/44'/1729'/0'/0'",
+        SigType.ED25519,
+        "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY",
+    ),
+    Account(
+        "m/44'/1729'/0'/0'",
+        SigType.SECP256K1,
+        "sppk7bVy617DmGvXsMqcwsiLtnedTN2trUi5ugXcNig7en4rHJyunK1",
+    ),
+    Account(
+        "m/44'/1729'/0'/0'",
+        SigType.SECP256R1,
+        "p2pk67fq5pzuMMABZ9RDrooYbLrgmnQbLt8z7PTGM9mskf7LXS5tdBG",
+    ),
+    Account(
+        "m/44'/1729'/0'/0'",
+        SigType.BIP32_ED25519,
+        "edpkumJgSsSxkpiB5hmTq6eZcrmc6BsJtLAhYceFTiziFqje4mongz",
+    ),
 ]
+
 
 @pytest.mark.parametrize("account", accounts, ids=lambda account: f"{account.sig_type}")
 def test_get_pk(backend: TezosBackend, account: Account):
@@ -49,16 +57,15 @@ def test_get_pk(backend: TezosBackend, account: Account):
 
     public_key = PublicKey.from_bytes(data, account.sig_type)
 
-    assert public_key == expected_public_key.encode(), \
-        f"Expected public key {expected_public_key} but got {public_key}"
+    assert public_key == expected_public_key.encode(), f"Expected public key {expected_public_key} but got {public_key}"
 
 
 @pytest.mark.parametrize("account", accounts, ids=lambda account: f"{account.sig_type}")
 def test_provide_pk(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Test that public keys get from the app are correct and correctly displayed."""
 
@@ -69,16 +76,15 @@ def test_provide_pk(
 
     public_key = PublicKey.from_bytes(result.value, account.sig_type)
 
-    assert public_key == expected_public_key.encode(), \
-        f"Expected public key {expected_public_key} but got {public_key}"
+    assert public_key == expected_public_key.encode(), f"Expected public key {expected_public_key} but got {public_key}"
 
 
 @pytest.mark.use_on_device("touch")
 def test_show_qr(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Test QR code flow."""
 
@@ -87,10 +93,10 @@ def test_show_qr(
 
 
 def test_reject_pk(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check reject pk behaviour"""
 

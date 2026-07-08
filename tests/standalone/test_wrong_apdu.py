@@ -17,21 +17,17 @@
 """Gathering of tests related to APDU checks."""
 # pylint: disable=protected-access
 
-from typing import Any, Callable, Union
+from collections.abc import Callable
+from typing import Any
 
 import pytest
-
 from utils.account import Account, SigType
-from utils.backend import Cla, TezosBackend, Index, Ins, StatusCode
+from utils.backend import Cla, Index, Ins, StatusCode, TezosBackend
 from utils.message import Transaction
 from utils.navigator import TezosNavigator
 
 
-def test_regression_continue_after_reject(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account
-):
+def test_regression_continue_after_reject(backend: TezosBackend, tezos_navigator: TezosNavigator, account: Account):
     """Check the app still runs after rejects signing"""
 
     tezos_navigator.toggle_expert_mode()
@@ -60,18 +56,13 @@ def test_change_sign_instruction(backend: TezosBackend, account: Account):
     backend._ask_sign(Ins.SIGN_WITH_HASH, account)
 
     with StatusCode.INVALID_INS.expected():
-        backend._continue_sign(
-            Ins.SIGN,
-            payload,
-            last=True)
+        backend._continue_sign(Ins.SIGN, payload, last=True)
 
     backend._ask_sign(Ins.SIGN, account)
 
     with StatusCode.INVALID_INS.expected():
-        backend._continue_sign(
-            Ins.SIGN_WITH_HASH,
-            payload,
-            last=True)
+        backend._continue_sign(Ins.SIGN_WITH_HASH, payload, last=True)
+
 
 def test_mixing_command(backend: TezosBackend, account: Account):
     """Check that mixing instruction fails"""
@@ -101,20 +92,14 @@ def test_mixing_command(backend: TezosBackend, account: Account):
     with StatusCode.UNEXPECTED_STATE.expected():
         backend.git()
 
-@pytest.mark.parametrize(
-    "ins", [Ins.GET_PUBLIC_KEY, Ins.PROMPT_PUBLIC_KEY], ids=lambda ins: f"{ins}"
-)
+
+@pytest.mark.parametrize("ins", [Ins.GET_PUBLIC_KEY, Ins.PROMPT_PUBLIC_KEY], ids=lambda ins: f"{ins}")
 @pytest.mark.parametrize("index", [Index.OTHER, Index.LAST], ids=lambda index: f"{index}")
 def test_wrong_index(backend: TezosBackend, account: Account, ins: Ins, index: Index):
     """Check wrong apdu index behaviour"""
 
     with StatusCode.WRONG_PARAM.expected():
-        backend._exchange(
-            ins,
-            index=index,
-            sig_type=account.sig_type,
-            payload=account.path
-        )
+        backend._exchange(ins, index=index, sig_type=account.sig_type, payload=account.path)
 
 
 @pytest.mark.parametrize(
@@ -123,18 +108,16 @@ def test_wrong_index(backend: TezosBackend, account: Account, ins: Ins, index: I
         lambda backend, account: backend._provide_public_key(account, with_prompt=False),
         lambda backend, account: backend._provide_public_key(account, with_prompt=True),
         lambda backend, account: backend._ask_sign(Ins.SIGN, account),
-        lambda backend, account: backend._ask_sign(Ins.SIGN_WITH_HASH, account)
+        lambda backend, account: backend._ask_sign(Ins.SIGN_WITH_HASH, account),
     ],
     ids=[
         "get_pk_without_prompt",
         "get_pk_with_prompt",
         "sign_without_hash",
         "sign_with_hash",
-    ]
+    ],
 )
-def test_wrong_derivation_type(
-        backend: TezosBackend,
-        sender: Callable[[TezosBackend, Account], Any]):
+def test_wrong_derivation_type(backend: TezosBackend, sender: Callable[[TezosBackend, Account], Any]):
     """Check wrong derivation type behaviour"""
     account = Account("m/44'/1729'/0'/0'", 0x04, "__unused__")
 
@@ -148,14 +131,14 @@ def test_wrong_derivation_type(
         lambda backend, account: backend._provide_public_key(account, with_prompt=False),
         lambda backend, account: backend._provide_public_key(account, with_prompt=True),
         lambda backend, account: backend._ask_sign(Ins.SIGN, account),
-        lambda backend, account: backend._ask_sign(Ins.SIGN_WITH_HASH, account)
+        lambda backend, account: backend._ask_sign(Ins.SIGN_WITH_HASH, account),
     ],
     ids=[
         "get_pk_without_prompt",
         "get_pk_with_prompt",
         "sign_without_hash",
         "sign_with_hash",
-    ]
+    ],
 )
 @pytest.mark.parametrize(
     "account",
@@ -163,66 +146,72 @@ def test_wrong_derivation_type(
         Account(
             bytes.fromhex("058000002c800006c18000000080000000"),
             SigType.ED25519,
-            "__unused__"),
+            "__unused__",
+        ),
         Account(
             bytes.fromhex("048000002c800006c180000000800000"),
             SigType.ED25519,
-            "__unused__"),
+            "__unused__",
+        ),
         Account(
-            bytes.fromhex("0b8000002c800006c1800000008000000080000000800000008000000080000000800000008000000080000000"),  # pylint: disable=line-too-long
+            bytes.fromhex("0b8000002c800006c1800000008000000080000000800000008000000080000000800000008000000080000000"),
             SigType.ED25519,
-            "__unused__"),
+            "__unused__",
+        ),
     ],
     ids=[
         "wrong_number_index_account",
         "wrong_length_account",
         "too_much_index_account",
-    ]
+    ],
 )
 def test_wrong_derivation_path(
-        backend: TezosBackend,
-        account: Account,
-        sender: Callable[[TezosBackend, Account], Any]):
+    backend: TezosBackend,
+    account: Account,
+    sender: Callable[[TezosBackend, Account], Any],
+):
     """Check wrong derivation path behaviour"""
 
     with StatusCode.WRONG_LENGTH_FOR_INS.expected():
         sender(backend, account)
 
+
 @pytest.mark.parametrize("class_", [0x00, 0x81])
 def test_wrong_class(backend: TezosBackend, class_: int):
     """Check wrong apdu class behaviour"""
 
-    raw = \
-        class_.to_bytes(1, 'big') + \
-        int(Ins.VERSION).to_bytes(1, 'big') + \
-        int(Index.FIRST).to_bytes(1, 'big') + \
-        int(SigType.ED25519).to_bytes(1, 'big') + \
-        int(0x00).to_bytes(1, 'big')
+    raw = (
+        class_.to_bytes(1, "big")
+        + int(Ins.VERSION).to_bytes(1, "big")
+        + int(Index.FIRST).to_bytes(1, "big")
+        + int(SigType.ED25519).to_bytes(1, "big")
+        + (0x00).to_bytes(1, "big")
+    )
 
     with StatusCode.CLASS.expected():
         backend.exchange_raw(raw)
 
+
 @pytest.mark.parametrize(
     "size, data",
-    [
-        (0, b'\x00'),
-        (1, b'')
-    ],
-    ids=lambda param: f"size={param}" if isinstance(param, int) else f"data={param}"
+    [(0, b"\x00"), (1, b"")],
+    ids=lambda param: f"size={param}" if isinstance(param, int) else f"data={param}",
 )
 def test_wrong_apdu_length(backend: TezosBackend, size: int, data: bytes):
     """Check wrong apdu length behaviour"""
 
-    raw = \
-        int(Cla.DEFAULT).to_bytes(1, 'big') + \
-        int(Ins.VERSION).to_bytes(1, 'big') + \
-        int(Index.FIRST).to_bytes(1, 'big') + \
-        int(SigType.ED25519).to_bytes(1, 'big') + \
-        size.to_bytes(1, 'big') + \
-        data
+    raw = (
+        int(Cla.DEFAULT).to_bytes(1, "big")
+        + int(Ins.VERSION).to_bytes(1, "big")
+        + int(Index.FIRST).to_bytes(1, "big")
+        + int(SigType.ED25519).to_bytes(1, "big")
+        + size.to_bytes(1, "big")
+        + data
+    )
 
     with StatusCode.WRONG_LENGTH_FOR_INS.expected():
         backend.exchange_raw(raw)
+
 
 @pytest.mark.parametrize(
     "ins",
@@ -237,11 +226,11 @@ def test_wrong_apdu_length(backend: TezosBackend, size: int, data: bytes):
         Ins.DEAUTHORIZE,
         Ins.QUERY_AUTH_KEY_WITH_CURVE,
         Ins.HMAC,
-        0xff
+        0xFF,
     ],
-    ids=lambda ins: f"ins={ins}"
+    ids=lambda ins: f"ins={ins}",
 )
-def test_unimplemented_commands(backend: TezosBackend, ins: Union[int, Ins]):
+def test_unimplemented_commands(backend: TezosBackend, ins: int | Ins):
     """Check unimplemented commands"""
 
     with StatusCode.INVALID_INS.expected():

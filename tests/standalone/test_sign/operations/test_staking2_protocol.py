@@ -14,8 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Regression tests for Staking 2.0 wire encoding (Paris+ pseudo-operations).
-"""
+"""Regression tests for Staking 2.0 wire encoding (Paris+ pseudo-operations)."""
 
 from utils.message import Default, Transaction
 from utils.tezos_encoding import forge_entrypoint
@@ -39,5 +38,5 @@ def test_stake_entrypoint_uses_builtin_not_length_prefixed_name():
         parameter={"prim": "Unit"},
     )
     raw = bytes(op)
-    # Legacy test harness mistakenly used arbitrary name encoding for builtins 6–9.
+    # Legacy test harness mistakenly used arbitrary name encoding for builtins 6-9.
     assert b"\xff\x05stake" not in raw

@@ -14,11 +14,14 @@
 # limitations under the License.
 
 import sys
+
 import base58
 from pytezos import pytezos
 
+
 def adjust_size(bytes, size):
-    return bytes[-size:].rjust(size, b'\x00')
+    return bytes[-size:].rjust(size, b"\x00")
+
 
 def signature_of_tlv(tlv):
     # See: https://developers.ledger.com/docs/embedded-app/crypto-api/lcx__ecdsa_8h/#cx_ecdsa_sign
@@ -46,26 +49,30 @@ def signature_of_tlv(tlv):
     # Sometimes \x00 are added or removed, a size adjustment is required here.
     return adjust_size(r, 32) + adjust_size(s, 32)
 
+
 def signature_of_hex_tlv(hex_string):
     tlv = bytearray.fromhex(hex_string)
     # Remove the unwanted parity information set here.
     tlv[0] &= ~0x01
     return signature_of_tlv(tlv)
 
+
 def check_signature(hex_tlv, pk, message):
     sig = signature_of_hex_tlv(hex_tlv)
 
-    sig_prefix = bytes.fromhex("04822b") # sig(96)
+    sig_prefix = bytes.fromhex("04822b")  # sig(96)
     signature = base58.b58encode_check(sig_prefix + sig)
 
     ctxt = pytezos.using(key=pk)
     assert ctxt.key.verify(signature, message)
+
 
 def check_between(prefix, suffix, v):
     if v.startswith(prefix) and v.endswith(suffix):
         return v[len(prefix) : -len(suffix)]
     else:
         raise ValueError("Invalid prefix/suffix")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 6:

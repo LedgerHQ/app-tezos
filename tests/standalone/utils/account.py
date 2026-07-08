@@ -15,30 +15,31 @@
 """Module providing an account interface."""
 
 from enum import IntEnum
-from typing import Union
 
 import coincurve
-from coincurve import ecdsa as coincurve_ecdsa
 import fastecdsa.curve
 import fastecdsa.ecdsa
 import fastecdsa.encoding.sec1
 import nacl.exceptions
 import nacl.signing
+from coincurve import ecdsa as coincurve_ecdsa
 from ragger.bip import pack_derivation_path
 
 from .message import Message
 from .tezos_encoding import base58_decode, base58_encode, blake2b_32
 
+
 class SigType(IntEnum):
     """Class representing signature type."""
 
-    ED25519       = 0x00
-    SECP256K1     = 0x01
-    SECP256R1     = 0x02
+    ED25519 = 0x00
+    SECP256K1 = 0x01
+    SECP256R1 = 0x02
     BIP32_ED25519 = 0x03
 
     def __str__(self) -> str:
         return self.name
+
 
 class Signature(bytes):
     """Class representing signature."""
@@ -47,7 +48,7 @@ class Signature(bytes):
         return self.decode()
 
     @staticmethod
-    def from_secp256_tlv(tlv: Union[bytes, bytearray]) -> bytes:
+    def from_secp256_tlv(tlv: bytes | bytearray) -> bytes:
         """Get the signature encapsulated in a TLV."""
         # See:
         # https://developers.ledger.com/docs/embedded-app/crypto-api/lcx__ecdsa_8h/#cx_ecdsa_sign
@@ -76,25 +77,27 @@ class Signature(bytes):
         s_len = tlv[s_len_index]
         r = tlv[r_index : r_index + r_len]
         s = tlv[s_index : s_index + s_len]
+
         # Sometimes \x00 are added or removed
         # A size adjustment is required here.
         def adjust_size(data, size):
-            return data[-size:].rjust(size, b'\x00')
+            return data[-size:].rjust(size, b"\x00")
+
         return adjust_size(r, 32) + adjust_size(s, 32)
 
     @classmethod
-    def from_bytes(cls, data: bytes, sig_type: SigType) -> 'Signature':
+    def from_bytes(cls, data: bytes, sig_type: SigType) -> "Signature":
         """Get the signature according to the SigType."""
         if sig_type in {SigType.ED25519, SigType.BIP32_ED25519}:
-            prefix = b'edsig'
+            prefix = b"edsig"
         elif sig_type == SigType.SECP256K1:
-            prefix = b'spsig'
+            prefix = b"spsig"
             data = Signature.from_secp256_tlv(data)
         elif sig_type == SigType.SECP256R1:
-            prefix = b'p2sig'
+            prefix = b"p2sig"
             data = Signature.from_secp256_tlv(data)
         else:
-            assert False, f"Wrong signature type: {sig_type}"
+            raise AssertionError(f"Wrong signature type: {sig_type}")
 
         return cls(base58_encode(data, prefix))
 
@@ -107,15 +110,16 @@ class PublicKey(bytes):
 
     class CompressionKind(IntEnum):
         """Bytes compression kind"""
-        EVEN         = 0x02
-        ODD          = 0x03
+
+        EVEN = 0x02
+        ODD = 0x03
         UNCOMPRESSED = 0x04
 
         def __bytes__(self) -> bytes:
             return bytes([self])
 
     @classmethod
-    def from_bytes(cls, data: bytes, sig_type: Union[SigType, int]) -> 'PublicKey':
+    def from_bytes(cls, data: bytes, sig_type: SigType | int) -> "PublicKey":
         """Convert a public key from bytes to string"""
 
         length, data = data[0], data[1:]
@@ -128,33 +132,21 @@ class PublicKey(bytes):
         data = data[1:]
 
         # Ed25519
-        if sig_type in [
-                SigType.ED25519,
-                SigType.BIP32_ED25519
-        ]:
-            assert kind == cls.CompressionKind.EVEN, \
-                f"Wrong Ed25519 public key compression kind: {kind}"
-            assert len(data) == 32, \
-                f"Wrong Ed25519 public key length: {len(data)}"
-            return cls(base58_encode(data, b'edpk'))
+        if sig_type in [SigType.ED25519, SigType.BIP32_ED25519]:
+            assert kind == cls.CompressionKind.EVEN, f"Wrong Ed25519 public key compression kind: {kind}"
+            assert len(data) == 32, f"Wrong Ed25519 public key length: {len(data)}"
+            return cls(base58_encode(data, b"edpk"))
 
         # Secp256
-        if sig_type in [
-                SigType.SECP256K1,
-                SigType.SECP256R1
-        ]:
-            assert kind == cls.CompressionKind.UNCOMPRESSED, \
-                f"Wrong Secp256 public key compression kind: {kind}"
-            assert len(data) == 2 * 32, \
-                f"Wrong Secp256 public key length: {len(data)}"
-            kind = cls.CompressionKind.ODD if data[-1] & 1 else \
-                cls.CompressionKind.EVEN
-            prefix = b'sppk' if sig_type == SigType.SECP256K1 \
-                else b'p2pk'
+        if sig_type in [SigType.SECP256K1, SigType.SECP256R1]:
+            assert kind == cls.CompressionKind.UNCOMPRESSED, f"Wrong Secp256 public key compression kind: {kind}"
+            assert len(data) == 2 * 32, f"Wrong Secp256 public key length: {len(data)}"
+            kind = cls.CompressionKind.ODD if data[-1] & 1 else cls.CompressionKind.EVEN
+            prefix = b"sppk" if sig_type == SigType.SECP256K1 else b"p2pk"
             data = bytes(kind) + data[:32]
             return cls(base58_encode(data, prefix))
 
-        assert False, f"Wrong signature type: {sig_type}"
+        raise AssertionError(f"Wrong signature type: {sig_type}")
 
 
 class AccountKey:
@@ -177,7 +169,7 @@ class AccountKey:
         """Return the encoded public key."""
         return self._encoded_public_key
 
-    def verify(self, signature: Union[str, bytes], message: Union[str, bytes]) -> bool:
+    def verify(self, signature: str | bytes, message: str | bytes) -> bool:
         """Verify that signature is a valid signature of message for this account."""
         encoded_signature = signature if isinstance(signature, bytes) else signature.encode()
         encoded_message = message if isinstance(message, bytes) else message.encode()
@@ -196,9 +188,7 @@ class AccountKey:
                 raise ValueError("Signature is invalid.") from exc
         elif self._curve == b"sp":
             pk = coincurve.PublicKey(self._public_point)
-            der_sig = coincurve_ecdsa.cdata_to_der(
-                coincurve_ecdsa.deserialize_compact(decoded_signature)
-            )
+            der_sig = coincurve_ecdsa.cdata_to_der(coincurve_ecdsa.deserialize_compact(decoded_signature))
             if not pk.verify(
                 signature=der_sig,
                 message=encoded_message,
@@ -206,13 +196,10 @@ class AccountKey:
             ):
                 raise ValueError("Signature is invalid.")
         elif self._curve == b"p2":
-            pk = fastecdsa.encoding.sec1.SEC1Encoder.decode_public_key(
-                self._public_point, curve=fastecdsa.curve.P256
-            )  # type: ignore[assignment]
+            pk = fastecdsa.encoding.sec1.SEC1Encoder.decode_public_key(self._public_point, curve=fastecdsa.curve.P256)  # type: ignore[assignment]
             r = int.from_bytes(decoded_signature[:32], "big")
             s = int.from_bytes(decoded_signature[32:], "big")
-            if not fastecdsa.ecdsa.verify(
-                    sig=(r, s), msg=encoded_message, Q=pk, hashfunc=blake2b_32):  # type: ignore[arg-type] # pylint: disable=line-too-long
+            if not fastecdsa.ecdsa.verify(sig=(r, s), msg=encoded_message, Q=pk, hashfunc=blake2b_32):  # type: ignore[arg-type]
                 raise ValueError("Signature is invalid.")
         else:
             raise ValueError(f"Invalid or unsupported curve type: `{self._curve!r}`.")
@@ -224,16 +211,11 @@ class Account:
     """Class representing account."""
 
     path: bytes
-    sig_type: Union[SigType, int]
+    sig_type: SigType | int
     __key: str
 
-    def __init__(self,
-                 path: Union[str, bytes],
-                 sig_type: Union[SigType, int],
-                 key: str):
-        self.path = \
-            pack_derivation_path(path) if isinstance(path, str) \
-            else path
+    def __init__(self, path: str | bytes, sig_type: SigType | int, key: str):
+        self.path = pack_derivation_path(path) if isinstance(path, str) else path
         self.sig_type = sig_type
         self.__key = key
 
@@ -245,29 +227,25 @@ class Account:
         """Public key wrapper providing signature verification."""
         return AccountKey(self.__key)
 
-    def check_signature(
-            self,
-            data: bytes,
-            message: Message,
-            with_hash: bool):
+    def check_signature(self, data: bytes, message: Message, with_hash: bool):
         """Checks if signature correspond to a signature of message sign by the account."""
         if with_hash:
-            assert data.startswith(message.hash), \
-                f"Expected a starting hash {message.hash.hex()} but got {data.hex()}"
-            data = data[len(message.hash):]
+            assert data.startswith(message.hash), f"Expected a starting hash {message.hash.hex()} but got {data.hex()}"
+            data = data[len(message.hash) :]
 
         signature = Signature.from_bytes(data, SigType(self.sig_type))
 
-        assert self.key.verify(signature, bytes(message)), \
+        assert self.key.verify(signature, bytes(message)), (
             f"Fail to verify signature {signature!r}, \n\
             with account {self} \n\
             and message {message}"
+        )
 
 
-DEFAULT_SEED = ' '.join(['zebra']*24)
+DEFAULT_SEED = " ".join(["zebra"] * 24)
 
 DEFAULT_ACCOUNT = Account(
     "m/44'/1729'/0'/0'",
     SigType.ED25519,
-    "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY"
+    "edpkuXX2VdkdXzkN11oLCb8Aurdo1BTAtQiK8ZY9UPj2YMt3AHEpcY",
 )

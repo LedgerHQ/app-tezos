@@ -19,25 +19,20 @@
 from pathlib import Path
 
 import pytest
-
 from ragger.navigator import NavInsID
-
 from utils.account import Account
 from utils.backend import StatusCode, TezosBackend
 from utils.message import Default, RegisterGlobalConstant
 from utils.navigator import TezosNavigator, TezosNavInsID
 
-
-EXPERT_OPERATION = RegisterGlobalConstant(
-    {"prim": "constant", 'args': [{"string": Default.SCRIPT_EXPR_HASH}]}
-)
+EXPERT_OPERATION = RegisterGlobalConstant({"prim": "constant", "args": [{"string": Default.SCRIPT_EXPR_HASH}]})
 
 
 def test_reject_expert_mode(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check expert mode reject."""
 
@@ -48,10 +43,10 @@ def test_reject_expert_mode(
 
 @pytest.mark.use_on_device("touch")
 def test_enable_expert_mode_in_review(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check that expert mode can be activated from review on touch devices."""
 
@@ -60,26 +55,21 @@ def test_enable_expert_mode_in_review(
         tezos_navigator.accept_sign(snap_path=snapshot_dir / "review")
 
     # To ensure that expert mode is ON
-    tezos_navigator.navigate_to_settings(
-        screen_change_before_first_instruction=True,
-        snap_path=snapshot_dir / "check"
-    )
+    tezos_navigator.navigate_to_settings(screen_change_before_first_instruction=True, snap_path=snapshot_dir / "check")
 
 
 @pytest.mark.use_on_device("touch")
 def test_reject_sign_at_expert_mode_after_enabling(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check reject at expert splash screen after enabling expert mode"""
 
     with StatusCode.REJECT.expected():
         with backend.sign(account, EXPERT_OPERATION):
-            tezos_navigator.expert_accept_sign(
-                screen_change_after_last_instruction=False
-            )
+            tezos_navigator.expert_accept_sign(screen_change_after_last_instruction=False)
             tezos_navigator.navigate(
                 instructions=[
                     NavInsID.USE_CASE_REVIEW_REJECT,
@@ -87,16 +77,16 @@ def test_reject_sign_at_expert_mode_after_enabling(
                     NavInsID.USE_CASE_STATUS_DISMISS,
                 ],
                 screen_change_before_first_instruction=True,
-                snap_path=snapshot_dir
+                snap_path=snapshot_dir,
             )
 
 
 @pytest.mark.use_on_device("touch")
 def test_reject_sign_at_expert_mode_when_enabled(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check reject at expert splash screen if expert mode already enabled"""
 
@@ -110,5 +100,5 @@ def test_reject_sign_at_expert_mode_when_enabled(
                     TezosNavInsID.REJECT_CHOICE_CONFIRM,
                     NavInsID.USE_CASE_STATUS_DISMISS,
                 ],
-                snap_path=snapshot_dir
+                snap_path=snapshot_dir,
             )

@@ -18,20 +18,17 @@
 # pylint: disable=protected-access
 
 from pathlib import Path
-from typing import List, Union
 
 import requests
-
 from ledgered.devices import DeviceType
 from ragger.navigator import BaseNavInsID, NavIns, NavInsID
-
 from utils.backend import TezosBackend
 from utils.navigator import TezosNavigator, TezosNavInsID
 
 
 def test_home_menu(tezos_navigator: TezosNavigator, snapshot_dir: Path):
     """Check home menu flow"""
-    instructions: List[Union[NavIns, BaseNavInsID]] = []
+    instructions: list[NavIns | BaseNavInsID] = []
     if tezos_navigator._device.is_nano:
         instructions = [
             # Home
@@ -50,7 +47,7 @@ def test_home_menu(tezos_navigator: TezosNavigator, snapshot_dir: Path):
 def test_settings_menu(tezos_navigator: TezosNavigator, snapshot_dir: Path):
     """Check settings menu flow"""
     tezos_navigator.navigate_to_settings()
-    instructions: List[Union[NavIns, BaseNavInsID]] = []
+    instructions: list[NavIns | BaseNavInsID] = []
     if tezos_navigator._device.is_nano:
         instructions = [
             # Expert Mode
@@ -69,10 +66,7 @@ def test_settings_menu(tezos_navigator: TezosNavigator, snapshot_dir: Path):
             NavInsID.USE_CASE_SETTINGS_NEXT,
             TezosNavInsID.SETTINGS_EXIT,
         ]
-    tezos_navigator.navigate(
-        instructions=instructions,
-        snap_path=snapshot_dir
-    )
+    tezos_navigator.navigate(instructions=instructions, snap_path=snapshot_dir)
 
 
 def test_toggle_expert_mode(tezos_navigator: TezosNavigator, snapshot_dir: Path):
@@ -88,6 +82,7 @@ def test_toggle_blindsign(tezos_navigator: TezosNavigator, snapshot_dir: Path):
     # Toggle back
     tezos_navigator.toggle_blindsign(snap_start_idx=snap_idx, snap_path=snapshot_dir)
 
+
 def test_quit(tezos_navigator: TezosNavigator, backend: TezosBackend):
     """Check quit app"""
     if backend._device.is_nano:
@@ -96,7 +91,7 @@ def test_quit(tezos_navigator: TezosNavigator, backend: TezosBackend):
         backend.wait_for_screen_change()  # Quit
         try:
             backend.both_click()
-            assert False, "Must have lost connection with speculos"
+            raise AssertionError("Must have lost connection with speculos")
         except requests.exceptions.ConnectionError:
             pass
         except requests.exceptions.ChunkedEncodingError:

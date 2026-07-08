@@ -18,23 +18,20 @@
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 import pytest
-
 from ledgered.devices import Device
-from ragger.navigator import NavIns, NavInsID, BaseNavInsID
-
+from ragger.navigator import BaseNavInsID, NavIns, NavInsID
 from utils.account import Account
 from utils.backend import TezosBackend
 from utils.message import Operation
 from utils.navigator import TezosNavigator, TezosNavInsID
 
+Op = TypeVar("Op", bound=Operation)
 
-Op = TypeVar('Op', bound=Operation)
 
-
-class Flow:  # pylint: disable=too-few-public-methods
+class Flow:
     """Data required to run `test_operation_flow`.
 
     name: str
@@ -46,7 +43,7 @@ class Flow:  # pylint: disable=too-few-public-methods
     """
 
     name: str
-    fields: Dict[str, Any]
+    fields: dict[str, Any]
 
     def __init__(self, name, **kwargs):
         self.name = name
@@ -59,19 +56,15 @@ def parametrize_test_operation_flow(metafunc) -> None:
     args_values = []
     args_ids = []
 
-    if hasattr(metafunc.cls, 'flows'):
-        flows: List[Flow] = metafunc.cls.flows
+    if hasattr(metafunc.cls, "flows"):
+        flows: list[Flow] = metafunc.cls.flows
         args_values = [[flow.fields] for flow in flows]
         args_ids = [f"flow-{flow.name}" for flow in flows]
 
-    metafunc.parametrize(
-        args_names,
-        args_values,
-        ids=args_ids
-    )
+    metafunc.parametrize(args_names, args_values, ids=args_ids)
 
 
-class Field:  # pylint: disable=too-few-public-methods
+class Field:
     """Data required to run `test_operation_field`.
 
     name: str
@@ -85,7 +78,7 @@ class Field:  # pylint: disable=too-few-public-methods
 
     """
 
-    class Case:  # pylint: disable=too-few-public-methods
+    class Case:
         """Data representing a case to test for a given field.
 
         value: Any
@@ -101,7 +94,7 @@ class Field:  # pylint: disable=too-few-public-methods
 
         value: Any
         name: str
-        fields: Dict[str, Any]
+        fields: dict[str, Any]
 
         def __init__(self, value, name, **kwargs):
             self.value = value
@@ -110,7 +103,7 @@ class Field:  # pylint: disable=too-few-public-methods
 
     name: str
     text: str
-    cases: List[Case]
+    cases: list[Case]
 
     def __init__(self, name, text, cases):
         self.name = name
@@ -124,25 +117,13 @@ def parametrize_test_operation_field(metafunc) -> None:
     args_values = []
     args_ids = []
 
-    if hasattr(metafunc.cls, 'fields'):
-        fields_args: List[Field] = metafunc.cls.fields
-        args_values = [
-            (field, case_)
-            for field in fields_args
-            for case_ in field.cases
-        ]
-        args_ids = [
-            f"{field.name}-{case_.name}"
-            for field in fields_args
-            for case_ in field.cases
-        ]
+    if hasattr(metafunc.cls, "fields"):
+        fields_args: list[Field] = metafunc.cls.fields
+        args_values = [(field, case_) for field in fields_args for case_ in field.cases]
+        args_ids = [f"{field.name}-{case_.name}" for field in fields_args for case_ in field.cases]
 
     if args_values:
-        metafunc.parametrize(
-            args_names,
-            args_values,
-            ids=args_ids
-        )
+        metafunc.parametrize(args_names, args_values, ids=args_ids)
 
 
 def pytest_generate_tests(metafunc) -> None:
@@ -158,11 +139,11 @@ class TestOperation(ABC):
 
     @property
     @abstractmethod
-    def op_class(self) -> Type[Op]:
+    def op_class(self) -> type[Op]:
         """Constructor of the Operation class."""
         raise NotImplementedError
 
-    def skip_signature_check(self) -> Optional[str]:
+    def skip_signature_check(self) -> str | None:
         """Reason why skipping the `test_sign_operation` test."""
         return None
 
@@ -174,17 +155,12 @@ class TestOperation(ABC):
         """
         return "Source"
 
-    def test_sign_operation(
-            self,
-            backend: TezosBackend,
-            tezos_navigator: TezosNavigator,
-            account: Account
-    ):
+    def test_sign_operation(self, backend: TezosBackend, tezos_navigator: TezosNavigator, account: Account):
         """Check signing:
-            - Hash
-            - Signature
+        - Hash
+        - Signature
         """
-        reason: Optional[str] = self.skip_signature_check()
+        reason: str | None = self.skip_signature_check()
         if reason is not None:
             pytest.skip(reason)
 
@@ -195,19 +171,15 @@ class TestOperation(ABC):
         with backend.sign(account, message, with_hash=True) as result:
             tezos_navigator.accept_sign()
 
-        account.check_signature(
-            message=message,
-            with_hash=True,
-            data=result.value
-        )
+        account.check_signature(message=message, with_hash=True, data=result.value)
 
-    def test_operation_flow(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            backend: TezosBackend,
-            tezos_navigator: TezosNavigator,
-            account: Account,
-            fields: Dict[str, Any],
-            snapshot_dir: Path
+    def test_operation_flow(
+        self,
+        backend: TezosBackend,
+        tezos_navigator: TezosNavigator,
+        account: Account,
+        fields: dict[str, Any],
+        snapshot_dir: Path,
     ):
         """Check signing flow
 
@@ -221,15 +193,15 @@ class TestOperation(ABC):
         with backend.sign(account, message):
             tezos_navigator.accept_sign(snap_path=snapshot_dir)
 
-    def il(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            backend: TezosBackend,
-            device: Device,
-            tezos_navigator: TezosNavigator,
-            account: Account,
-            field: Field,
-            case_: Field.Case,
-            snapshot_dir: Path
+    def il(
+        self,
+        backend: TezosBackend,
+        device: Device,
+        tezos_navigator: TezosNavigator,
+        account: Account,
+        field: Field,
+        case_: Field.Case,
+        snapshot_dir: Path,
     ):
         """Check how fields are displayed
 
@@ -245,7 +217,7 @@ class TestOperation(ABC):
         tezos_navigator.toggle_expert_mode()
 
         with backend.sign(account, operation):
-            validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
+            validation_instructions: list[NavIns | BaseNavInsID] = []
             if device.is_nano:
                 validation_instructions = [NavInsID.RIGHT_CLICK]
             # Navigates until a stable first row (see `field_test_nav_anchor`).
@@ -260,7 +232,7 @@ class TestOperation(ABC):
                 text=field.text,
                 # Even if the screen has changed, we know we are on
                 # the right screen because the text has been found
-                screen_change_after_last_instruction=False
+                screen_change_after_last_instruction=False,
             )
 
             # Compare all field's screens
@@ -271,6 +243,4 @@ class TestOperation(ABC):
             )
 
             # Finish the signing
-            tezos_navigator.accept_sign(
-                screen_change_before_first_instruction=False
-            )
+            tezos_navigator.accept_sign(screen_change_before_first_instruction=False)

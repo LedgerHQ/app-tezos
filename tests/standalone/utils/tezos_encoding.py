@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 from hashlib import blake2b
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import base58
 
@@ -272,7 +272,7 @@ reserved_entrypoints = {
 }
 
 
-def scrub_input(v: Union[str, bytes]) -> bytes:
+def scrub_input(v: str | bytes) -> bytes:
     """Normalize input to bytes."""
     if isinstance(v, bytes):
         return v
@@ -281,25 +281,21 @@ def scrub_input(v: Union[str, bytes]) -> bytes:
             return bytes.fromhex(v.removeprefix("0x"))
         except ValueError:
             return v.encode("ascii")
-    raise TypeError(
-        f"A bytes-like object is required (also str), not `{type(v).__name__}`"
-    )
+    raise TypeError(f"A bytes-like object is required (also str), not `{type(v).__name__}`")
 
 
-def blake2b_32(v: Union[str, bytes] = b""):
+def blake2b_32(v: str | bytes = b""):
     """Return a 32-byte BLAKE2b digest of v."""
     return blake2b(scrub_input(v), digest_size=32)
 
 
-def base58_decode(v: Union[str, bytes]) -> bytes:
+def base58_decode(v: str | bytes) -> bytes:
     """Decode a base58check-encoded Tezos value, stripping the prefix."""
     if isinstance(v, str):
         v = v.encode()
     try:
         prefix_len = next(
-            len(encoding[2])
-            for encoding in base58_encodings
-            if len(v) == encoding[1] and v.startswith(encoding[0])
+            len(encoding[2]) for encoding in base58_encodings if len(v) == encoding[1] and v.startswith(encoding[0])
         )
     except StopIteration as exc:
         raise ValueError("Invalid encoding, prefix or length mismatch.") from exc
@@ -309,17 +305,13 @@ def base58_decode(v: Union[str, bytes]) -> bytes:
 def base58_encode(v: bytes, prefix: bytes) -> bytes:
     """Encode bytes as a base58check Tezos value with the given prefix."""
     try:
-        encoding = next(
-            encoding
-            for encoding in base58_encodings
-            if len(v) == encoding[3] and prefix == encoding[0]
-        )
+        encoding = next(encoding for encoding in base58_encodings if len(v) == encoding[3] and prefix == encoding[0])
     except StopIteration as exc:
         raise ValueError("Invalid encoding, prefix or length mismatch.") from exc
     return base58.b58encode_check(encoding[2] + v)
 
 
-def format_mutez(value: Optional[Union[int, Decimal]]) -> str:
+def format_mutez(value: int | Decimal | None) -> str:
     """Format a mutez value as a string."""
     if value is None:
         value = 0
@@ -442,7 +434,7 @@ def forge_public_key(value: str) -> bytes:
     raise ValueError(f"Unrecognized key type: #{prefix}")
 
 
-def forge_micheline(data: Union[List, Dict]) -> bytes:  # pylint: disable=too-many-branches
+def forge_micheline(data: list | dict) -> bytes:
     """Encode a Micheline expression to its binary representation."""
     res = []
     if isinstance(data, list):
@@ -482,21 +474,18 @@ def forge_micheline(data: Union[List, Dict]) -> bytes:  # pylint: disable=too-ma
     return b"".join(res)
 
 
-def forge_script(script: Dict[str, Any]) -> bytes:
+def forge_script(script: dict[str, Any]) -> bytes:
     """Encode a Tezos script (code + storage) to its binary representation."""
     code = forge_micheline(script["code"])
     storage = forge_micheline(script["storage"])
     return forge_array(code) + forge_array(storage)
 
 
-def has_parameters(content: Dict[str, Any]) -> bool:
+def has_parameters(content: dict[str, Any]) -> bool:
     """Return True if the operation content has non-default parameters."""
     if not content.get("parameters"):
         return False
-    return not (
-        content["parameters"]["entrypoint"] == "default"
-        and content["parameters"]["value"] == {"prim": "Unit"}
-    )
+    return not (content["parameters"]["entrypoint"] == "default" and content["parameters"]["value"] == {"prim": "Unit"})
 
 
 def forge_entrypoint(entrypoint: str) -> bytes:

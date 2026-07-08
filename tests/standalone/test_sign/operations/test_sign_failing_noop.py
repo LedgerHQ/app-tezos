@@ -16,8 +16,11 @@
 
 """Gathering of tests related to Failing-noop operations."""
 
+from typing import ClassVar
+
 from utils.message import FailingNoop
-from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+from .helper import Field, Flow, TestOperation
 
 
 class TestFailingNoop(TestOperation):
@@ -31,12 +34,19 @@ class TestFailingNoop(TestOperation):
         """No manager ``Source`` row; operation kind is shown first."""
         return "Operation"
 
-    flows = [Flow('basic', message="message")]
+    flows: ClassVar[list[Flow]] = [Flow("basic", message="message")]
 
-    fields = [
-        Field("message", "Message", [
-            Field.Case('', "empty"),
-            Field.Case('message', "message"),
-            Field.Case('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.', "long-message"),  # pylint: disable=line-too-long
-        ]),
+    fields: ClassVar[list[Field]] = [
+        Field(
+            "message",
+            "Message",
+            [
+                Field.Case("", "empty"),
+                Field.Case("message", "message"),
+                Field.Case(
+                    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",  # noqa: E501
+                    "long-message",
+                ),
+            ],
+        ),
     ]

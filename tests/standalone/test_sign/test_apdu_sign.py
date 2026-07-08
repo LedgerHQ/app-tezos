@@ -19,9 +19,7 @@
 from pathlib import Path
 
 import pytest
-
 from ragger.navigator import NavInsID
-
 from utils.account import Account
 from utils.backend import StatusCode, TezosBackend
 from utils.message import Transaction
@@ -30,10 +28,10 @@ from utils.navigator import TezosNavigator, TezosNavInsID
 
 @pytest.mark.parametrize("with_hash", [True, False])
 def test_sign(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        with_hash: bool
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    with_hash: bool,
 ):
     """Check signing with or without getting hash"""
 
@@ -42,17 +40,14 @@ def test_sign(
     with backend.sign(account, message, with_hash=with_hash) as result:
         tezos_navigator.accept_sign()
 
-    account.check_signature(
-        message=message,
-        with_hash=with_hash,
-        data=result.value
-    )
+    account.check_signature(message=message, with_hash=with_hash, data=result.value)
+
 
 def test_reject_operation(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check reject transaction"""
 
@@ -62,12 +57,13 @@ def test_reject_operation(
         with backend.sign(account, message, with_hash=True):
             tezos_navigator.reject_sign(snap_path=snapshot_dir)
 
+
 @pytest.mark.use_on_device("touch")
 def test_reject_operation_at_start(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check reject at first screen."""
 
@@ -83,15 +79,16 @@ def test_reject_operation_at_start(
                 ],
                 screen_change_before_first_instruction=True,
                 screen_change_after_last_instruction=False,
-                snap_path=snapshot_dir
+                snap_path=snapshot_dir,
             )
+
 
 @pytest.mark.use_on_device("touch")
 def test_reject_operation_at_fields(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check reject at fields."""
 
@@ -108,14 +105,11 @@ def test_reject_operation_at_fields(
                 ],
                 screen_change_before_first_instruction=True,
                 screen_change_after_last_instruction=False,
-                snap_path=snapshot_dir
+                snap_path=snapshot_dir,
             )
 
-def test_sign_with_small_packet(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        account: Account
-):
+
+def test_sign_with_small_packet(backend: TezosBackend, tezos_navigator: TezosNavigator, account: Account):
     """Check signing using small packet instead of full size packets"""
 
     tezos_navigator.toggle_expert_mode()
@@ -125,8 +119,4 @@ def test_sign_with_small_packet(
     with backend.sign(account, message, apdu_size=10) as result:
         tezos_navigator.accept_sign()
 
-    account.check_signature(
-        message=message,
-        with_hash=False,
-        data=result.value
-    )
+    account.check_signature(message=message, with_hash=False, data=result.value)

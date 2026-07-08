@@ -31,16 +31,15 @@ names) stays in ``test_sign_transaction.py``. This module only runs **full
 sign flows** for the doc-shaped staking vectors.
 """
 
-from typing import Optional
+from typing import ClassVar
 
 import pytest
-
 from utils.account import Account
 from utils.backend import TezosBackend
 from utils.message import Transaction
 from utils.navigator import TezosNavigator
 
-from .helper import Flow, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+from .helper import Flow, TestOperation
 
 # Self-transfer destination matching default manager source in tests.
 _SELF = "tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU"
@@ -51,7 +50,7 @@ _STAKER_OTHER = "tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa"
 class TestStaking2DocExamples(TestOperation):
     """Sign flows for Staking 2.0 doc-shaped tag-108 operations."""
 
-    def skip_signature_check(self) -> Optional[str]:
+    def skip_signature_check(self) -> str | None:
         """Same ``Transaction`` class as ``TestTransaction``;
         avoid duplicate hash/signature test."""
         return "Signature check for Transaction is already run in test_sign_transaction."
@@ -62,65 +61,62 @@ class TestStaking2DocExamples(TestOperation):
 
     # Flow names are stable: snapshot dirs are ``flow-staking2_*``
     # (see test_sign_transaction history).
-    flows = [
+    flows: ClassVar[list[Flow]] = [
         # Paris doc § pseudo-ops: stake — non-zero amount, self-transfer, Unit parameter.
         Flow(
-            'staking2_stake_self',
+            "staking2_stake_self",
             amount=1000000000,
             destination=_SELF,
-            entrypoint='stake',
-            parameter={'prim': 'Unit'},
+            entrypoint="stake",
+            parameter={"prim": "Unit"},
         ),
         # unstake — positive amount, self-transfer, Unit (typical wallet encoding).
         Flow(
-            'staking2_unstake_self',
+            "staking2_unstake_self",
             amount=500000000,
             destination=_SELF,
-            entrypoint='unstake',
-            parameter={'prim': 'Unit'},
+            entrypoint="unstake",
+            parameter={"prim": "Unit"},
         ),
         # finalize_unstake — classic self-call: zero amount, Unit.
         Flow(
-            'staking2_finalize_unstake_self',
+            "staking2_finalize_unstake_self",
             amount=0,
             destination=_SELF,
-            entrypoint='finalize_unstake',
-            parameter={'prim': 'Unit'},
+            entrypoint="finalize_unstake",
+            parameter={"prim": "Unit"},
         ),
         # Seoul doc: third party pays fee;
         # destination = staker implicit, zero amount, finalize_unstake.
         Flow(
-            'staking2_finalize_unstake_sponsored',
+            "staking2_finalize_unstake_sponsored",
             amount=0,
             destination=_STAKER_OTHER,
-            entrypoint='finalize_unstake',
-            parameter={'prim': 'Unit'},
+            entrypoint="finalize_unstake",
+            parameter={"prim": "Unit"},
         ),
         # set_delegate_parameters — zero amount self-call;
         # Pair limits (illustrative values, Paris doc shape).
         Flow(
-            'staking2_set_delegate_parameters',
+            "staking2_set_delegate_parameters",
             amount=0,
             destination=_SELF,
-            entrypoint='set_delegate_parameters',
-            parameter={'prim': 'Pair', 'args': [
-                {'int': 4000000},
-                {'prim': 'Pair', 'args': [
-                    {'int': 20000000},
-                    {'prim': 'Unit'}
-                ]}
-            ]},
+            entrypoint="set_delegate_parameters",
+            parameter={
+                "prim": "Pair",
+                "args": [
+                    {"int": 4000000},
+                    {"prim": "Pair", "args": [{"int": 20000000}, {"prim": "Unit"}]},
+                ],
+            },
         ),
     ]
 
-    def test_operation_field(  # pylint: disable=unused-argument
-            self,
-            backend: TezosBackend,
-            tezos_navigator: TezosNavigator,
-            account: Account,
+    def test_operation_field(
+        self,
+        backend: TezosBackend,
+        tezos_navigator: TezosNavigator,
+        account: Account,
     ):
         """Omitted here: use ``TestTransaction`` for the shared field matrix."""
-        pytest.skip(
-            "Staking 2.0 entrypoint/amount/parameter field tests are covered by "
-            "test_sign_transaction.TestTransaction."
-        )
+        pytest.skip("Staking 2.0 entrypoint/amount/parameter field tests are covered by test_sign_transaction.TestTransaction.")

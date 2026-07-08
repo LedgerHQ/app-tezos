@@ -18,9 +18,8 @@
    See the License for the specific language governing permissions and
    limitations under the License. */
 
-#include <format.h>
-
 #include "format.h"
+#include "app_format.h"
 
 bool
 tz_mutez_to_string(char *obuf, size_t olen, uint64_t amount)

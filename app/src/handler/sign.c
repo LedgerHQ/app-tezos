@@ -34,7 +34,7 @@
 #include <swap.h>
 #endif
 
-#include "../format.h"
+#include "app_format.h"
 #include "globals.h"
 #include "handle_swap.h"
 #include "keys.h"

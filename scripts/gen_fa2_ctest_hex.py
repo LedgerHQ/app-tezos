@@ -301,9 +301,7 @@ def main() -> None:
     print(f'    "{forge_batch_hex(_FA2_NEG)}"')
     print()
     print("/* FA2 clear-signing (token_id=1, wrapped token registry): */")
-    print(
-        f'    "{forge_batch_hex(_FA2_TRANSFER_TOKEN_ID_GT0_PARAMETER, "KT18fp5rcTW7mbWDmzFwjLDUhs5MeJmagDSZ")}"'
-    )
+    print(f'    "{forge_batch_hex(_FA2_TRANSFER_TOKEN_ID_GT0_PARAMETER, "KT18fp5rcTW7mbWDmzFwjLDUhs5MeJmagDSZ")}"')
 
 
 if __name__ == "__main__":

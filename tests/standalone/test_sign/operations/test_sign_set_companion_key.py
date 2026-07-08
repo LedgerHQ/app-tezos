@@ -16,8 +16,11 @@
 
 """Gathering of tests related to Set-companion-key operations."""
 
+from typing import ClassVar
+
 from utils.message import UpdateCompanionKey
-from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+from .helper import Field, Flow, TestOperation
 
 
 class TestUpdateCompanionKey(TestOperation):
@@ -27,24 +30,41 @@ class TestUpdateCompanionKey(TestOperation):
     def op_class(self):
         return UpdateCompanionKey
 
-    flows = [
-        Flow('basic'),
+    flows: ClassVar[list[Flow]] = [
+        Flow("basic"),
         Flow(
-            'with_proof',
-            pk='BLpk1koaE6qJifAmUjjeukrgUdZaHCWWcHj6fBqrQLSWvVwHfqNcKKCSv5GxxVHhGirQbjHFsTTk',
-            proof='BLsigAQBhGrS8qP3rPEiRJdVMkwN8LgWXzXwty5RDYUaU4D8uLuFPKUj2cfWfznFwj8LG598MC71dDJpcrFk41uYne9MHGN3NecBtkWTKvZXAUkiXKvNssG7YiwD6q7D28gTXmE864dn3x'  # pylint: disable=line-too-long
+            "with_proof",
+            pk="BLpk1koaE6qJifAmUjjeukrgUdZaHCWWcHj6fBqrQLSWvVwHfqNcKKCSv5GxxVHhGirQbjHFsTTk",
+            proof="BLsigAQBhGrS8qP3rPEiRJdVMkwN8LgWXzXwty5RDYUaU4D8uLuFPKUj2cfWfznFwj8LG598MC71dDJpcrFk41uYne9MHGN3NecBtkWTKvZXAUkiXKvNssG7YiwD6q7D28gTXmE864dn3x",
         ),
     ]
 
-    fields = [
-        Field("pk", "Public key", [
-            Field.Case('edpkvMUjmJu9CYyKBAjUV3jtU8Y89TemDAcD29bSNh393Bc8z8BH3t', "tz1"),
-            Field.Case('sppk7ZT8R42AGSy672NHz9ps6Q4idqWYejAgMwqTWnyYAeq9XZEqWvZ', "tz2"),
-            Field.Case('p2pk665znpiyPRWEwpu8tZ7JdNPipkfYpGUhYALjaS4Tm7F7wcx1iRs', "tz3"),
-            Field.Case('BLpk1koaE6qJifAmUjjeukrgUdZaHCWWcHj6fBqrQLSWvVwHfqNcKKCSv5GxxVHhGirQbjHFsTTk', "tz4"),  # pylint: disable=line-too-long
-            Field.Case('edpkuWUfaAWqaxJoG9QKgQRQUHMWfsN1EmoMMXWMwYoE8kjWMWUGDk', "long-hash"),
-        ]),
-        Field("proof", "Proof", [
-            Field.Case('BLsigAQBhGrS8qP3rPEiRJdVMkwN8LgWXzXwty5RDYUaU4D8uLuFPKUj2cfWfznFwj8LG598MC71dDJpcrFk41uYne9MHGN3NecBtkWTKvZXAUkiXKvNssG7YiwD6q7D28gTXmE864dn3x', "bls"),  # pylint: disable=line-too-long
-        ]),
+    fields: ClassVar[list[Field]] = [
+        Field(
+            "pk",
+            "Public key",
+            [
+                Field.Case("edpkvMUjmJu9CYyKBAjUV3jtU8Y89TemDAcD29bSNh393Bc8z8BH3t", "tz1"),
+                Field.Case("sppk7ZT8R42AGSy672NHz9ps6Q4idqWYejAgMwqTWnyYAeq9XZEqWvZ", "tz2"),
+                Field.Case("p2pk665znpiyPRWEwpu8tZ7JdNPipkfYpGUhYALjaS4Tm7F7wcx1iRs", "tz3"),
+                Field.Case(
+                    "BLpk1koaE6qJifAmUjjeukrgUdZaHCWWcHj6fBqrQLSWvVwHfqNcKKCSv5GxxVHhGirQbjHFsTTk",
+                    "tz4",
+                ),
+                Field.Case(
+                    "edpkuWUfaAWqaxJoG9QKgQRQUHMWfsN1EmoMMXWMwYoE8kjWMWUGDk",
+                    "long-hash",
+                ),
+            ],
+        ),
+        Field(
+            "proof",
+            "Proof",
+            [
+                Field.Case(
+                    "BLsigAQBhGrS8qP3rPEiRJdVMkwN8LgWXzXwty5RDYUaU4D8uLuFPKUj2cfWfznFwj8LG598MC71dDJpcrFk41uYne9MHGN3NecBtkWTKvZXAUkiXKvNssG7YiwD6q7D28gTXmE864dn3x",
+                    "bls",
+                ),
+            ],
+        ),
     ]

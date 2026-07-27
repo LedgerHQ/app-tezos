@@ -16,8 +16,11 @@
 
 """Gathering of tests related to Increase-paid-storage operations."""
 
+from typing import ClassVar
+
 from utils.message import IncreasePaidStorage
-from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+from .helper import Field, Flow, TestOperation
 
 
 class TestIncreasePaidStorage(TestOperation):
@@ -27,18 +30,26 @@ class TestIncreasePaidStorage(TestOperation):
     def op_class(self):
         return IncreasePaidStorage
 
-    flows = [Flow('basic')]
+    flows: ClassVar[list[Flow]] = [Flow("basic")]
 
-    fields = [
-        Field("amount", "Amount", [
-            Field.Case(0, "0"),
-            Field.Case(1000, "1000"),
-            Field.Case(1000000, "1000000"),
-            Field.Case(1000000000, "1000000000"),
-            Field.Case(0xFFFFFFFFFFFFFFFF, "max"),  # max uint64
-        ]),
-        Field("destination", "Destination", [
-            Field.Case('KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT', "kt1"),
-            Field.Case('KT1GW4QHn66m7WWWMWCMNaWmGYpCRbg5ahwU', "long-hash"),
-        ]),
+    fields: ClassVar[list[Field]] = [
+        Field(
+            "amount",
+            "Amount",
+            [
+                Field.Case(0, "0"),
+                Field.Case(1000, "1000"),
+                Field.Case(1000000, "1000000"),
+                Field.Case(1000000000, "1000000000"),
+                Field.Case(0xFFFFFFFFFFFFFFFF, "max"),  # max uint64
+            ],
+        ),
+        Field(
+            "destination",
+            "Destination",
+            [
+                Field.Case("KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT", "kt1"),
+                Field.Case("KT1GW4QHn66m7WWWMWCMNaWmGYpCRbg5ahwU", "long-hash"),
+            ],
+        ),
     ]

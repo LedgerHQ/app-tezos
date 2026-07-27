@@ -16,8 +16,11 @@
 
 """Gathering of tests related to Delegation operations."""
 
+from typing import ClassVar
+
 from utils.message import Default, Delegation
-from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+from .helper import Field, Flow, TestOperation
 
 
 class TestDelegation(TestOperation):
@@ -27,15 +30,19 @@ class TestDelegation(TestOperation):
     def op_class(self):
         return Delegation
 
-    flows = [Flow('basic', delegate=Default.ED25519_PUBLIC_KEY_HASH)]
+    flows: ClassVar[list[Flow]] = [Flow("basic", delegate=Default.ED25519_PUBLIC_KEY_HASH)]
 
-    fields = [
-        Field("delegate", "Delegate", [
-            Field.Case(None, "none"),
-            Field.Case('tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa', "tz1"),
-            Field.Case('tz2CJBeWWLsUDjVUDqGZL6od3DeBCNzYXrXk', "tz2"),
-            Field.Case('tz3fLwHKthqhTPK6Lar6CTXN1WbDETw1YpGB', "tz3"),
-            Field.Case('tz4AcerThk5nGtWNBiSqJfZFeWtz6ZqJ6mTY', "tz4"),
-            Field.Case('tz1Kp8NCAN5WWwvkWkMmQQXMRe68iURmoQ8w', "long-hash"),
-        ]),
+    fields: ClassVar[list[Field]] = [
+        Field(
+            "delegate",
+            "Delegate",
+            [
+                Field.Case(None, "none"),
+                Field.Case("tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa", "tz1"),
+                Field.Case("tz2CJBeWWLsUDjVUDqGZL6od3DeBCNzYXrXk", "tz2"),
+                Field.Case("tz3fLwHKthqhTPK6Lar6CTXN1WbDETw1YpGB", "tz3"),
+                Field.Case("tz4AcerThk5nGtWNBiSqJfZFeWtz6ZqJ6mTY", "tz4"),
+                Field.Case("tz1Kp8NCAN5WWwvkWkMmQQXMRe68iURmoQ8w", "long-hash"),
+            ],
+        ),
     ]

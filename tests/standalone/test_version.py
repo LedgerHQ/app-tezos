@@ -17,40 +17,30 @@
 """Gathering of tests related to app version."""
 
 import git
-
 from utils.backend import TezosBackend, Version
 
 
 def test_version(backend: TezosBackend):
     """Test that the app version is the same as the current version."""
-    current_version = Version(Version.AppKind.WALLET, 3, 2, 0)
+    current_version = Version(Version.AppKind.WALLET, 3, 2, 2)
 
     data = backend.version()
 
     app_version = Version.from_bytes(data)
 
-    assert current_version == app_version, \
-        f"Expected {current_version} but got {app_version}"
+    assert current_version == app_version, f"Expected {current_version} but got {app_version}"
 
 
 def test_git(backend: TezosBackend):
     """Test that the app commit is the same as the current git commit."""
     git_repo = git.Repo(search_parent_directories=True)
-    git_describe = git_repo.git.describe(
-        tags=True,
-        abbrev=8,
-        always=True,
-        long=True,
-        dirty=True
-    )
-    current_commit = git_describe.replace('-dirty', '*')
+    git_describe = git_repo.git.describe(tags=True, abbrev=8, always=True, long=True, dirty=True)
+    current_commit = git_describe.replace("-dirty", "*")
 
     data = backend.git()
 
-    assert data.endswith(b'\x00'), \
-        f"Should end with by '\x00' but got {data.hex()}"
+    assert data.endswith(b"\x00"), f"Should end with by '\x00' but got {data.hex()}"
 
-    app_commit = data[:-1].decode('utf-8')
+    app_commit = data[:-1].decode("utf-8")
 
-    assert current_commit == app_commit, \
-        f"Expected {current_commit} but got {app_commit}"
+    assert current_commit == app_commit, f"Expected {current_commit} but got {app_commit}"

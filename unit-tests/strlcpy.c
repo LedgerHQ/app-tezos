@@ -8,11 +8,13 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0 */
 
-#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__OpenBSD__) && !defined(__NetBSD__)
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__OpenBSD__) \
+    && !defined(__NetBSD__)
 
 #include <stddef.h>
 
-size_t strlcpy(char *dst, const char *src, size_t size)
+size_t
+strlcpy(char *dst, const char *src, size_t size)
 {
     size_t len = 0;
 
@@ -29,7 +31,8 @@ size_t strlcpy(char *dst, const char *src, size_t size)
     return len;
 }
 
-size_t strlcat(char *dst, const char *src, size_t size)
+size_t
+strlcat(char *dst, const char *src, size_t size)
 {
     size_t dlen = 0;
 

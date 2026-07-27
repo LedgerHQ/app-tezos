@@ -16,8 +16,11 @@
 
 """Gathering of tests related to Set-deposit-limit operations."""
 
+from typing import ClassVar
+
 from utils.message import SetDepositLimit
-from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+from .helper import Field, Flow, TestOperation
 
 
 class TestSetDepositLimit(TestOperation):
@@ -27,15 +30,19 @@ class TestSetDepositLimit(TestOperation):
     def op_class(self):
         return SetDepositLimit
 
-    flows = [Flow('basic', limit=400)]
+    flows: ClassVar[list[Flow]] = [Flow("basic", limit=400)]
 
-    fields = [
-        Field("limit", "Staking limit", [
-            Field.Case(None, "none"),
-            Field.Case(0, "0"),
-            Field.Case(1000, "1000"),
-            Field.Case(1000000, "1000000"),
-            Field.Case(1000000000, "1000000000"),
-            Field.Case(0xFFFFFFFFFFFFFFFF, "max"),  # max uint64
-        ]),
+    fields: ClassVar[list[Field]] = [
+        Field(
+            "limit",
+            "Staking limit",
+            [
+                Field.Case(None, "none"),
+                Field.Case(0, "0"),
+                Field.Case(1000, "1000"),
+                Field.Case(1000000, "1000000"),
+                Field.Case(1000000000, "1000000000"),
+                Field.Case(0xFFFFFFFFFFFFFFFF, "max"),  # max uint64
+            ],
+        ),
     ]

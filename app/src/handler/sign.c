@@ -34,7 +34,7 @@
 #include <swap.h>
 #endif
 
-#include "../format.h"
+#include "app_format.h"
 #include "globals.h"
 #include "handle_swap.h"
 #include "keys.h"
@@ -342,6 +342,13 @@ refill_error(void)
         TZ_FAIL(EXC_PARSE_ERROR);
     }
 #endif
+
+    /* Do not offer blind-signing on a parse error when the user has disabled
+       the setting; reject immediately, matching the clear-sign flow (F-09).
+     */
+    if (!N_settings.blindsigning) {
+        TZ_FAIL(EXC_PARSE_ERROR);
+    }
 
     // clang-format off
 #ifdef HAVE_BAGL
@@ -909,18 +916,18 @@ get_blindsign_type(char *type, size_t type_size)
     switch (global.keys.apdu.sign.tag) {
     case 0x01:
     case 0x11:
-        memcpy(type,"Block\nproposal", OPERATION_TYPE_STR_LENGTH);
+        strlcpy(type, "Block\nproposal", type_size);
         break;
     case 0x03:
-        memcpy(type,"Manager\noperation", OPERATION_TYPE_STR_LENGTH);
+        strlcpy(type, "Manager\noperation", type_size);
         break;
     case 0x02:
     case 0x12:
     case 0x13:
-        memcpy(type,"Consensus\noperation", OPERATION_TYPE_STR_LENGTH);
+        strlcpy(type, "Consensus\noperation", type_size);
         break;
     case 0x05:
-        memcpy(type,"Micheline\nexpression", OPERATION_TYPE_STR_LENGTH);
+        strlcpy(type, "Micheline\nexpression", type_size);
         break;
     default:
         break;
@@ -1081,7 +1088,7 @@ continue_blindsign_cb(void)
            useCaseTagValueList.nbPairs);
     useCaseTagValueList.smallCaseForValue = false;
     useCaseTagValueList.wrapping          = false;
-    nbgl_useCaseReviewBlindSigning(op, &useCaseTagValueList, &C_tezos,
+    nbgl_useCaseReviewBlindSigning(op, &useCaseTagValueList, &C_TZ_APP_ICON,
                                    REVIEW("Transaction"), NULL,
                                    SIGN("Transaction"), NULL, reviewChoice);
 

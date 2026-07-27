@@ -17,7 +17,7 @@
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, ClassVar
 
 from .tezos_encoding import (
     blake2b_32,
@@ -26,8 +26,8 @@ from .tezos_encoding import (
     forge_base58,
     forge_bool,
     forge_entrypoint,
-    forge_int_fixed,
     forge_int32,
+    forge_int_fixed,
     forge_micheline,
     forge_nat,
     forge_public_key,
@@ -39,6 +39,7 @@ from .tezos_encoding import (
     prim_tags,
     reserved_entrypoints,
 )
+
 
 class Message(ABC):
     """Class representing a message."""
@@ -55,58 +56,65 @@ class Message(ABC):
     def __str__(self) -> str:
         return bytes(self).hex()
 
+
 class RawMessage(Message):
     """Class representing a raw message."""
 
     _value: bytes
 
-    def __init__(self, value: Union[str, bytes]):
-        self._value = value if isinstance(value, bytes) else \
-            bytes.fromhex(value)
+    def __init__(self, value: str | bytes):
+        self._value = value if isinstance(value, bytes) else bytes.fromhex(value)
 
     def __bytes__(self) -> bytes:
         return self._value
 
 
-Micheline = Union[List, Dict]
+Micheline = list | dict
 
-class Default:  # pylint: disable=too-few-public-methods
+
+class Default:
     """Class holding default values."""
-    BLOCK_HASH: str                      = 'BKiHLREqU3JkXfzEDYAkmmfX48gBDtYhMrpA98s7Aq4SzbUAB6M'
-    PROTOCOL_HASH: str                   = 'PrihK96nBAFSxVL1GLJTVhu9YnzkMFiBeuJRPA8NwuZVZCE1L6i'
-    ED25519_PUBLIC_KEY_HASH: str         = 'tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU'
-    ORIGINATED_ADDRESS: str              = 'KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT'
-    ORIGINATED_SMART_ROLLUP_ADDRESS: str = 'sr163Lv22CdE8QagCwf48PWDTquk6isQwv57'
-    SMART_ROLLUP_COMMITMENT_HASH: str    = 'src12UJzB8mg7yU6nWPzicH7ofJbFjyJEbHvwtZdfRXi8DQHNp1LY8'
-    ED25519_PUBLIC_KEY: str              = 'edpkteDwHwoNPB18tKToFKeSCykvr1ExnoMV5nawTJy9Y9nLTfQ541'
-    SCRIPT_EXPR_HASH: str                = 'exprtWsu7N8st7XBhS685Qa2B4xP6TuTN9ve9UPCU29fV94ySDo5Va'
-    ENTRYPOINT: str                      = 'default'
-    BALLOT: str                          = 'yay'
-    SMART_ROLLUP_KIND: str               = 'arith'
 
-    class DefaultMicheline:  # pylint: disable=too-few-public-methods
+    BLOCK_HASH: str = "BKiHLREqU3JkXfzEDYAkmmfX48gBDtYhMrpA98s7Aq4SzbUAB6M"
+    PROTOCOL_HASH: str = "PrihK96nBAFSxVL1GLJTVhu9YnzkMFiBeuJRPA8NwuZVZCE1L6i"
+    ED25519_PUBLIC_KEY_HASH: str = "tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU"
+    ORIGINATED_ADDRESS: str = "KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT"
+    ORIGINATED_SMART_ROLLUP_ADDRESS: str = "sr163Lv22CdE8QagCwf48PWDTquk6isQwv57"
+    SMART_ROLLUP_COMMITMENT_HASH: str = "src12UJzB8mg7yU6nWPzicH7ofJbFjyJEbHvwtZdfRXi8DQHNp1LY8"
+    ED25519_PUBLIC_KEY: str = "edpkteDwHwoNPB18tKToFKeSCykvr1ExnoMV5nawTJy9Y9nLTfQ541"
+    SCRIPT_EXPR_HASH: str = "exprtWsu7N8st7XBhS685Qa2B4xP6TuTN9ve9UPCU29fV94ySDo5Va"
+    ENTRYPOINT: str = "default"
+    BALLOT: str = "yay"
+    SMART_ROLLUP_KIND: str = "arith"
+
+    class DefaultMicheline:
         """Class holding Micheline default values."""
-        VALUE: Micheline = {'prim': 'Unit'}
-        TYPE: Micheline  = {'prim': 'unit'}
-        CODE: Micheline  = [
-            {'prim': 'CDR'},
-            {'prim': 'NIL', 'args': [{'prim': 'operation'}]},
-            {'prim': 'PAIR'},
+
+        VALUE: ClassVar[Micheline] = {"prim": "Unit"}
+        TYPE: ClassVar[Micheline] = {"prim": "unit"}
+        CODE: ClassVar[Micheline] = [
+            {"prim": "CDR"},
+            {"prim": "NIL", "args": [{"prim": "operation"}]},
+            {"prim": "PAIR"},
         ]
+
 
 class Watermark(IntEnum):
     """Class hodling messages watermark."""
-    MANAGER_OPERATION    = 0x03
+
+    MANAGER_OPERATION = 0x03
     MICHELINE_EXPRESSION = 0x05
+
 
 # pytezos is not up to date with the protocol Seoul
 # See https://gitlab.com/tezos/tezos/-/blob/v23-release/src/proto_023_PtSeouLo/
 # lib_protocol/michelson_v1_primitives.ml#L807
-prim_tags.update({ 'IS_IMPLICIT_ACCOUNT': b'\x9e'})
+prim_tags.update({"IS_IMPLICIT_ACCOUNT": b"\x9e"})
 # See https://gitlab.com/tezos/tezos/-/blob/master/src/proto_024_PsU87LFi/
 # lib_protocol/michelson_v1_primitives.ml#L816-L817
-prim_tags.update({ 'INDEX_ADDRESS': b'\x9f'})
-prim_tags.update({ 'GET_ADDRESS_INDEX': b'\xa0'})
+prim_tags.update({"INDEX_ADDRESS": b"\x9f"})
+prim_tags.update({"GET_ADDRESS_INDEX": b"\xa0"})
+
 
 class MichelineExpr(Message):
     """Class representing a tezos micheline expression."""
@@ -117,7 +125,7 @@ class MichelineExpr(Message):
         self.expr = expr
 
     def __bytes__(self) -> bytes:
-        raw = b''
+        raw = b""
         raw += forge_int_fixed(Watermark.MICHELINE_EXPRESSION, 1)
         raw += forge_micheline(self.expr)
         return raw
@@ -126,134 +134,130 @@ class MichelineExpr(Message):
 class OperationBuilder:
     """Class representing operation content builders."""
 
-    def operation(self, content: Dict[str, Any]):
+    def operation(self, content: dict[str, Any]):
         """Return the operation content dict."""
         return content
 
-    def proposals(self, proposals, source='', period=0):
+    def proposals(self, proposals, source="", period=0):
         """Build a Tezos proposals operation."""
         if not isinstance(proposals, list):
             proposals = [proposals]
 
         return self.operation(
             {
-                'kind': 'proposals',
-                'source': source,
-                'period': str(period),
-                'proposals': proposals,
+                "kind": "proposals",
+                "source": source,
+                "period": str(period),
+                "proposals": proposals,
             }
         )
 
-    def ballot(self, proposal, ballot, source='', period=0):
+    def ballot(self, proposal, ballot, source="", period=0):
         """Build a Tezos ballot operation."""
         return self.operation(
             {
-                'kind': 'ballot',
-                'source': source,
-                'period': str(period),
-                'proposal': proposal,
-                'ballot': ballot,
+                "kind": "ballot",
+                "source": source,
+                "period": str(period),
+                "proposal": proposal,
+                "ballot": ballot,
             }
         )
 
-    def reveal(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            public_key='',
-            source='',
-            counter=0,
-            fee=0,
-            gas_limit=0,
-            storage_limit=0,
-            proof=''):
+    def reveal(
+        self,
+        public_key="",
+        source="",
+        counter=0,
+        fee=0,
+        gas_limit=0,
+        storage_limit=0,
+        proof="",
+    ):
         """Build a Tezos reveal operation."""
         content = {
-            'kind': 'reveal',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
-            'public_key': public_key,
+            "kind": "reveal",
+            "source": source,
+            "fee": format_mutez(fee),
+            "counter": str(counter),
+            "gas_limit": str(gas_limit),
+            "storage_limit": str(storage_limit),
+            "public_key": public_key,
         }
         if proof:
-            content['proof'] = proof
+            content["proof"] = proof
         return self.operation(content)
 
-    def transaction(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            destination,
-            amount=0,
-            parameters=None,
-            source='',
-            counter=0,
-            fee=0,
-            gas_limit=0,
-            storage_limit=0):
+    def transaction(
+        self,
+        destination,
+        amount=0,
+        parameters=None,
+        source="",
+        counter=0,
+        fee=0,
+        gas_limit=0,
+        storage_limit=0,
+    ):
         """Build a Tezos transaction operation."""
         content = {
-            'kind': 'transaction',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
-            'amount': format_mutez(amount),
-            'destination': destination,
+            "kind": "transaction",
+            "source": source,
+            "fee": format_mutez(fee),
+            "counter": str(counter),
+            "gas_limit": str(gas_limit),
+            "storage_limit": str(storage_limit),
+            "amount": format_mutez(amount),
+            "destination": destination,
         }
 
         if parameters is not None:
-            content['parameters'] = parameters
+            content["parameters"] = parameters
 
         return self.operation(content)
 
-    def origination(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            script,
-            balance=0,
-            delegate=None,
-            source='',
-            counter=0,
-            fee=0,
-            gas_limit=0,
-            storage_limit=0):
+    def origination(
+        self,
+        script,
+        balance=0,
+        delegate=None,
+        source="",
+        counter=0,
+        fee=0,
+        gas_limit=0,
+        storage_limit=0,
+    ):
         """Build a Tezos origination operation."""
         content = {
-            'kind': 'origination',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
-            'balance': format_mutez(balance),
-            'script': script,
+            "kind": "origination",
+            "source": source,
+            "fee": format_mutez(fee),
+            "counter": str(counter),
+            "gas_limit": str(gas_limit),
+            "storage_limit": str(storage_limit),
+            "balance": format_mutez(balance),
+            "script": script,
         }
 
         if delegate is not None:
-            content['delegate'] = delegate
+            content["delegate"] = delegate
 
         return self.operation(content)
 
-    def delegation(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            delegate='',
-            source='',
-            counter=0,
-            fee=0,
-            gas_limit=0,
-            storage_limit=0):
+    def delegation(self, delegate="", source="", counter=0, fee=0, gas_limit=0, storage_limit=0):
         """Build a Tezos delegation operation."""
         content = {
-            'kind': 'delegation',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
-            'delegate': delegate,
+            "kind": "delegation",
+            "source": source,
+            "fee": format_mutez(fee),
+            "counter": str(counter),
+            "gas_limit": str(gas_limit),
+            "storage_limit": str(storage_limit),
+            "delegate": delegate,
         }
 
         if delegate is None:
-            content.pop('delegate')
+            content.pop("delegate")
 
         return self.operation(content)
 
@@ -261,505 +265,507 @@ class OperationBuilder:
         """Build a Tezos failing_noop operation."""
         return self.operation(
             {
-                'kind': 'failing_noop',
-                'arbitrary': arbitrary,
+                "kind": "failing_noop",
+                "arbitrary": arbitrary,
             }
         )
 
-    def register_global_constant(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self, value: Any, source='', counter=0, fee=0, gas_limit=0, storage_limit=0):
+    def register_global_constant(self, value: Any, source="", counter=0, fee=0, gas_limit=0, storage_limit=0):
         """Build a Tezos register_global_constant operation."""
         return self.operation(
             {
-                'kind': 'register_global_constant',
-                'value': value,
-                'source': source,
-                'fee': format_mutez(fee),
-                'counter': str(counter),
-                'gas_limit': str(gas_limit),
-                'storage_limit': str(storage_limit),
+                "kind": "register_global_constant",
+                "value": value,
+                "source": source,
+                "fee": format_mutez(fee),
+                "counter": str(counter),
+                "gas_limit": str(gas_limit),
+                "storage_limit": str(storage_limit),
             }
         )
 
-    def transfer_ticket(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            ticket_contents: Any,
-            ticket_ty: Any,
-            ticket_ticketer: str,
-            ticket_amount: int,
-            destination: str,
-            entrypoint='default',
-            source='',
-            counter=0,
-            fee=0,
-            gas_limit=0,
-            storage_limit=0):
+    def transfer_ticket(
+        self,
+        ticket_contents: Any,
+        ticket_ty: Any,
+        ticket_ticketer: str,
+        ticket_amount: int,
+        destination: str,
+        entrypoint="default",
+        source="",
+        counter=0,
+        fee=0,
+        gas_limit=0,
+        storage_limit=0,
+    ):
         """Build a Tezos transfer_ticket operation."""
         return self.operation(
             {
-                'kind': 'transfer_ticket',
-                'ticket_contents': ticket_contents,
-                'ticket_ty': ticket_ty,
-                'ticket_ticketer': ticket_ticketer,
-                'ticket_amount': str(ticket_amount),
-                'destination': destination,
-                'entrypoint': entrypoint,
-                'source': source,
-                'fee': format_mutez(fee),
-                'counter': str(counter),
-                'gas_limit': str(gas_limit),
-                'storage_limit': str(storage_limit),
+                "kind": "transfer_ticket",
+                "ticket_contents": ticket_contents,
+                "ticket_ty": ticket_ty,
+                "ticket_ticketer": ticket_ticketer,
+                "ticket_amount": str(ticket_amount),
+                "destination": destination,
+                "entrypoint": entrypoint,
+                "source": source,
+                "fee": format_mutez(fee),
+                "counter": str(counter),
+                "gas_limit": str(gas_limit),
+                "storage_limit": str(storage_limit),
             }
         )
 
-    def smart_rollup_add_messages(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            message: List[bytes],
-            source='',
-            counter=0,
-            fee=0,
-            gas_limit=0,
-            storage_limit=0):
+    def smart_rollup_add_messages(
+        self,
+        message: list[bytes],
+        source="",
+        counter=0,
+        fee=0,
+        gas_limit=0,
+        storage_limit=0,
+    ):
         """Build a Tezos smart_rollup_add_messages operation."""
         return self.operation(
             {
-                'kind': 'smart_rollup_add_messages',
-                'message': [m.hex() for m in message],
-                'source': source,
-                'fee': format_mutez(fee),
-                'counter': str(counter),
-                'gas_limit': str(gas_limit),
-                'storage_limit': str(storage_limit),
+                "kind": "smart_rollup_add_messages",
+                "message": [m.hex() for m in message],
+                "source": source,
+                "fee": format_mutez(fee),
+                "counter": str(counter),
+                "gas_limit": str(gas_limit),
+                "storage_limit": str(storage_limit),
             }
         )
 
-    def smart_rollup_execute_outbox_message(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            rollup: str,
-            cemented_commitment: str,
-            output_proof: bytes,
-            source='',
-            counter=0,
-            fee=0,
-            gas_limit=0,
-            storage_limit=0):
+    def smart_rollup_execute_outbox_message(
+        self,
+        rollup: str,
+        cemented_commitment: str,
+        output_proof: bytes,
+        source="",
+        counter=0,
+        fee=0,
+        gas_limit=0,
+        storage_limit=0,
+    ):
         """Build a Tezos smart_rollup_execute_outbox_message operation."""
         return self.operation(
             {
-                'kind': 'smart_rollup_execute_outbox_message',
-                'rollup': rollup,
-                'cemented_commitment': cemented_commitment,
-                'output_proof': output_proof.hex(),
-                'source': source,
-                'fee': format_mutez(fee),
-                'counter': str(counter),
-                'gas_limit': str(gas_limit),
-                'storage_limit': str(storage_limit),
+                "kind": "smart_rollup_execute_outbox_message",
+                "rollup": rollup,
+                "cemented_commitment": cemented_commitment,
+                "output_proof": output_proof.hex(),
+                "source": source,
+                "fee": format_mutez(fee),
+                "counter": str(counter),
+                "gas_limit": str(gas_limit),
+                "storage_limit": str(storage_limit),
             }
         )
 
-    def set_deposit_limit(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            limit: Optional[int] = None,
-            source: str = '',
-            counter: int = 0,
-            fee: int = 0,
-            gas_limit: int = 0,
-            storage_limit: int = 0):
+    def set_deposit_limit(
+        self,
+        limit: int | None = None,
+        source: str = "",
+        counter: int = 0,
+        fee: int = 0,
+        gas_limit: int = 0,
+        storage_limit: int = 0,
+    ):
         """Build a Tezos set-deposit-limit."""
         content = {
-            'kind': 'set_deposit_limit',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
+            "kind": "set_deposit_limit",
+            "source": source,
+            "fee": format_mutez(fee),
+            "counter": str(counter),
+            "gas_limit": str(gas_limit),
+            "storage_limit": str(storage_limit),
         }
 
         if limit is not None:
-            content['limit'] = format_mutez(limit)
+            content["limit"] = format_mutez(limit)
 
         return self.operation(content)
 
-    def increase_paid_storage(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            amount: int = 0,
-            destination: str = '',
-            source: str = '',
-            counter: int = 0,
-            fee: int = 0,
-            gas_limit: int = 0,
-            storage_limit: int = 0):
+    def increase_paid_storage(
+        self,
+        amount: int = 0,
+        destination: str = "",
+        source: str = "",
+        counter: int = 0,
+        fee: int = 0,
+        gas_limit: int = 0,
+        storage_limit: int = 0,
+    ):
         """Build a Tezos increase-paid-storage."""
         return self.operation(
             {
-                'kind': 'increase_paid_storage',
-                'source': source,
-                'fee': format_mutez(fee),
-                'counter': str(counter),
-                'gas_limit': str(gas_limit),
-                'storage_limit': str(storage_limit),
-                'amount': str(amount),
-                'destination': destination,
+                "kind": "increase_paid_storage",
+                "source": source,
+                "fee": format_mutez(fee),
+                "counter": str(counter),
+                "gas_limit": str(gas_limit),
+                "storage_limit": str(storage_limit),
+                "amount": str(amount),
+                "destination": destination,
             }
         )
 
-    def update_consensus_key(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            pk: str = '',
-            proof: Optional[str] = None,
-            source: str = '',
-            counter: int = 0,
-            fee: int = 0,
-            gas_limit: int = 0,
-            storage_limit: int = 0):
+    def update_consensus_key(
+        self,
+        pk: str = "",
+        proof: str | None = None,
+        source: str = "",
+        counter: int = 0,
+        fee: int = 0,
+        gas_limit: int = 0,
+        storage_limit: int = 0,
+    ):
         """Build a Tezos update-consensus-key."""
         content = {
-            'kind': 'update_consensus_key',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
-            'pk': pk,
+            "kind": "update_consensus_key",
+            "source": source,
+            "fee": format_mutez(fee),
+            "counter": str(counter),
+            "gas_limit": str(gas_limit),
+            "storage_limit": str(storage_limit),
+            "pk": pk,
         }
 
         if proof is not None:
-            content['proof'] = proof
+            content["proof"] = proof
 
         return self.operation(content)
 
-    def update_companion_key(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            pk: str = '',
-            proof: Optional[str] = None,
-            source: str = '',
-            counter: int = 0,
-            fee: int = 0,
-            gas_limit: int = 0,
-            storage_limit: int = 0):
+    def update_companion_key(
+        self,
+        pk: str = "",
+        proof: str | None = None,
+        source: str = "",
+        counter: int = 0,
+        fee: int = 0,
+        gas_limit: int = 0,
+        storage_limit: int = 0,
+    ):
         """Build a Tezos update-companion-key."""
         content = {
-            'kind': 'update_companion_key',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
-            'pk': pk,
+            "kind": "update_companion_key",
+            "source": source,
+            "fee": format_mutez(fee),
+            "counter": str(counter),
+            "gas_limit": str(gas_limit),
+            "storage_limit": str(storage_limit),
+            "pk": pk,
         }
 
         if proof is not None:
-            content['proof'] = proof
+            content["proof"] = proof
 
         return self.operation(content)
 
-    def smart_rollup_originate(  # pylint: disable=dangerous-default-value,too-many-arguments,too-many-positional-arguments
-            self,
-            pvm_kind: str = '',
-            kernel: str = '',
-            parameters_ty: Micheline = Default.DefaultMicheline.TYPE,
-            whitelist: Optional[List[str]] = None,
-            source: str = '',
-            counter: int = 0,
-            fee: int = 0,
-            gas_limit: int = 0,
-            storage_limit: int = 0):
+    def smart_rollup_originate(
+        self,
+        pvm_kind: str = "",
+        kernel: str = "",
+        parameters_ty: Micheline = Default.DefaultMicheline.TYPE,
+        whitelist: list[str] | None = None,
+        source: str = "",
+        counter: int = 0,
+        fee: int = 0,
+        gas_limit: int = 0,
+        storage_limit: int = 0,
+    ):
         """Build a Tezos smart rollup originate."""
         content = {
-            'kind': 'smart_rollup_originate',
-            'source': source,
-            'fee': format_mutez(fee),
-            'counter': str(counter),
-            'gas_limit': str(gas_limit),
-            'storage_limit': str(storage_limit),
-            'pvm_kind': pvm_kind,
-            'kernel': kernel,
-            'parameters_ty': parameters_ty,
+            "kind": "smart_rollup_originate",
+            "source": source,
+            "fee": format_mutez(fee),
+            "counter": str(counter),
+            "gas_limit": str(gas_limit),
+            "storage_limit": str(storage_limit),
+            "pvm_kind": pvm_kind,
+            "kernel": kernel,
+            "parameters_ty": parameters_ty,
         }
 
         if whitelist is not None:
-            content['whitelist'] = whitelist
+            content["whitelist"] = whitelist
 
         return self.operation(content)
+
 
 class OperationForge:
     """Class to helps forging Tezos operation."""
 
     # Insert new reserved entrypoint
-    reserved_entrypoints['stake'] = b'\x06'
-    reserved_entrypoints['unstake'] = b'\x07'
-    reserved_entrypoints['finalize_unstake'] = b'\x08'
-    reserved_entrypoints['delegate_parameters'] = b'\x09'
+    reserved_entrypoints["stake"] = b"\x06"
+    reserved_entrypoints["unstake"] = b"\x07"
+    reserved_entrypoints["finalize_unstake"] = b"\x08"
+    reserved_entrypoints["delegate_parameters"] = b"\x09"
 
     # Insert new operation tag
-    operation_tags['set_deposit_limit'] = 112
-    operation_tags['increase_paid_storage'] = 113
-    operation_tags['update_consensus_key'] = 114
-    operation_tags['update_companion_key'] = 115
-    operation_tags['smart_rollup_originate'] = 200
+    operation_tags["set_deposit_limit"] = 112
+    operation_tags["increase_paid_storage"] = 113
+    operation_tags["update_consensus_key"] = 114
+    operation_tags["update_companion_key"] = 115
+    operation_tags["smart_rollup_originate"] = 200
 
     @staticmethod
-    def failing_noop(content: Dict[str, Any]) -> bytes:
+    def failing_noop(content: dict[str, Any]) -> bytes:
         """Forge a failing_noop operation to bytes."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_array(content['arbitrary'].encode())
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_array(content["arbitrary"].encode())
         return res
 
     @staticmethod
-    def transaction(content: Dict[str, Any]) -> bytes:
+    def transaction(content: dict[str, Any]) -> bytes:
         """Forge a transaction operation to bytes."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_nat(int(content['amount']))
-        res += forge_address(content['destination'])
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_nat(int(content["amount"]))
+        res += forge_address(content["destination"])
 
         if has_parameters(content):
             res += forge_bool(True)
-            res += forge_entrypoint(content['parameters']['entrypoint'])
-            res += forge_array(forge_micheline(content['parameters']['value']))
+            res += forge_entrypoint(content["parameters"]["entrypoint"])
+            res += forge_array(forge_micheline(content["parameters"]["value"]))
         else:
             res += forge_bool(False)
 
         return res
 
     @staticmethod
-    def origination(content: Dict[str, Any]) -> bytes:
+    def origination(content: dict[str, Any]) -> bytes:
         """Forge an origination operation to bytes."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_nat(int(content['balance']))
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_nat(int(content["balance"]))
 
-        if content.get('delegate'):
+        if content.get("delegate"):
             res += forge_bool(True)
-            res += forge_address(content['delegate'], tz_only=True)
+            res += forge_address(content["delegate"], tz_only=True)
         else:
             res += forge_bool(False)
 
-        res += forge_script(content['script'])
+        res += forge_script(content["script"])
 
         return res
 
     @staticmethod
-    def delegation(content: Dict[str, Any]) -> bytes:
+    def delegation(content: dict[str, Any]) -> bytes:
         """Forge a delegation operation to bytes."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
 
-        if content.get('delegate'):
+        if content.get("delegate"):
             res += forge_bool(True)
-            res += forge_address(content['delegate'], tz_only=True)
+            res += forge_address(content["delegate"], tz_only=True)
         else:
             res += forge_bool(False)
 
         return res
 
     @staticmethod
-    def register_global_constant(content: Dict[str, Any]) -> bytes:
+    def register_global_constant(content: dict[str, Any]) -> bytes:
         """Forge a register_global_constant operation to bytes."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_array(forge_micheline(content['value']))
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_array(forge_micheline(content["value"]))
         return res
 
     @staticmethod
-    def transfer_ticket(content: Dict[str, Any]) -> bytes:
+    def transfer_ticket(content: dict[str, Any]) -> bytes:
         """Forge a transfer_ticket operation to bytes."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_array(forge_micheline(content['ticket_contents']))
-        res += forge_array(forge_micheline(content['ticket_ty']))
-        res += forge_address(content['ticket_ticketer'])
-        res += forge_nat(int(content['ticket_amount']))
-        res += forge_address(content['destination'])
-        res += forge_array(content['entrypoint'].encode())
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_array(forge_micheline(content["ticket_contents"]))
+        res += forge_array(forge_micheline(content["ticket_ty"]))
+        res += forge_address(content["ticket_ticketer"])
+        res += forge_nat(int(content["ticket_amount"]))
+        res += forge_address(content["destination"])
+        res += forge_array(content["entrypoint"].encode())
         return res
 
     @staticmethod
-    def smart_rollup_add_messages(content: Dict[str, Any]) -> bytes:
+    def smart_rollup_add_messages(content: dict[str, Any]) -> bytes:
         """Forge a smart_rollup_add_messages operation to bytes."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_array(
-            b''.join(forge_array(bytes.fromhex(msg)) for msg in content['message'])
-        )
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_array(b"".join(forge_array(bytes.fromhex(msg)) for msg in content["message"]))
         return res
 
     @staticmethod
-    def smart_rollup_execute_outbox_message(content: Dict[str, Any]) -> bytes:
+    def smart_rollup_execute_outbox_message(content: dict[str, Any]) -> bytes:
         """Forge a smart_rollup_execute_outbox_message operation to bytes."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_base58(content['rollup'])
-        res += forge_base58(content['cemented_commitment'])
-        res += forge_array(bytes.fromhex(content['output_proof']))
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_base58(content["rollup"])
+        res += forge_base58(content["cemented_commitment"])
+        res += forge_array(bytes.fromhex(content["output_proof"]))
         return res
 
     # Fix Pytezos reveal forging updated in 3.16.0
     @staticmethod
-    def reveal(content: Dict[str, Any]) -> bytes:
+    def reveal(content: dict[str, Any]) -> bytes:
         """Forge a Tezos reveal."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_public_key(content['public_key'])
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_public_key(content["public_key"])
 
-        if content.get('proof'):
+        if content.get("proof"):
             res += forge_bool(True)
-            res += forge_array(forge_base58(content['proof']))
+            res += forge_array(forge_base58(content["proof"]))
         else:
             res += forge_bool(False)
 
         return res
 
     @staticmethod
-    def proposals(content: Dict[str, Any]) -> bytes:
+    def proposals(content: dict[str, Any]) -> bytes:
         """Forge a Tezos proposals."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_int32(int(content['period']))
-        res += forge_array(b''.join(map(forge_base58, content['proposals'])))
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_int32(int(content["period"]))
+        res += forge_array(b"".join(map(forge_base58, content["proposals"])))
         return res
 
-    BALLOT_TAG = { 'yay': 0, 'nay': 1, 'pass': 2 }
+    BALLOT_TAG: ClassVar[dict[str, int]] = {"yay": 0, "nay": 1, "pass": 2}
 
     @staticmethod
-    def ballot(content: Dict[str, Any]) -> bytes:
+    def ballot(content: dict[str, Any]) -> bytes:
         """Forge a Tezos ballot."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_int32(int(content['period']))
-        res += forge_base58(content['proposal'])
-        res += forge_int_fixed(OperationForge.BALLOT_TAG[content['ballot']], 1)
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_int32(int(content["period"]))
+        res += forge_base58(content["proposal"])
+        res += forge_int_fixed(OperationForge.BALLOT_TAG[content["ballot"]], 1)
         return res
 
     @staticmethod
-    def set_deposit_limit(content: Dict[str, Any]) -> bytes:
+    def set_deposit_limit(content: dict[str, Any]) -> bytes:
         """Forge a Tezos set-deposit-limit."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
 
-        if content.get('limit'):
+        if content.get("limit"):
             res += forge_bool(True)
-            res += forge_nat(int(content['limit']))
+            res += forge_nat(int(content["limit"]))
         else:
             res += forge_bool(False)
 
         return res
 
     @staticmethod
-    def increase_paid_storage(content: Dict[str, Any]) -> bytes:
+    def increase_paid_storage(content: dict[str, Any]) -> bytes:
         """Forge a Tezos increase-paid-storage."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_nat(int(content['amount']))
-        res += forge_address(content['destination'])
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_nat(int(content["amount"]))
+        res += forge_address(content["destination"])
         return res
 
     @staticmethod
-    def update_consensus_key(content: Dict[str, Any]) -> bytes:
+    def update_consensus_key(content: dict[str, Any]) -> bytes:
         """Forge a Tezos update-consensus-key."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_public_key(content['pk'])
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_public_key(content["pk"])
 
-        if content.get('proof'):
+        if content.get("proof"):
             res += forge_bool(True)
-            res += forge_array(forge_base58(content['proof']))
+            res += forge_array(forge_base58(content["proof"]))
         else:
             res += forge_bool(False)
 
         return res
 
     @staticmethod
-    def update_companion_key(content: Dict[str, Any]) -> bytes:
+    def update_companion_key(content: dict[str, Any]) -> bytes:
         """Forge a Tezos update-companion-key."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_public_key(content['pk'])
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_public_key(content["pk"])
 
-        if content.get('proof'):
+        if content.get("proof"):
             res += forge_bool(True)
-            res += forge_array(forge_base58(content['proof']))
+            res += forge_array(forge_base58(content["proof"]))
         else:
             res += forge_bool(False)
 
         return res
 
-    PVM_KIND_TAG = { 'arith': 0, 'wasm_2_0_0': 1, 'riscv': 2 }
+    PVM_KIND_TAG: ClassVar[dict[str, int]] = {"arith": 0, "wasm_2_0_0": 1, "riscv": 2}
 
     @staticmethod
-    def smart_rollup_originate(content: Dict[str, Any]) -> bytes:
+    def smart_rollup_originate(content: dict[str, Any]) -> bytes:
         """Forge a Tezos smart rollup originate."""
-        res = forge_tag(operation_tags[content['kind']])
-        res += forge_address(content['source'], tz_only=True)
-        res += forge_nat(int(content['fee']))
-        res += forge_nat(int(content['counter']))
-        res += forge_nat(int(content['gas_limit']))
-        res += forge_nat(int(content['storage_limit']))
-        res += forge_int_fixed(
-            OperationForge.PVM_KIND_TAG[content['pvm_kind']], 1
-        )
-        res += forge_array(bytes.fromhex(content['kernel']))
-        res += forge_array(forge_micheline(content['parameters_ty']))
+        res = forge_tag(operation_tags[content["kind"]])
+        res += forge_address(content["source"], tz_only=True)
+        res += forge_nat(int(content["fee"]))
+        res += forge_nat(int(content["counter"]))
+        res += forge_nat(int(content["gas_limit"]))
+        res += forge_nat(int(content["storage_limit"]))
+        res += forge_int_fixed(OperationForge.PVM_KIND_TAG[content["pvm_kind"]], 1)
+        res += forge_array(bytes.fromhex(content["kernel"]))
+        res += forge_array(forge_micheline(content["parameters_ty"]))
 
-        if content.get('whitelist') is not None:
+        if content.get("whitelist") is not None:
             res += forge_bool(True)
-            res += forge_array(b''.join(
-                forge_address(pkh, tz_only=True)
-                for pkh in content['whitelist']
-            ))
+            res += forge_array(b"".join(forge_address(pkh, tz_only=True) for pkh in content["whitelist"]))
         else:
             res += forge_bool(False)
 
         return res
+
 
 class Operation(Message, OperationBuilder):
     """Class representing a tezos operation."""
@@ -775,52 +781,52 @@ class Operation(Message, OperationBuilder):
         raise NotImplementedError
 
     def __bytes__(self) -> bytes:
-        raw = b''
+        raw = b""
         raw += forge_int_fixed(Watermark.MANAGER_OPERATION, 1)
         raw += forge_base58(self.branch)
         raw += self.forge()
         return raw
 
+
 class Proposals(Operation):
     """Class representing a tezos proposals."""
 
-    proposals_: List[str]
+    proposals_: list[str]
     source: str
     period: int
 
-    def __init__(self,  # pylint: disable=dangerous-default-value
-                 proposals: List[str] = [Default.PROTOCOL_HASH],
-                 source: str = Default.ED25519_PUBLIC_KEY_HASH,
-                 period: int = 0,
-                 **kwargs):
-        self.proposals_ = proposals
+    def __init__(
+        self,
+        proposals: list[str] | None = None,
+        source: str = Default.ED25519_PUBLIC_KEY_HASH,
+        period: int = 0,
+        **kwargs,
+    ):
+        self.proposals_ = proposals if proposals is not None else [Default.PROTOCOL_HASH]
         self.source = source
         self.period = period
         Operation.__init__(self, **kwargs)
 
     def forge(self) -> bytes:
-        return OperationForge.proposals(
-            self.proposals(
-                self.proposals_,
-                self.source,
-                self.period
-            )
-        )
+        return OperationForge.proposals(self.proposals(self.proposals_, self.source, self.period))
+
 
 class Ballot(Operation):
     """Class representing a tezos ballot."""
 
-    proposal : str
-    ballot_ : str
-    source : str
+    proposal: str
+    ballot_: str
+    source: str
     period: int
 
-    def __init__(self,
-                 proposal: str = Default.PROTOCOL_HASH,
-                 ballot: str = Default.BALLOT,
-                 source: str = Default.ED25519_PUBLIC_KEY_HASH,
-                 period: int = 0,
-                 **kwargs):
+    def __init__(
+        self,
+        proposal: str = Default.PROTOCOL_HASH,
+        ballot: str = Default.BALLOT,
+        source: str = Default.ED25519_PUBLIC_KEY_HASH,
+        period: int = 0,
+        **kwargs,
+    ):
         self.proposal = proposal
         self.ballot_ = ballot
         self.source = source
@@ -828,14 +834,8 @@ class Ballot(Operation):
         Operation.__init__(self, **kwargs)
 
     def forge(self) -> bytes:
-        return OperationForge.ballot(
-            self.ballot(
-                self.proposal,
-                self.ballot_,
-                self.source,
-                self.period
-            )
-        )
+        return OperationForge.ballot(self.ballot(self.proposal, self.ballot_, self.source, self.period))
+
 
 class FailingNoop(Operation):
     """Class representing a tezos failing-noop."""
@@ -849,6 +849,7 @@ class FailingNoop(Operation):
     def forge(self) -> bytes:
         return OperationForge.failing_noop(self.failing_noop(self.message))
 
+
 class ManagerOperation(Operation):
     """Class representing a tezos manager operation."""
 
@@ -856,15 +857,17 @@ class ManagerOperation(Operation):
     fee: int
     counter: int
     gas_limit: int
-    storage_limit: int  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    storage_limit: int
 
-    def __init__(self,  # pylint: disable=too-many-arguments,too-many-positional-arguments
-                 source: str = Default.ED25519_PUBLIC_KEY_HASH,
-                 fee: int = 0,
-                 counter: int = 0,
-                 gas_limit: int = 0,
-                 storage_limit: int = 0,
-                 **kwargs):
+    def __init__(
+        self,
+        source: str = Default.ED25519_PUBLIC_KEY_HASH,
+        fee: int = 0,
+        counter: int = 0,
+        gas_limit: int = 0,
+        storage_limit: int = 0,
+        **kwargs,
+    ):
         self.source = source
         self.fee = fee
         self.counter = counter
@@ -872,30 +875,36 @@ class ManagerOperation(Operation):
         self.storage_limit = storage_limit
         Operation.__init__(self, **kwargs)
 
+
 class OperationGroup(Operation):
     """Class representing a group of tezos manager operation."""
 
-    operations: List[ManagerOperation]
+    operations: list[ManagerOperation]
 
-    def __init__(self,  # pylint: disable=dangerous-default-value
-                 operations: List[ManagerOperation] = [],
-                 **kwargs):
-        self.operations = operations
+    def __init__(
+        self,
+        operations: list[ManagerOperation] | None = None,
+        **kwargs,
+    ):
+        self.operations = operations if operations is not None else []
         Operation.__init__(self, **kwargs)
 
     def forge(self) -> bytes:
-        return b''.join(map(lambda op: op.forge(), self.operations))
+        return b"".join(map(lambda op: op.forge(), self.operations))
+
 
 class Reveal(ManagerOperation):
     """Class representing a tezos reveal."""
 
     public_key: str
-    proof: Optional[str]
+    proof: str | None
 
-    def __init__(self,
-                 public_key: str = Default.ED25519_PUBLIC_KEY,
-                 proof: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        public_key: str = Default.ED25519_PUBLIC_KEY,
+        proof: str | None = None,
+        **kwargs,
+    ):
         self.public_key = public_key
         self.proof = proof
         ManagerOperation.__init__(self, **kwargs)
@@ -909,9 +918,10 @@ class Reveal(ManagerOperation):
                 self.fee,
                 self.gas_limit,
                 self.storage_limit,
-                self.proof
+                self.proof,
             )
         )
+
 
 class Transaction(ManagerOperation):
     """Class representing a tezos transaction."""
@@ -921,12 +931,14 @@ class Transaction(ManagerOperation):
     entrypoint: str
     parameter: Micheline
 
-    def __init__(self,  # pylint: disable=dangerous-default-value
-                 destination: str = Default.ED25519_PUBLIC_KEY_HASH,
-                 amount: int = 0,
-                 entrypoint: str = Default.ENTRYPOINT,
-                 parameter: Micheline = Default.DefaultMicheline.VALUE,
-                 **kwargs):
+    def __init__(
+        self,
+        destination: str = Default.ED25519_PUBLIC_KEY_HASH,
+        amount: int = 0,
+        entrypoint: str = Default.ENTRYPOINT,
+        parameter: Micheline = Default.DefaultMicheline.VALUE,
+        **kwargs,
+    ):
         self.destination = destination
         self.amount = amount
         self.entrypoint = entrypoint
@@ -934,7 +946,7 @@ class Transaction(ManagerOperation):
         ManagerOperation.__init__(self, **kwargs)
 
     def forge(self) -> bytes:
-        parameters = { "entrypoint": self.entrypoint, "value": self.parameter }
+        parameters = {"entrypoint": self.entrypoint, "value": self.parameter}
         return OperationForge.transaction(
             self.transaction(
                 self.destination,
@@ -944,9 +956,10 @@ class Transaction(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class Origination(ManagerOperation):
     """Class representing a tezos origination."""
@@ -954,14 +967,16 @@ class Origination(ManagerOperation):
     code: Micheline
     storage: Micheline
     balance: int
-    delegate: Optional[str]
+    delegate: str | None
 
-    def __init__(self,  # pylint: disable=dangerous-default-value
-                 code: Micheline = Default.DefaultMicheline.CODE,
-                 storage: Micheline = Default.DefaultMicheline.TYPE,
-                 balance: int = 0,
-                 delegate: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        code: Micheline = Default.DefaultMicheline.CODE,
+        storage: Micheline = Default.DefaultMicheline.TYPE,
+        balance: int = 0,
+        delegate: str | None = None,
+        **kwargs,
+    ):
         self.code = code
         self.storage = storage
         self.balance = balance
@@ -969,7 +984,7 @@ class Origination(ManagerOperation):
         ManagerOperation.__init__(self, **kwargs)
 
     def forge(self) -> bytes:
-        script = { "code": self.code, "storage": self.storage }
+        script = {"code": self.code, "storage": self.storage}
         return OperationForge.origination(
             self.origination(
                 script,
@@ -979,18 +994,17 @@ class Origination(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class Delegation(ManagerOperation):
     """Class representing a tezos delegation."""
 
-    delegate: Optional[str]
+    delegate: str | None
 
-    def __init__(self,
-                 delegate: Optional[str] = None,
-                 **kwargs):
+    def __init__(self, delegate: str | None = None, **kwargs):
         self.delegate = delegate
         ManagerOperation.__init__(self, **kwargs)
 
@@ -1002,18 +1016,21 @@ class Delegation(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class RegisterGlobalConstant(ManagerOperation):
     """Class representing a tezos register global constant."""
 
     value: Micheline
 
-    def __init__(self,  # pylint: disable=dangerous-default-value
-                 value: Micheline = Default.DefaultMicheline.VALUE,
-                 **kwargs):
+    def __init__(
+        self,
+        value: Micheline = Default.DefaultMicheline.VALUE,
+        **kwargs,
+    ):
         self.value = value
         ManagerOperation.__init__(self, **kwargs)
 
@@ -1025,18 +1042,17 @@ class RegisterGlobalConstant(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class SetDepositLimit(ManagerOperation):
     """Class representing a tezos set deposit limit."""
 
-    limit: Optional[int]
+    limit: int | None
 
-    def __init__(self,
-                 limit: Optional[int] = None,
-                 **kwargs):
+    def __init__(self, limit: int | None = None, **kwargs):
         self.limit = limit
         ManagerOperation.__init__(self, **kwargs)
 
@@ -1048,9 +1064,10 @@ class SetDepositLimit(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class IncreasePaidStorage(ManagerOperation):
     """Class representing a tezos increase paid storage."""
@@ -1058,10 +1075,7 @@ class IncreasePaidStorage(ManagerOperation):
     amount: int
     destination: str
 
-    def __init__(self,
-                 amount: int = 0,
-                 destination: str = Default.ORIGINATED_ADDRESS,
-                 **kwargs):
+    def __init__(self, amount: int = 0, destination: str = Default.ORIGINATED_ADDRESS, **kwargs):
         self.amount = amount
         self.destination = destination
         ManagerOperation.__init__(self, **kwargs)
@@ -1075,20 +1089,23 @@ class IncreasePaidStorage(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class UpdateConsensusKey(ManagerOperation):
     """Class representing a tezos update consensus key."""
 
     pk: str
-    proof: Optional[str]
+    proof: str | None
 
-    def __init__(self,
-                 pk: str = Default.ED25519_PUBLIC_KEY,
-                 proof: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        pk: str = Default.ED25519_PUBLIC_KEY,
+        proof: str | None = None,
+        **kwargs,
+    ):
         self.pk = pk
         self.proof = proof
         ManagerOperation.__init__(self, **kwargs)
@@ -1102,20 +1119,23 @@ class UpdateConsensusKey(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class UpdateCompanionKey(ManagerOperation):
     """Class representing a tezos update companion key."""
 
     pk: str
-    proof: Optional[str]
+    proof: str | None
 
-    def __init__(self,
-                 pk: str = Default.ED25519_PUBLIC_KEY,
-                 proof: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        pk: str = Default.ED25519_PUBLIC_KEY,
+        proof: str | None = None,
+        **kwargs,
+    ):
         self.pk = pk
         self.proof = proof
         ManagerOperation.__init__(self, **kwargs)
@@ -1129,9 +1149,10 @@ class UpdateCompanionKey(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class TransferTicket(ManagerOperation):
     """Class representing a tezos transfer ticket."""
@@ -1143,14 +1164,16 @@ class TransferTicket(ManagerOperation):
     destination: str
     entrypoint: str
 
-    def __init__(self,  # pylint: disable=dangerous-default-value,too-many-arguments,too-many-positional-arguments
-                 ticket_contents: Micheline = Default.DefaultMicheline.VALUE,
-                 ticket_ty: Micheline = Default.DefaultMicheline.TYPE,
-                 ticket_ticketer: str = Default.ORIGINATED_ADDRESS,
-                 ticket_amount: int = 0,
-                 destination: str = Default.ORIGINATED_ADDRESS,
-                 entrypoint: str = Default.ENTRYPOINT,
-                 **kwargs):
+    def __init__(
+        self,
+        ticket_contents: Micheline = Default.DefaultMicheline.VALUE,
+        ticket_ty: Micheline = Default.DefaultMicheline.TYPE,
+        ticket_ticketer: str = Default.ORIGINATED_ADDRESS,
+        ticket_amount: int = 0,
+        destination: str = Default.ORIGINATED_ADDRESS,
+        entrypoint: str = Default.ENTRYPOINT,
+        **kwargs,
+    ):
         self.ticket_contents = ticket_contents
         self.ticket_ty = ticket_ty
         self.ticket_ticketer = ticket_ticketer
@@ -1172,9 +1195,10 @@ class TransferTicket(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class ScRollupOriginate(ManagerOperation):
     """Class representing a tezos smart rollup originate."""
@@ -1182,14 +1206,16 @@ class ScRollupOriginate(ManagerOperation):
     pvm_kind: str
     kernel: str
     parameters_ty: Micheline
-    whitelist: Optional[List[str]]
+    whitelist: list[str] | None
 
-    def __init__(self,  # pylint: disable=dangerous-default-value
-                 pvm_kind: str = Default.SMART_ROLLUP_KIND,
-                 kernel: str = "",
-                 parameters_ty: Micheline = Default.DefaultMicheline.TYPE,
-                 whitelist: Optional[List[str]] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        pvm_kind: str = Default.SMART_ROLLUP_KIND,
+        kernel: str = "",
+        parameters_ty: Micheline = Default.DefaultMicheline.TYPE,
+        whitelist: list[str] | None = None,
+        **kwargs,
+    ):
         self.pvm_kind = pvm_kind
         self.kernel = kernel
         self.parameters_ty = parameters_ty
@@ -1207,19 +1233,22 @@ class ScRollupOriginate(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class ScRollupAddMessage(ManagerOperation):
     """Class representing a tezos smart rollup add message."""
 
-    message: List[bytes]
+    message: list[bytes]
 
-    def __init__(self,  # pylint: disable=dangerous-default-value
-                 message: List[bytes] = [b''],
-                 **kwargs):
-        self.message = message
+    def __init__(
+        self,
+        message: list[bytes] | None = None,
+        **kwargs,
+    ):
+        self.message = message if message is not None else [b""]
         ManagerOperation.__init__(self, **kwargs)
 
     def forge(self) -> bytes:
@@ -1230,9 +1259,10 @@ class ScRollupAddMessage(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )
+
 
 class ScRollupExecuteOutboxMessage(ManagerOperation):
     """Class representing a tezos smart rollup execute outbox message."""
@@ -1241,11 +1271,13 @@ class ScRollupExecuteOutboxMessage(ManagerOperation):
     cemented_commitment: str
     output_proof: bytes
 
-    def __init__(self,
-                 rollup: str = Default.ORIGINATED_SMART_ROLLUP_ADDRESS,
-                 cemented_commitment: str = Default.SMART_ROLLUP_COMMITMENT_HASH,
-                 output_proof: bytes = b'',
-                 **kwargs):
+    def __init__(
+        self,
+        rollup: str = Default.ORIGINATED_SMART_ROLLUP_ADDRESS,
+        cemented_commitment: str = Default.SMART_ROLLUP_COMMITMENT_HASH,
+        output_proof: bytes = b"",
+        **kwargs,
+    ):
         self.rollup = rollup
         self.cemented_commitment = cemented_commitment
         self.output_proof = output_proof
@@ -1261,6 +1293,6 @@ class ScRollupExecuteOutboxMessage(ManagerOperation):
                 self.counter,
                 self.fee,
                 self.gas_limit,
-                self.storage_limit
+                self.storage_limit,
             )
         )

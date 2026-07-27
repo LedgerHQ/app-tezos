@@ -15,34 +15,41 @@
 
 """Tezos app backend."""
 
+import time
+from collections.abc import Callable
 from enum import auto
 from pathlib import Path
-import time
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, ClassVar
 
 from ledgered.devices import Device, DeviceType
 from ragger.backend import BackendInterface, SpeculosBackend
 from ragger.firmware.touch.element import Center
 from ragger.firmware.touch.layouts import ChoiceList, RightHeader
 from ragger.firmware.touch.positions import (
-    Position,
-    STAX_BUTTON_LOWER_LEFT,
-    STAX_BUTTON_ABOVE_LOWER_MIDDLE,
-    FLEX_BUTTON_LOWER_LEFT,
-    FLEX_BUTTON_ABOVE_LOWER_MIDDLE,
-    APEX_P_BUTTON_LOWER_LEFT,
     APEX_P_BUTTON_ABOVE_LOWER_MIDDLE,
+    APEX_P_BUTTON_LOWER_LEFT,
+    FLEX_BUTTON_ABOVE_LOWER_MIDDLE,
+    FLEX_BUTTON_LOWER_LEFT,
+    STAX_BUTTON_ABOVE_LOWER_MIDDLE,
+    STAX_BUTTON_LOWER_LEFT,
+    Position,
 )
 from ragger.firmware.touch.screen import MetaScreen
 from ragger.firmware.touch.use_cases import (
-    UseCaseHome,
-    UseCaseSettings as OriginalUseCaseSettings,
     UseCaseAddressConfirmation as OriginalUseCaseAddressConfirmation,
-    UseCaseReview as OriginalUseCaseReview,
+)
+from ragger.firmware.touch.use_cases import (
     UseCaseChoice,
+    UseCaseHome,
     UseCaseViewDetails,
 )
-from ragger.navigator import BaseNavInsID, NavIns, NavInsID, Navigator
+from ragger.firmware.touch.use_cases import (
+    UseCaseReview as OriginalUseCaseReview,
+)
+from ragger.firmware.touch.use_cases import (
+    UseCaseSettings as OriginalUseCaseSettings,
+)
+from ragger.navigator import BaseNavInsID, Navigator, NavIns, NavInsID
 
 from .backend import TezosBackend
 
@@ -54,7 +61,7 @@ class UseCaseSettings(OriginalUseCaseSettings, metaclass=MetaScreen):
 
     _toggle_list: ChoiceList
 
-    def __init__(self, client: BackendInterface, device: Device):  # pylint: disable=useless-parent-delegation
+    def __init__(self, client: BackendInterface, device: Device):
         # `MetaScreen` requires an explicit __init__ function
         super().__init__(client, device)
 
@@ -71,23 +78,14 @@ class UseCaseSettings(OriginalUseCaseSettings, metaclass=MetaScreen):
         self.multi_page_exit()
 
 
-class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):  # pylint: disable=too-few-public-methods
+class UseCaseAddressConfirmation(OriginalUseCaseAddressConfirmation):
     """Custom UseCaseAddressConfirmation."""
 
     # *_BUTTON_ABOVE_LOWER_LEFT
-    QR_POSITIONS = {
-        DeviceType.STAX: Position(
-            STAX_BUTTON_LOWER_LEFT.x,
-            STAX_BUTTON_ABOVE_LOWER_MIDDLE.y
-        ),
-        DeviceType.FLEX: Position(
-            FLEX_BUTTON_LOWER_LEFT.x,
-            FLEX_BUTTON_ABOVE_LOWER_MIDDLE.y
-        ),
-        DeviceType.APEX_P: Position(
-            APEX_P_BUTTON_LOWER_LEFT.x,
-            APEX_P_BUTTON_ABOVE_LOWER_MIDDLE.y
-        )
+    QR_POSITIONS: ClassVar[dict[DeviceType, Position]] = {
+        DeviceType.STAX: Position(STAX_BUTTON_LOWER_LEFT.x, STAX_BUTTON_ABOVE_LOWER_MIDDLE.y),
+        DeviceType.FLEX: Position(FLEX_BUTTON_LOWER_LEFT.x, FLEX_BUTTON_ABOVE_LOWER_MIDDLE.y),
+        DeviceType.APEX_P: Position(APEX_P_BUTTON_LOWER_LEFT.x, APEX_P_BUTTON_ABOVE_LOWER_MIDDLE.y),
     }
 
     def show_qr(self) -> None:
@@ -106,25 +104,25 @@ class UseCaseReview(OriginalUseCaseReview, metaclass=MetaScreen):
     use_case_details = UseCaseViewDetails
     layout__skip_header = RightHeader
 
-    reject_choice:           UseCaseChoice
-    enable_expert_choice:    UseCaseChoice
+    reject_choice: UseCaseChoice
+    enable_expert_choice: UseCaseChoice
     enable_blindsign_choice: UseCaseChoice
-    skip_choice:             UseCaseChoice
-    back_to_safety:          UseCaseChoice
-    details:                 UseCaseViewDetails
-    _skip_header:            RightHeader
+    skip_choice: UseCaseChoice
+    back_to_safety: UseCaseChoice
+    details: UseCaseViewDetails
+    _skip_header: RightHeader
 
-    # The ‘more’ button is positioned just below the very long
+    # The 'more' button is positioned just below the very long
     # data displayed.  As the size of the data is not fixed, the
     # position of the button cannot be defined statically. The
     # static positions below are defined for the test data.
-    MORE_POSITIONS = {
+    MORE_POSITIONS: ClassVar[dict[DeviceType, Position]] = {
         DeviceType.STAX: Position(200, 390),
         DeviceType.FLEX: Position(240, 350),
-        DeviceType.APEX_P: Position(180, 270)
+        DeviceType.APEX_P: Position(180, 270),
     }
 
-    def __init__(self, client: BackendInterface, device: Device):  # pylint: disable=useless-parent-delegation
+    def __init__(self, client: BackendInterface, device: Device):
         # `MetaScreen` requires an explicit __init__ function
         super().__init__(client, device)
 
@@ -137,7 +135,7 @@ class UseCaseReview(OriginalUseCaseReview, metaclass=MetaScreen):
         self._skip_header.tap()
 
 
-class TezosNavInsID(BaseNavInsID):  # pylint: disable=too-few-public-methods
+class TezosNavInsID(BaseNavInsID):
     """Custom NavInsID."""
 
     # UseCaseSettings
@@ -162,7 +160,7 @@ class TezosNavInsID(BaseNavInsID):  # pylint: disable=too-few-public-methods
     WARNING_CHOICE_BLINDSIGN = auto()
 
 
-class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-methods
+class TezosNavigator(metaclass=MetaScreen):
     """Class representing Tezos app navigation."""
 
     use_case_home = UseCaseHome
@@ -171,21 +169,18 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
     use_case_review_tx = UseCaseReview
     element_center = Center
 
-    home:      UseCaseHome
-    settings:  UseCaseSettings
+    home: UseCaseHome
+    settings: UseCaseSettings
     review_pk: UseCaseAddressConfirmation
     review_tx: UseCaseReview
-    center:    Center
+    center: Center
 
     _backend: TezosBackend
     _device: Device
     _navigator: Navigator
     _root_dir: Path
 
-    def __init__(self,
-                 backend: TezosBackend,
-                 device: Device,
-                 navigator: Navigator):
+    def __init__(self, backend: TezosBackend, device: Device, navigator: Navigator):
         self._backend = backend
         self._device = device
         self._navigator = navigator
@@ -193,7 +188,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
         if self._device.is_nano:
             self._navigator.add_callback(TezosNavInsID.REVIEW_TX_NEXT, self._backend.right_click)
         else:
-            tezos_callbacks: Dict[BaseNavInsID, Callable[..., Any]] = {
+            tezos_callbacks: dict[BaseNavInsID, Callable[..., Any]] = {
                 TezosNavInsID.SETTINGS_TOGGLE_EXPERT_MODE: self.settings.toggle_expert_mode,
                 TezosNavInsID.SETTINGS_TOGGLE_BLINDSIGNING: self.settings.toggle_blindsigning,
                 TezosNavInsID.SETTINGS_EXIT: self.settings.exit,
@@ -205,77 +200,74 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.REJECT_CHOICE_RETURN: self.review_tx.reject_choice.reject,
                 TezosNavInsID.EXPERT_CHOICE_ENABLE: self.review_tx.enable_expert_choice.confirm,
                 TezosNavInsID.EXPERT_CHOICE_REJECT: self.review_tx.enable_expert_choice.reject,
-                TezosNavInsID.BLINDSIGN_CHOICE_ENABLE: (
-                    self.review_tx.enable_blindsign_choice.confirm
-                ),
-                TezosNavInsID.BLINDSIGN_CHOICE_REJECT: (
-                    self.review_tx.enable_blindsign_choice.reject
-                ),
-                TezosNavInsID.SKIP_CHOICE_CONFIRM: (
-                    self._ignore_processing(self.review_tx.skip_choice.confirm)
-                ),
+                TezosNavInsID.BLINDSIGN_CHOICE_ENABLE: (self.review_tx.enable_blindsign_choice.confirm),
+                TezosNavInsID.BLINDSIGN_CHOICE_REJECT: (self.review_tx.enable_blindsign_choice.reject),
+                TezosNavInsID.SKIP_CHOICE_CONFIRM: (self._ignore_processing(self.review_tx.skip_choice.confirm)),
                 TezosNavInsID.SKIP_CHOICE_REJECT: self.review_tx.skip_choice.reject,
                 TezosNavInsID.WARNING_CHOICE_SAFETY: self.review_tx.back_to_safety.confirm,
-                TezosNavInsID.WARNING_CHOICE_BLINDSIGN: (
-                    self._ignore_processing(self.review_tx.back_to_safety.reject)
-                ),
+                TezosNavInsID.WARNING_CHOICE_BLINDSIGN: (self._ignore_processing(self.review_tx.back_to_safety.reject)),
             }
-            self._navigator._callbacks.update(tezos_callbacks)  # pylint: disable=protected-access
+            self._navigator._callbacks.update(tezos_callbacks)
         self._root_dir = Path(__file__).resolve().parent.parent
 
     def _ignore_processing(self, callback: Callable):
         """Wrapper to ignore the `Processing` screen"""
+
         def wrapper(*args, **kwargs):
             if not isinstance(self._backend, SpeculosBackend):
                 callback(*args, **kwargs)
             else:
-                last_screenshot = self._backend._last_screenshot  # pylint: disable=protected-access
+                last_screenshot = self._backend._last_screenshot
                 callback(*args, **kwargs)
                 self._backend.wait_for_screen_change()
                 if self._backend.compare_screen_with_text("^(Processing|Loading operation)$"):
                     self._backend.send_tick()
                     # Wait a text that is not "Processing"
                     self._backend.wait_for_text_on_screen("^(?!Processing$|Loading operation$).*")
-                self._backend._last_screenshot = last_screenshot  # pylint: disable=protected-access
+                self._backend._last_screenshot = last_screenshot
+
         return wrapper
 
-    def navigate(self,
-                 snap_path: Optional[Path] = None,
-                 screen_change_before_first_instruction: bool = False,
-                 **kwargs) -> None:
+    def navigate(
+        self,
+        snap_path: Path | None = None,
+        screen_change_before_first_instruction: bool = False,
+        **kwargs,
+    ) -> None:
         """Wrapper of `navigator.navigate_and_compare`"""
         self._navigator.navigate_and_compare(
             path=self._root_dir,
             test_case_name=snap_path,
             screen_change_before_first_instruction=screen_change_before_first_instruction,
-            **kwargs
+            **kwargs,
         )
 
-    def navigate_until_text(self,
-                            snap_path: Optional[Path] = None,
-                            screen_change_before_first_instruction: bool = False,
-                            validation_instructions: Optional[
-                                List[Union[NavIns, BaseNavInsID]]
-                            ] = None,
-                            **kwargs) -> None:
+    def navigate_until_text(
+        self,
+        snap_path: Path | None = None,
+        screen_change_before_first_instruction: bool = False,
+        validation_instructions: list[NavIns | BaseNavInsID] | None = None,
+        **kwargs,
+    ) -> None:
         """Wrapper of `navigator.navigate_until_text_and_compare`"""
         self._navigator.navigate_until_text_and_compare(
             path=self._root_dir,
             test_case_name=snap_path,
             screen_change_before_first_instruction=screen_change_before_first_instruction,
             validation_instructions=validation_instructions or [],
-            **kwargs
+            **kwargs,
         )
 
-    def navigate_while_text_and_compare(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            navigate_instruction: Union[NavIns, BaseNavInsID],
-            text: str,
-            validation_instructions: Optional[List[Union[NavIns, BaseNavInsID]]] = None,
-            snap_path: Optional[Path] = None,
-            timeout: int = 300,
-            screen_change_before_first_instruction: bool = False,
-            screen_change_after_last_instruction: bool = True) -> None:
+    def navigate_while_text_and_compare(
+        self,
+        navigate_instruction: NavIns | BaseNavInsID,
+        text: str,
+        validation_instructions: list[NavIns | BaseNavInsID] | None = None,
+        snap_path: Path | None = None,
+        timeout: int = 300,
+        screen_change_before_first_instruction: bool = False,
+        screen_change_after_last_instruction: bool = True,
+    ) -> None:
         """Navigate while some text is found on the screen content displayed.
 
         Function based on
@@ -285,6 +277,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
         path = self._root_dir
         test_case_name = snap_path
         idx = 0
+        prev_shot: Any | None = None
         start = time.time()
         if not isinstance(self._backend, SpeculosBackend):
             if timeout == 30:
@@ -292,12 +285,11 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
 
         self._backend.pause_ticker()
 
-        # pylint: disable=protected-access
         # Wait for screen to change if needed
         self._navigator._run_instruction(
-            NavIns(NavInsID.WAIT, (0, )),
+            NavIns(NavInsID.WAIT, (0,)),
             timeout,
-            wait_for_screen_change=screen_change_before_first_instruction
+            wait_for_screen_change=screen_change_before_first_instruction,
         )
 
         while self._backend.compare_screen_with_text(text):
@@ -307,12 +299,12 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
 
             # Compare screen, screen already waited
             self._navigator._run_instruction(
-                NavIns(NavInsID.WAIT, (0, )),
+                NavIns(NavInsID.WAIT, (0,)),
                 remaining,
                 wait_for_screen_change=False,
                 path=path,
                 test_case_name=test_case_name,
-                snap_idx=idx
+                snap_idx=idx,
             )
 
             remaining = timeout - (time.time() - start)
@@ -321,13 +313,16 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
 
             # Go to the next screen.
             # Don't compare because the text may not be on the screen.
-            self._navigator._run_instruction(
-                navigate_instruction,
-                remaining,
-                wait_for_screen_change=True
-            )
+            self._navigator._run_instruction(navigate_instruction, remaining, wait_for_screen_change=True)
             idx += 1
-        # pylint: enable=protected-access
+            cur_shot = getattr(self._backend, "_last_screenshot", None)
+            # On the final Accept/Reject page, further RIGHT presses often do not
+            # change the framebuffer while OCR can still match a field label
+            # (e.g. "Source") from the session. Stop instead of spinning until
+            # timeout — this is not a device stack overflow.
+            if cur_shot is not None and cur_shot == prev_shot and idx >= 1:
+                break
+            prev_shot = cur_shot
 
         if validation_instructions:
             remaining = timeout - (time.time() - start)
@@ -338,19 +333,20 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 timeout=remaining,
                 screen_change_before_first_instruction=True,
                 screen_change_after_last_instruction=screen_change_after_last_instruction,
-                snap_start_idx=idx
+                snap_start_idx=idx,
             )
 
         self._backend.resume_ticker()
 
-    def unsafe_navigate(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-            self,
-            instructions: List[Union[NavIns, BaseNavInsID]],
-            snap_path: Optional[Path] = None,
-            timeout: float = 10.0,
-            screen_change_before_first_instruction: bool = False,
-            screen_change_after_last_instruction: bool = True,
-            snap_start_idx: int = 0) -> None:
+    def unsafe_navigate(
+        self,
+        instructions: list[NavIns | BaseNavInsID],
+        snap_path: Path | None = None,
+        timeout: float = 10.0,
+        screen_change_before_first_instruction: bool = False,
+        screen_change_after_last_instruction: bool = True,
+        snap_start_idx: int = 0,
+    ) -> None:
         """Navigate using instructions but do not wait for screens to
         change.  Only use this function if consecutive screens are the
         same.
@@ -359,14 +355,14 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
 
         """
         self._backend.pause_ticker()
-        # pylint: disable=protected-access
+
         self._navigator._run_instruction(
-            NavIns(NavInsID.WAIT, (0, )),
+            NavIns(NavInsID.WAIT, (0,)),
             timeout,
             wait_for_screen_change=screen_change_before_first_instruction,
             path=self._root_dir,
             test_case_name=snap_path,
-            snap_idx=snap_start_idx
+            snap_idx=snap_start_idx,
         )
         for idx, instruction in enumerate(instructions):
             if idx + 1 != len(instructions) or screen_change_after_last_instruction:
@@ -376,21 +372,20 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                     wait_for_screen_change=False,
                     path=self._root_dir,
                     test_case_name=snap_path,
-                    snap_idx=snap_start_idx + idx + 1
+                    snap_idx=snap_start_idx + idx + 1,
                 )
             else:
                 self._navigator._run_instruction(
                     instruction,
                     timeout,
                     wait_for_screen_change=False,
-                    snap_idx=snap_start_idx + idx + 1
+                    snap_idx=snap_start_idx + idx + 1,
                 )
-        # pylint: enable=protected-access
         self._backend.resume_ticker()
 
     def navigate_to_settings(self, **kwargs) -> int:
         """Navigate from Home screen to settings."""
-        instructions: List[Union[NavIns, BaseNavInsID]] = []
+        instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             instructions = [
                 # Home
@@ -401,16 +396,16 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
         else:
             instructions = [NavInsID.USE_CASE_HOME_SETTINGS]
         self.navigate(instructions=instructions, **kwargs)
-        snap_start_idx = kwargs['snap_start_idx'] if 'snap_start_idx' in kwargs else 0
+        snap_start_idx = kwargs["snap_start_idx"] if "snap_start_idx" in kwargs else 0
         return snap_start_idx + len(instructions)
 
     def toggle_expert_mode(self, **kwargs) -> int:
         """Enable expert-mode from home screen."""
         go_to_settings_kwargs = kwargs.copy()
-        go_to_settings_kwargs['screen_change_after_last_instruction'] = True
+        go_to_settings_kwargs["screen_change_after_last_instruction"] = True
         snap_idx = self.navigate_to_settings(**go_to_settings_kwargs)
 
-        instructions: List[Union[NavIns, BaseNavInsID]] = []
+        instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             instructions = [
                 # Expert Mode
@@ -424,8 +419,8 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.SETTINGS_TOGGLE_EXPERT_MODE,
                 TezosNavInsID.SETTINGS_EXIT,
             ]
-        kwargs['snap_start_idx'] = snap_idx
-        kwargs['screen_change_before_first_instruction'] = False
+        kwargs["snap_start_idx"] = snap_idx
+        kwargs["screen_change_before_first_instruction"] = False
         self.navigate(instructions=instructions, **kwargs)
 
         return snap_idx + len(instructions)
@@ -433,10 +428,10 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
     def toggle_blindsign(self, **kwargs) -> int:
         """Enable blindsign from home screen."""
         go_to_settings_kwargs = kwargs.copy()
-        go_to_settings_kwargs['screen_change_after_last_instruction'] = True
+        go_to_settings_kwargs["screen_change_after_last_instruction"] = True
         snap_idx = self.navigate_to_settings(**go_to_settings_kwargs)
 
-        instructions: List[Union[NavIns, BaseNavInsID]] = []
+        instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             instructions = [
                 # Expert Mode
@@ -450,35 +445,32 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.SETTINGS_TOGGLE_BLINDSIGNING,
                 TezosNavInsID.SETTINGS_EXIT,
             ]
-        kwargs['snap_start_idx'] = snap_idx
-        kwargs['screen_change_before_first_instruction'] = False
+        kwargs["snap_start_idx"] = snap_idx
+        kwargs["screen_change_before_first_instruction"] = False
         self.navigate(instructions=instructions, **kwargs)
 
         return snap_idx + len(instructions)
 
     def navigate_forward(self, **kwargs) -> None:
         """Navigate forward until the text is found."""
-        self.navigate_until_text(
-            navigate_instruction=TezosNavInsID.REVIEW_TX_NEXT,
-            **kwargs
-        )
+        self.navigate_until_text(navigate_instruction=TezosNavInsID.REVIEW_TX_NEXT, **kwargs)
 
     def _navigate_review(
-            self,
-            screen_change_before_first_instruction=True,
-            screen_change_after_last_instruction=False,
-            **kwargs
+        self,
+        screen_change_before_first_instruction=True,
+        screen_change_after_last_instruction=False,
+        **kwargs,
     ) -> None:
         """Helper to navigate forward in a new flow."""
         self.navigate_forward(
             screen_change_before_first_instruction=screen_change_before_first_instruction,
             screen_change_after_last_instruction=screen_change_after_last_instruction,
-            **kwargs
+            **kwargs,
         )
 
     def accept_public_key(self, show_qr: bool = False, **kwargs) -> None:
         """Navigate through public key flow and accept public key"""
-        validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
+        validation_instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             text = "^Approve$"
             validation_instructions = [NavInsID.BOTH_CLICK]
@@ -493,15 +485,11 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ]
-        self._navigate_review(
-            text=text,
-            validation_instructions=validation_instructions,
-            **kwargs
-        )
+        self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
 
     def reject_public_key(self, **kwargs) -> None:
         """Navigate through public key flow and reject"""
-        validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
+        validation_instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             text = "^Reject$"
             validation_instructions = [NavInsID.BOTH_CLICK]
@@ -511,15 +499,11 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CANCEL,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ]
-        self._navigate_review(
-            text=text,
-            validation_instructions=validation_instructions,
-            **kwargs
-        )
+        self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
 
     def accept_sign(self, **kwargs) -> None:
         """Navigate through signing flow and accept to sign"""
-        validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
+        validation_instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             text = "^Accept$"
             if self._device.type == DeviceType.NANOS:
@@ -531,15 +515,11 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 NavInsID.USE_CASE_REVIEW_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ]
-        self._navigate_review(
-            text=text,
-            validation_instructions=validation_instructions,
-            **kwargs
-        )
+        self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
 
     def reject_sign(self, **kwargs) -> None:
         """Navigate through signing flow and reject."""
-        validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
+        validation_instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             text = "^Reject$"
             validation_instructions = [NavInsID.BOTH_CLICK]
@@ -550,11 +530,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.REJECT_CHOICE_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ]
-        self._navigate_review(
-            text=text,
-            validation_instructions=validation_instructions,
-            **kwargs
-        )
+        self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
 
     def hard_reject_sign(self, **kwargs) -> None:
         """Navigate through signing flow and until a hard reject send
@@ -563,11 +539,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
             text = "^Application$"
         else:
             text = "^Tezos Wallet$"
-        self._navigate_review(
-            text=text,
-            validation_instructions=[],
-            **kwargs
-        )
+        self._navigate_review(text=text, validation_instructions=[], **kwargs)
 
     def expert_accept_sign(self, **kwargs) -> None:
         """Navigate through the signing expert requirement flow and accept.
@@ -580,12 +552,12 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.EXPERT_CHOICE_ENABLE,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ],
-            **kwargs
+            **kwargs,
         )
 
     def expert_reject_sign(self, **kwargs) -> None:
         """Navigate through the signing expert requirement flow and reject."""
-        validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
+        validation_instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             text = "^Home$"
             validation_instructions = [NavInsID.BOTH_CLICK]
@@ -596,11 +568,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.REJECT_CHOICE_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ]
-        self._navigate_review(
-            text=text,
-            validation_instructions=validation_instructions,
-            **kwargs
-        )
+        self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
 
     def expert_splash_navigate(self, **kwargs) -> None:
         """Navigate until the expert mode splash screen."""
@@ -612,22 +580,18 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
 
     def accept_sign_error_risk(self, **kwargs) -> None:
         """Navigate through signing risk warning flow and accept risk."""
-        validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
+        validation_instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             text = "^Accept risk$"
             validation_instructions = [NavInsID.BOTH_CLICK]
         else:
             text = "^Proceed to Blindsign$"
             validation_instructions = [TezosNavInsID.WARNING_CHOICE_BLINDSIGN]
-        self._navigate_review(
-            text=text,
-            validation_instructions=validation_instructions,
-            **kwargs
-        )
+        self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
 
     def refuse_sign_error_risk(self, **kwargs) -> None:
         """Navigate through signing risk warning flow and accept risk."""
-        validation_instructions: List[Union[NavIns, BaseNavInsID]] = []
+        validation_instructions: list[NavIns | BaseNavInsID] = []
         if self._device.is_nano:
             text = "^Reject$"
             validation_instructions = [NavInsID.BOTH_CLICK]
@@ -638,11 +602,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.REJECT_CHOICE_CONFIRM,
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ]
-        self._navigate_review(
-            text=text,
-            validation_instructions=validation_instructions,
-            **kwargs
-        )
+        self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
 
     def accept_sign_blindsign_risk(self, **kwargs) -> None:
         """Navigate through signing risk warning flow and accept risk."""
@@ -650,24 +610,20 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
             self._navigate_review(
                 text="^Accept risk$",
                 validation_instructions=[NavInsID.BOTH_CLICK],
-                **kwargs
+                **kwargs,
             )
         else:
             self.navigate(
                 instructions=[TezosNavInsID.WARNING_CHOICE_BLINDSIGN],
                 screen_change_before_first_instruction=True,
                 screen_change_after_last_instruction=False,
-                **kwargs
+                **kwargs,
             )
 
     def refuse_sign_blindsign_risk(self, **kwargs) -> None:
         """Navigate through signing risk warning flow and accept risk."""
         if self._device.is_nano:
-            self._navigate_review(
-                text="^Reject$",
-                validation_instructions=[NavInsID.BOTH_CLICK],
-                **kwargs
-            )
+            self._navigate_review(text="^Reject$", validation_instructions=[NavInsID.BOTH_CLICK], **kwargs)
         else:
             self.navigate(
                 instructions=[
@@ -677,7 +633,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 ],
                 screen_change_before_first_instruction=True,
                 screen_change_after_last_instruction=False,
-                **kwargs
+                **kwargs,
             )
 
     def skip_sign(self, **kwargs) -> None:
@@ -691,7 +647,7 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.REVIEW_TX_SKIP,
                 TezosNavInsID.SKIP_CHOICE_CONFIRM,
             ],
-            **kwargs
+            **kwargs,
         )
 
     def skip_reject(self, **kwargs) -> None:
@@ -705,5 +661,5 @@ class TezosNavigator(metaclass=MetaScreen):  # pylint: disable=too-many-public-m
                 TezosNavInsID.REVIEW_TX_SKIP,
                 TezosNavInsID.SKIP_CHOICE_REJECT,
             ],
-            **kwargs
+            **kwargs,
         )

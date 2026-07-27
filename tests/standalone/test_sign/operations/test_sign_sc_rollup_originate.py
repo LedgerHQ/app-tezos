@@ -16,8 +16,11 @@
 
 """Gathering of tests related to Smart-rollup Originate operations."""
 
+from typing import ClassVar
+
 from utils.message import ScRollupOriginate
-from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+from .helper import Field, Flow, TestOperation
 
 
 class TestScRollupOriginate(TestOperation):
@@ -27,59 +30,87 @@ class TestScRollupOriginate(TestOperation):
     def op_class(self):
         return ScRollupOriginate
 
-    flows = [
+    flows: ClassVar[list[Flow]] = [
         Flow(
-            'basic',
-            kernel='0123456789ABCDEF',
-            whitelist=['tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa']
+            "basic",
+            kernel="0123456789ABCDEF",
+            whitelist=["tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa"],
         ),
-        Flow('no-whitelist', whitelist=None),
-        Flow('empty-whitelist', whitelist=[])
+        Flow("no-whitelist", whitelist=None),
+        Flow("empty-whitelist", whitelist=[]),
     ]
 
-    fields = [
-        Field("pvm_kind", "Kind", [
-            Field.Case('arith', "arith"),
-            Field.Case('wasm_2_0_0', "wasm_2_0_0"),
-            Field.Case('riscv', "riscv"),
-        ]),
-        Field("kernel", "Kernel", [
-            Field.Case('', 'empty'),
-            Field.Case('0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF', 'long'),  # pylint: disable=line-too-long
-        ]),
-        Field("parameters_ty", "Parameters", [
-            Field.Case({'prim': 'unit'}, "unit"),
-            Field.Case({'prim': 'or', 'args': [{'prim': 'int'}, {'prim': 'string'}]}, "basic"),
-            # More test about Micheline in micheline tests
-        ]),
-        Field("whitelist", "Whitelist", [
-            Field.Case([
-                'tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa',
-                'tz2W3Tvcm64GjcV2bipUynnEsctLFz5Z6yRa',
-                'tz3XeTwXXJeWNgVR3LqMcyBDdnxjbZ7TeEGH',
-                'tz4AcerThk5nGtWNBiSqJfZFeWtz6ZqJ6mTY',
-                'tz1er74kx433vTtpYddGsf3dDt5piBZeeHyQ',
-                'tz2JPgTWZZpxZZLqHMfS69UAy1UHm4Aw5iHu',
-                'tz3fLwHKthqhTPK6Lar6CTXN1WbDETw1YpGB',
-                'tz4J1Kjhjc3QpMxTaLeQaJxWR7DVV8VK5gdq',
-                'tz1McCh72NRhYmJBcWr3zDrLJAxnfR9swcFh',
-                'tz2CJBeWWLsUDjVUDqGZL6od3DeBCNzYXrXk',
-                'tz3eydffbLkjdVb8zx42BvxpGV87zaRnqL3r',
-                'tz4HQ7WgTRdgrxEdLWcGrgzYrHbz6a9ELZi3',
-                'tz1TmFPVZsGQ8MnrBJtnECJgkFUwLa6EWYDm',
-                'tz2KC42yW9FXFMJpkUooae2NFYQsM5do3E8H',
-                'tz3hCsUiQDfneTgD7CSZDaUro8SA5aEhwCp2',
-                'tz4H6NGpYd76yxZ4aGbPNKtWMJEEfZFBch2W',
-                'tz1e8fEumaLvXXe5jV52gejCSt3mGodoKut9',
-                'tz2PPZ2WN4j92Rdx4NM7oW3HAp3x825HUyac',
-                'tz3Wazpbs4CFj78qv2KBJ8Z7HEyqk6ZPxwWZ',
-                'tz4Mh4LFWMpACmKNWm1WNntMCPixsBWaMWMU',
-            ], "many"),  # Max 4096
-            Field.Case([
-                'tz1Kp8NCAN5WWwvkWkMmQQXMRe68iURmoQ8w',
-                'tz2WmivuMG8MMRKMEmzKRMMxMApxZQWYNS4W',
-                'tz3XMQscBFM9vPmpbYMavMmwxRMUWvWGZMQQ',
-                'tz4DNQhMQaU9WMCVGwH6mQGGWqMNQHTjywDe',
-            ], "long-hash"),
-        ]),
+    fields: ClassVar[list[Field]] = [
+        Field(
+            "pvm_kind",
+            "Kind",
+            [
+                Field.Case("arith", "arith"),
+                Field.Case("wasm_2_0_0", "wasm_2_0_0"),
+                Field.Case("riscv", "riscv"),
+            ],
+        ),
+        Field(
+            "kernel",
+            "Kernel",
+            [
+                Field.Case("", "empty"),
+                Field.Case(
+                    "0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF",
+                    "long",
+                ),
+            ],
+        ),
+        Field(
+            "parameters_ty",
+            "Parameters",
+            [
+                Field.Case({"prim": "unit"}, "unit"),
+                Field.Case(
+                    {"prim": "or", "args": [{"prim": "int"}, {"prim": "string"}]},
+                    "basic",
+                ),
+                # More test about Micheline in micheline tests
+            ],
+        ),
+        Field(
+            "whitelist",
+            "Whitelist",
+            [
+                Field.Case(
+                    [
+                        "tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa",
+                        "tz2W3Tvcm64GjcV2bipUynnEsctLFz5Z6yRa",
+                        "tz3XeTwXXJeWNgVR3LqMcyBDdnxjbZ7TeEGH",
+                        "tz4AcerThk5nGtWNBiSqJfZFeWtz6ZqJ6mTY",
+                        "tz1er74kx433vTtpYddGsf3dDt5piBZeeHyQ",
+                        "tz2JPgTWZZpxZZLqHMfS69UAy1UHm4Aw5iHu",
+                        "tz3fLwHKthqhTPK6Lar6CTXN1WbDETw1YpGB",
+                        "tz4J1Kjhjc3QpMxTaLeQaJxWR7DVV8VK5gdq",
+                        "tz1McCh72NRhYmJBcWr3zDrLJAxnfR9swcFh",
+                        "tz2CJBeWWLsUDjVUDqGZL6od3DeBCNzYXrXk",
+                        "tz3eydffbLkjdVb8zx42BvxpGV87zaRnqL3r",
+                        "tz4HQ7WgTRdgrxEdLWcGrgzYrHbz6a9ELZi3",
+                        "tz1TmFPVZsGQ8MnrBJtnECJgkFUwLa6EWYDm",
+                        "tz2KC42yW9FXFMJpkUooae2NFYQsM5do3E8H",
+                        "tz3hCsUiQDfneTgD7CSZDaUro8SA5aEhwCp2",
+                        "tz4H6NGpYd76yxZ4aGbPNKtWMJEEfZFBch2W",
+                        "tz1e8fEumaLvXXe5jV52gejCSt3mGodoKut9",
+                        "tz2PPZ2WN4j92Rdx4NM7oW3HAp3x825HUyac",
+                        "tz3Wazpbs4CFj78qv2KBJ8Z7HEyqk6ZPxwWZ",
+                        "tz4Mh4LFWMpACmKNWm1WNntMCPixsBWaMWMU",
+                    ],
+                    "many",
+                ),  # Max 4096
+                Field.Case(
+                    [
+                        "tz1Kp8NCAN5WWwvkWkMmQQXMRe68iURmoQ8w",
+                        "tz2WmivuMG8MMRKMEmzKRMMxMApxZQWYNS4W",
+                        "tz3XMQscBFM9vPmpbYMavMmwxRMUWvWGZMQQ",
+                        "tz4DNQhMQaU9WMCVGwH6mQGGWqMNQHTjywDe",
+                    ],
+                    "long-hash",
+                ),
+            ],
+        ),
     ]

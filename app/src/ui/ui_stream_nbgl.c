@@ -298,7 +298,7 @@ tz_ui_stream_init(void (*cb)(tz_ui_cb_type_t cb_type))
     if (N_settings.blindsigning) {
         op_type |= SKIPPABLE_OPERATION;
     }
-    nbgl_useCaseReviewStreamingStart(op_type, &C_tezos,
+    nbgl_useCaseReviewStreamingStart(op_type, &C_TZ_APP_ICON,
                                      "Review request to sign operation", NULL,
                                      tz_transaction_choice);
 
@@ -456,8 +456,12 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         s->screens[bucket].nb_pairs--;
     } else {
         /* Are we continuing to construct or starting from scratch? */
-        if (idx == NB_MAX_DISPLAYED_PAIRS_IN_REVIEW) {
+        if (idx >= NB_MAX_DISPLAYED_PAIRS_IN_REVIEW) {
+            /* The screen is already full; writing pairs[idx] would run past
+               the end of the array. This is not expected to happen, but bail
+               out rather than corrupt memory. */
             PRINTF("[ERROR] PANIC!!! we pushing to a screen that's full");
+            THROW(EXC_UNKNOWN);
         }
 
         if ((idx > 0)

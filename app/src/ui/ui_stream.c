@@ -141,18 +141,15 @@ display_init(bagl_element_t init[UI_INIT_ARRAY_LEN])
     tz_ui_stream_t *s = &G_stream;
     FUNC_ENTER(("void"));
 
-    /* If we aren't on the first screen, we can go back */
-    if (s->current > 0) {
-        /* Unless we can't... */
-        if (s->current == (s->total - TZ_UI_STREAM_HISTORY_SCREENS + 1)) {
-            init[1].text = (const char *)&C_icon_go_forbid;
-        } else {
-            init[1].text = (const char *)&C_icon_go_left;
-        }
+    /* If we aren't on the first screen we can go back, unless we've reached
+       the oldest screen still held in history — then show no left arrow. */
+    if ((s->current > 0)
+        && (s->current != (s->total - TZ_UI_STREAM_HISTORY_SCREENS + 1))) {
+        init[1].text = (const char *)&C_icon_left;
     }
     /* If we aren't full or aren't on the last page, we can go right */
     if (!s->full || (s->current < s->total)) {
-        init[2].text = (const char *)&C_icon_go_right;
+        init[2].text = (const char *)&C_icon_right;
     }
 
     DISPLAY(init, cb, UI_INIT_ARRAY_LEN)
@@ -176,15 +173,15 @@ redisplay_screen(tz_ui_layout_type_t layout, uint8_t icon_pos)
     layout                     = layout & ~TZ_UI_LAYOUT_HOME_MASK;
 
     bagl_element_t init[] = {
-  //  {type, userid, x, y, width, height, stroke, radius,
-  //   fill, fgcolor, bgcolor, font_id, icon_id}, text/icon
+        //  {type, userid, x, y, width, height, stroke, radius,
+        //   fill, fgcolor, bgcolor, font_id, icon_id}, text/icon
         {{BAGL_RECTANGLE, 0x00, 0, 0, 128, BAGL_HEIGHT, 0, 0, BAGL_FILL,
           0x000000, 0xFFFFFF, 0, 0},
          NULL                      },
-        {{BAGL_ICON, 0x00, 1, 1, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+        {{BAGL_ICON, 0x00, 1, 1, 4, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
           BAGL_GLYPH_NOGLYPH},
          (const char *)&C_icon_rien},
-        {{BAGL_ICON, 0x00, 120, 1, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+        {{BAGL_ICON, 0x00, 123, 1, 4, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
           BAGL_GLYPH_NOGLYPH},
          (const char *)&C_icon_rien},
         {{BAGL_LABELINE, 0x02, 8, 8, 112, 11, 0, 0, 0, 0xFFFFFF, 0x000000,

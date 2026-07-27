@@ -16,23 +16,26 @@
 
 """Gathering of tests related to Batched operations."""
 
+from typing import ClassVar
+
 from utils.message import (
-    OperationGroup,
-    Reveal,
-    Transaction,
-    Origination,
     Delegation,
-    RegisterGlobalConstant,
-    SetDepositLimit,
     IncreasePaidStorage,
-    UpdateConsensusKey,
-    UpdateCompanionKey,
-    TransferTicket,
-    ScRollupOriginate,
+    OperationGroup,
+    Origination,
+    RegisterGlobalConstant,
+    Reveal,
     ScRollupAddMessage,
     ScRollupExecuteOutboxMessage,
+    ScRollupOriginate,
+    SetDepositLimit,
+    Transaction,
+    TransferTicket,
+    UpdateCompanionKey,
+    UpdateConsensusKey,
 )
-from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+from .helper import Field, Flow, TestOperation
 
 
 class TestManagerOperation(TestOperation):
@@ -45,25 +48,37 @@ class TestManagerOperation(TestOperation):
     def skip_signature_check(self):
         return "no generic ManagerOperation"
 
-    fields = [
-        Field("source", "Source", [
-            Field.Case('tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa', "tz1"),
-            Field.Case('tz2CJBeWWLsUDjVUDqGZL6od3DeBCNzYXrXk', "tz2"),
-            Field.Case('tz3fLwHKthqhTPK6Lar6CTXN1WbDETw1YpGB', "tz3"),
-            Field.Case('tz4AcerThk5nGtWNBiSqJfZFeWtz6ZqJ6mTY', "tz4"),
-            Field.Case('tz1Kp8NCAN5WWwvkWkMmQQXMRe68iURmoQ8w', "long-hash"),
-        ]),
-        Field("fee", "Fee", [
-            Field.Case(0, "0"),
-            Field.Case(1000, "1000"),
-            Field.Case(1000000, "1000000"),
-            Field.Case(1000000000, "1000000000"),
-            Field.Case(0xFFFFFFFFFFFFFFFF, "max"),  # max uint64
-        ]),
-        Field("storage_limit", "Storage limit", [
-            Field.Case(0, "min"),
-            Field.Case(0xFFFFFFFFFFFFFFFFFFFF, "max"),
-        ]),
+    fields: ClassVar[list[Field]] = [
+        Field(
+            "source",
+            "Source",
+            [
+                Field.Case("tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa", "tz1"),
+                Field.Case("tz2CJBeWWLsUDjVUDqGZL6od3DeBCNzYXrXk", "tz2"),
+                Field.Case("tz3fLwHKthqhTPK6Lar6CTXN1WbDETw1YpGB", "tz3"),
+                Field.Case("tz4AcerThk5nGtWNBiSqJfZFeWtz6ZqJ6mTY", "tz4"),
+                Field.Case("tz1Kp8NCAN5WWwvkWkMmQQXMRe68iURmoQ8w", "long-hash"),
+            ],
+        ),
+        Field(
+            "fee",
+            "Fee",
+            [
+                Field.Case(0, "0"),
+                Field.Case(1000, "1000"),
+                Field.Case(1000000, "1000000"),
+                Field.Case(1000000000, "1000000000"),
+                Field.Case(0xFFFFFFFFFFFFFFFF, "max"),  # max uint64
+            ],
+        ),
+        Field(
+            "storage_limit",
+            "Storage limit",
+            [
+                Field.Case(0, "min"),
+                Field.Case(0xFFFFFFFFFFFFFFFFFFFF, "max"),
+            ],
+        ),
     ]
 
 
@@ -77,29 +92,38 @@ class TestOperationGroup(TestOperation):
     def skip_signature_check(self):
         return "no empty OperationGroup"
 
-    flows = [
-        Flow('many-transactions', operations=[
-            Transaction(),
-            Transaction(),
-            Transaction(),
-        ]),
-        Flow('reveal-transaction', operations=[
-            Reveal(),
-            Transaction(),
-        ]),
-        Flow('all', operations=[
-            Reveal(),
-            Transaction(),
-            Origination(),
-            Delegation(),
-            RegisterGlobalConstant(),
-            SetDepositLimit(),
-            IncreasePaidStorage(),
-            UpdateConsensusKey(),
-            UpdateCompanionKey(),
-            TransferTicket(),
-            ScRollupOriginate(),
-            ScRollupAddMessage(),
-            ScRollupExecuteOutboxMessage(),
-        ]),
+    flows: ClassVar[list[Flow]] = [
+        Flow(
+            "many-transactions",
+            operations=[
+                Transaction(),
+                Transaction(),
+                Transaction(),
+            ],
+        ),
+        Flow(
+            "reveal-transaction",
+            operations=[
+                Reveal(),
+                Transaction(),
+            ],
+        ),
+        Flow(
+            "all",
+            operations=[
+                Reveal(),
+                Transaction(),
+                Origination(),
+                Delegation(),
+                RegisterGlobalConstant(),
+                SetDepositLimit(),
+                IncreasePaidStorage(),
+                UpdateConsensusKey(),
+                UpdateCompanionKey(),
+                TransferTicket(),
+                ScRollupOriginate(),
+                ScRollupAddMessage(),
+                ScRollupExecuteOutboxMessage(),
+            ],
+        ),
     ]

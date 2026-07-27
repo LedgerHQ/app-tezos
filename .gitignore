@@ -27,6 +27,16 @@ ledger/
 
 tags
 __pycache__
+
+# .vscode
+.vscode/
+
+# tmp
+tmp/
+
+# Claude
+.claude/
+build-unit-tests/
 **/.pytest_cache/
 **/.mypy_cache/
 **/.coverage

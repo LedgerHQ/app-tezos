@@ -16,8 +16,11 @@
 
 """Gathering of tests related to Origination operations."""
 
+from typing import ClassVar
+
 from utils.message import Default, Origination
-from .helper import Flow, Field, TestOperation, pytest_generate_tests  # pylint: disable=unused-import
+
+from .helper import Field, Flow, TestOperation
 
 
 class TestOrigination(TestOperation):
@@ -27,32 +30,58 @@ class TestOrigination(TestOperation):
     def op_class(self):
         return Origination
 
-    flows = [Flow('basic', delegate=Default.ED25519_PUBLIC_KEY_HASH)]
+    flows: ClassVar[list[Flow]] = [Flow("basic", delegate=Default.ED25519_PUBLIC_KEY_HASH)]
 
-    fields = [
-        Field("balance", "Balance", [
-            Field.Case(0, "0"),
-            Field.Case(1000, "1000"),
-            Field.Case(1000000, "1000000"),
-            Field.Case(1000000000, "1000000000"),
-            Field.Case(0xFFFFFFFFFFFFFFFF, "max"),  # max uint64
-        ]),
-        Field("delegate", "Delegate", [
-            Field.Case(None, "none"),
-            Field.Case('tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa', "tz1"),
-            Field.Case('tz2CJBeWWLsUDjVUDqGZL6od3DeBCNzYXrXk', "tz2"),
-            Field.Case('tz3fLwHKthqhTPK6Lar6CTXN1WbDETw1YpGB', "tz3"),
-            Field.Case('tz4AcerThk5nGtWNBiSqJfZFeWtz6ZqJ6mTY', "tz4"),
-            Field.Case('tz1Kp8NCAN5WWwvkWkMmQQXMRe68iURmoQ8w', "long-hash"),
-        ]),
-        Field("code", "Code", [
-            Field.Case([], "empty"),
-            Field.Case([{'prim': 'CDR'}, {'prim': 'NIL', 'args': [{'prim': 'operation'}]}, {'prim': 'PAIR'}], "small"),  # pylint: disable=line-too-long
-            # More test about Micheline in micheline tests
-        ]),
-        Field("storage", "Storage", [
-            Field.Case({'prim': 'unit'}, "unit"),
-            Field.Case({'prim': 'or', 'args': [{'prim': 'int'}, {'prim': 'string'}]}, "basic"),
-            # More test about Micheline in micheline tests
-        ]),
+    fields: ClassVar[list[Field]] = [
+        Field(
+            "balance",
+            "Balance",
+            [
+                Field.Case(0, "0"),
+                Field.Case(1000, "1000"),
+                Field.Case(1000000, "1000000"),
+                Field.Case(1000000000, "1000000000"),
+                Field.Case(0xFFFFFFFFFFFFFFFF, "max"),  # max uint64
+            ],
+        ),
+        Field(
+            "delegate",
+            "Delegate",
+            [
+                Field.Case(None, "none"),
+                Field.Case("tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa", "tz1"),
+                Field.Case("tz2CJBeWWLsUDjVUDqGZL6od3DeBCNzYXrXk", "tz2"),
+                Field.Case("tz3fLwHKthqhTPK6Lar6CTXN1WbDETw1YpGB", "tz3"),
+                Field.Case("tz4AcerThk5nGtWNBiSqJfZFeWtz6ZqJ6mTY", "tz4"),
+                Field.Case("tz1Kp8NCAN5WWwvkWkMmQQXMRe68iURmoQ8w", "long-hash"),
+            ],
+        ),
+        Field(
+            "code",
+            "Code",
+            [
+                Field.Case([], "empty"),
+                Field.Case(
+                    [
+                        {"prim": "CDR"},
+                        {"prim": "NIL", "args": [{"prim": "operation"}]},
+                        {"prim": "PAIR"},
+                    ],
+                    "small",
+                ),
+                # More test about Micheline in micheline tests
+            ],
+        ),
+        Field(
+            "storage",
+            "Storage",
+            [
+                Field.Case({"prim": "unit"}, "unit"),
+                Field.Case(
+                    {"prim": "or", "args": [{"prim": "int"}, {"prim": "string"}]},
+                    "basic",
+                ),
+                # More test about Micheline in micheline tests
+            ],
+        ),
     ]

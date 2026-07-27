@@ -19,12 +19,10 @@
 from pathlib import Path
 
 import pytest
-
 from utils.account import Account
 from utils.backend import StatusCode, TezosBackend
 from utils.message import RawMessage
 from utils.navigator import TezosNavigator
-
 
 # Operation (0): Transaction
 # Source: tz2JPgTWZZpxZZLqHMfS69UAy1UHm4Aw5iHu
@@ -37,15 +35,17 @@ from utils.navigator import TezosNavigator
 # Entrypoint: do
 # Parameter: CAR
 
-# original bytes : 0300000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff02000000020316  # pylint: disable=line-too-long
+# original bytes : 0300000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff02000000020316  # noqa: E501
+
 
 @pytest.mark.parametrize(
-    "raw_msg", [
-        "0100000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff02000000020316",  # pylint: disable=line-too-long
-        "03000000000000000000000000000000000000000000000000000000000000000001016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff02000000020316",  # pylint: disable=line-too-long
-        "0300000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e010000000000000000000000000000000000000000ff02000000020316",  # pylint: disable=line-too-long
-        "0300000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff0200000002031645",  # pylint: disable=line-too-long
-        "0300000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e0100000000000000000000000000000000000000000000ff02000000020316",  # pylint: disable=line-too-long
+    "raw_msg",
+    [
+        "0100000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff02000000020316",
+        "03000000000000000000000000000000000000000000000000000000000000000001016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff02000000020316",
+        "0300000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e010000000000000000000000000000000000000000ff02000000020316",
+        "0300000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff0200000002031645",
+        "0300000000000000000000000000000000000000000000000000000000000000006c016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e0100000000000000000000000000000000000000000000ff02000000020316",
     ],
     ids=[
         "unknown_magic_bytes",
@@ -53,50 +53,62 @@ from utils.navigator import TezosNavigator
         "one_byte_removed_inside",
         "one_byte_added_at_the_end",
         "one_byte_added_inside",
-    ]
+    ],
 )
 def test_parsing_error(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        raw_msg: str,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    raw_msg: str,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check parsing error handling"""
 
     tezos_navigator.toggle_expert_mode()
+    # Blind-signing must be enabled to reach the parse-error warning/reject
+    # flow. With it disabled the app rejects immediately (see F-09 regression
+    # test `test_parsing_error_blindsign_disabled`).
+    tezos_navigator.toggle_blindsign()
 
     with StatusCode.PARSE_ERROR.expected():
-        with backend.sign(
-                account,
-                RawMessage(raw_msg),
-                with_hash=True
-        ):
+        with backend.sign(account, RawMessage(raw_msg), with_hash=True):
             tezos_navigator.refuse_sign_error_risk(snap_path=snapshot_dir)
 
+
+def test_parsing_error_blindsign_disabled(backend: TezosBackend, account: Account):
+    """F-09: with blind-signing disabled (the default), a parse error must be
+    rejected immediately with EXC_PARSE_ERROR, without offering a blind-sign
+    prompt (app/src/handler/sign.c refill_error)."""
+
+    # An unknown operation tag: parsing fails up-front. Blind-signing is left
+    # disabled, so no on-device prompt is shown and no navigation is needed.
+    unknown_operation = "03000000000000000000000000000000000000000000000000000000000000000001016e8874874d31c3fbd636e924d5a036a43ec8faa7d0860308362d80d30e01000000000000000000000000000000000000000000ff02000000020316"  # noqa: E501
+
+    with StatusCode.PARSE_ERROR.expected():
+        with backend.sign(account, RawMessage(unknown_operation), with_hash=True):
+            pass
+
+
 @pytest.mark.parametrize(
-    "raw_msg", [
-        "030000000000000000000000000000000000000000000000000000000000000000ce00ffdd6102321bc251e4a5190ad5b12b251069d9b4904e02030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c63966303966323935326433343532386337333366393436313563666333396263353535363139666335353064643461363762613232303863653865383637616133643133613665663939646662653332633639373461613961323135306432316563613239633333343965353963313362393038316631",  # pylint: disable=line-too-long
+    "raw_msg",
+    [
+        "030000000000000000000000000000000000000000000000000000000000000000ce00ffdd6102321bc251e4a5190ad5b12b251069d9b4904e02030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c63966303966323935326433343532386337333366393436313563666333396263353535363139666335353064643461363762613232303863653865383637616133643133613665663939646662653332633639373461613961323135306432316563613239633333343965353963313362393038316631",
     ],
     ids=[
         "wrong_last_packet",
-    ]
+    ],
 )
 def test_parsing_hard_fail(
-        backend: TezosBackend,
-        tezos_navigator: TezosNavigator,
-        raw_msg: str,
-        account: Account,
-        snapshot_dir: Path
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    raw_msg: str,
+    account: Account,
+    snapshot_dir: Path,
 ):
     """Check parsing error hard failing"""
 
     tezos_navigator.toggle_expert_mode()
 
     with StatusCode.UNEXPECTED_SIGN_STATE.expected():
-        with backend.sign(
-                account,
-                RawMessage(raw_msg),
-                with_hash=True
-        ):
+        with backend.sign(account, RawMessage(raw_msg), with_hash=True):
             tezos_navigator.hard_reject_sign(snap_path=snapshot_dir)

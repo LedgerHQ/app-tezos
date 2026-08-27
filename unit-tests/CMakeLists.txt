@@ -12,6 +12,8 @@ enable_testing()
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_definitions(-DPRINTF=)
+# Compile the swap-only parser state so that swap validation can be tested
+add_definitions(-DHAVE_SWAP)
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -pedantic -g -O0 --coverage")
 set(GCC_COVERAGE_LINK_FLAGS "--coverage -lgcov")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")

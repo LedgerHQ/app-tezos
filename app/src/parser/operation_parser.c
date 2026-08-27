@@ -387,8 +387,12 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     memset(&state->operation.destination, 0, 22);
     op->batch_index = 0;
 #ifdef HAVE_SWAP
-    op->last_tag  = TZ_OPERATION_TAG_END;
-    op->nb_reveal = 0;
+    op->last_tag           = TZ_OPERATION_TAG_END;
+    op->nb_reveal          = 0;
+    op->fa2_swap_ok        = 0;
+    op->fa2_token_id       = 0;
+    op->fa2_amount         = 0;
+    op->fa2_destination[0] = '\0';
 #endif  // HAVE_SWAP
     op->total_fee     = 0;
     op->total_amount  = 0;
@@ -623,6 +627,9 @@ tz_step_tag(tz_parser_state *state)
     if (t == TZ_OPERATION_TAG_REVEAL) {
         op->nb_reveal++;
     }
+    /* Reset per-operation: a transfer decoded in an earlier operation of the
+       batch must not be credited to this one. */
+    op->fa2_swap_ok = 0;
 #endif  // HAVE_SWAP
     op->is_fa2_candidate = 0;
     memset(&op->destination, 0, TZ_OPERATION_DESTINATION_SIZE);
@@ -679,6 +686,45 @@ tz_step_tag(tz_parser_state *state)
 
 _Static_assert((TZ_CAPTURE_BUFFER_SIZE % 2U) == 0U,
                "TZ_CAPTURE_BUFFER_SIZE must be even for FA2 CAPTURE split");
+
+#ifdef HAVE_SWAP
+/**
+ * @brief Convert a decimal ASCII string to a uint64.
+ *
+ *        Used to keep an FA2 amount in a form swap validation can compare
+ *        against the amount validated by the Exchange application.
+ *
+ * @param str: NUL-terminated decimal digits
+ * @param out: parsed value, untouched on failure
+ * @return bool: false if empty, not made of digits only (a leading `-`
+ *         included), or larger than UINT64_MAX
+ */
+static bool
+fa2_decimal_to_u64(const char *str, uint64_t *out)
+{
+    uint64_t value = 0;
+
+    if ((str == NULL) || (*str == '\0')) {
+        return false;
+    }
+
+    for (; *str != '\0'; str++) {
+        uint64_t digit;
+
+        if ((*str < '0') || (*str > '9')) {
+            return false;
+        }
+        digit = (uint64_t)(*str - '0');
+        if (value > ((UINT64_MAX - digit) / 10u)) {
+            return false;
+        }
+        value = (value * 10u) + digit;
+    }
+
+    *out = value;
+    return true;
+}
+#endif  // HAVE_SWAP
 
 /**
  * @brief Format an integer token amount string with token decimals and
@@ -1128,6 +1174,23 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
     case FA2_STEP_VERIFY_END:
         /* Verify we are at the end of the parameter (no extra items) */
         FA2_REQUIRE(state, state->ofs == op->frame->stop);
+
+#ifdef HAVE_SWAP
+        /* Save what swap validation needs before the emit steps below run:
+           they reuse both the CAPTURE buffer and the decimal buffer, and the
+           frame holding token_id is popped on the way out. Anything we cannot
+           represent leaves fa2_swap_ok clear, which makes a swap refuse the
+           operation while leaving the display path untouched. */
+        if (fa2_decimal_to_u64((const char *)state->buffers.num.decimal,
+                               &op->fa2_amount)
+            && (strlen((const char *)(CAPTURE + FA2_TO_ADDR_OFS))
+                < sizeof(op->fa2_destination))) {
+            STRLCPY(op->fa2_destination,
+                    (const char *)(CAPTURE + FA2_TO_ADDR_OFS));
+            op->fa2_token_id = op->frame->step_read_fa2.token_id_val;
+            op->fa2_swap_ok  = 1;
+        }
+#endif  // HAVE_SWAP
 
         op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TO_ADDR;
         tz_continue;

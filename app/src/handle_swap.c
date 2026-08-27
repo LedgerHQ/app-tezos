@@ -33,6 +33,7 @@
 #include "keys.h"
 #include "utils.h"
 
+#include "parser/fa2_tokens.h"
 #include "parser/num_parser.h"
 
 // based on app-exchange
@@ -40,6 +41,8 @@
 #define ADDRESS_MAX_SIZE 63
 /* the smallest unit is microtez */
 #define DECIMALS         6
+/* Room for the ticker of a token swap, see swap_parse_config() */
+#define TICKER_MAX_SIZE  16
 
 /* Check check_address_parameters_t.address_to_check against specified
  * parameters.
@@ -99,6 +102,20 @@ swap_handle_get_printable_amount(get_printable_amount_parameters_t *params)
     FUNC_ENTER(("params=%p", params));
 
     uint64_t amount;
+    char     ticker[TICKER_MAX_SIZE] = TICKER;
+    uint8_t  decimals                = DECIMALS;
+
+    /* Fees are always paid in tez, even when swapping a token. Without a coin
+     * configuration the currency is tez too. */
+    if (!params->is_fee && (params->coin_configuration != NULL)
+        && (params->coin_configuration_length > 0)) {
+        if (!swap_parse_config(params->coin_configuration,
+                               params->coin_configuration_length, ticker,
+                               sizeof(ticker), &decimals)) {
+            PRINTF("[ERROR] Fail to parse coin configuration\n");
+            goto error;
+        }
+    }
 
     if (!swap_str_to_u64(params->amount, params->amount_length, &amount)) {
         PRINTF("[ERROR] Fail to parse amount\n");
@@ -107,13 +124,13 @@ swap_handle_get_printable_amount(get_printable_amount_parameters_t *params)
 
     if (!format_fpu64_trimmed(params->printable_amount,
                               sizeof(params->printable_amount), amount,
-                              DECIMALS)) {
+                              decimals)) {
         PRINTF("[ERROR] Fail to print amount\n");
         goto error;
     }
 
     strlcat(params->printable_amount, " ", sizeof(params->printable_amount));
-    strlcat(params->printable_amount, TICKER,
+    strlcat(params->printable_amount, ticker,
             sizeof(params->printable_amount));
 
     FUNC_LEAVE();
@@ -128,6 +145,11 @@ typedef struct {
     uint64_t amount;
     uint64_t fee;  /// Contains transaction fees plus reveal fees, if any.
     char     destination_address[ADDRESS_MAX_SIZE];
+    /// Set when the Exchange application gave us a coin configuration, i.e.
+    /// when the currency being sent is an FA2 token rather than tez.
+    bool    is_token;
+    char    ticker[TICKER_MAX_SIZE];  /// ticker of that token
+    uint8_t decimals;                 /// its number of decimals
 } swap_transaction_parameters_t;
 
 static swap_transaction_parameters_t G_swap_params;
@@ -156,6 +178,21 @@ swap_copy_transaction_parameters(create_transaction_parameters_t *params)
                          &params_copy.fee)) {
         PRINTF("[ERROR] Fail to parse fee\n");
         goto error;
+    }
+
+    /* A coin configuration means the swap sends a token, not tez. Without one
+     * we have no way to tell which token an FA2 transfer moves, so token
+     * swaps are only accepted when the Exchange application provides it. */
+    if ((params->coin_configuration != NULL)
+        && (params->coin_configuration_length > 0)) {
+        if (!swap_parse_config(params->coin_configuration,
+                               params->coin_configuration_length,
+                               params_copy.ticker, sizeof(params_copy.ticker),
+                               &params_copy.decimals)) {
+            PRINTF("[ERROR] Fail to parse coin configuration\n");
+            goto error;
+        }
+        params_copy.is_token = true;
     }
 
     if (params->destination_address == NULL) {
@@ -208,15 +245,49 @@ swap_check_validity(void)
     TZ_ASSERT(EXC_REJECT, op->nb_reveal <= 1);
     TZ_ASSERT(EXC_REJECT, (op->batch_index - op->nb_reveal) == 1);
     TZ_ASSERT(EXC_REJECT, op->last_tag == TZ_OPERATION_TAG_TRANSACTION);
-    TZ_ASSERT(EXC_REJECT, op->total_amount == G_swap_params.amount);
     TZ_ASSERT(EXC_REJECT, op->total_fee == G_swap_params.fee);
 
-    tz_format_address(op->destination, 22, dstaddr, sizeof(dstaddr));
+    if (G_swap_params.is_token) {
+        /* A token swap is an FA2 `transfer` call on the token contract: the
+         * operation carries no tez, its destination is the contract, and the
+         * recipient and the amount live in the Michelson parameters. */
+        const fa2_token_metadata_t *token;
 
-    PRINTF("[DEBUG] dstaddr=\"%s\"\n", dstaddr);
-    PRINTF("[DEBUG] G...dstaddr=\"%s\"\n", G_swap_params.destination_address);
-    TZ_ASSERT(EXC_REJECT,
-              !strcmp(dstaddr, G_swap_params.destination_address));
+        TZ_ASSERT(EXC_REJECT, op->total_amount == 0);
+
+        /* Set only when the parser decoded a single, complete transfer.
+         * Anything else - several transfers, an unsupported encoding, an
+         * amount we cannot represent - leaves it clear. */
+        TZ_ASSERT(EXC_REJECT, op->fa2_swap_ok);
+
+        /* The token being moved must be the one the swap was quoted for. The
+         * ticker comes from the Ledger-signed coin configuration, so matching
+         * it against the registry entry of the contract actually called ties
+         * the two together. */
+        token = fa2_find_token(op->destination, op->fa2_token_id);
+        TZ_ASSERT(EXC_REJECT, token != NULL);
+        PRINTF("[DEBUG] token=\"%s\" ticker=\"%s\"\n", token->symbol,
+               G_swap_params.ticker);
+        TZ_ASSERT(EXC_REJECT, !strcmp(token->symbol, G_swap_params.ticker));
+        TZ_ASSERT(EXC_REJECT, token->decimals == G_swap_params.decimals);
+
+        PRINTF("[DEBUG] fa2 dstaddr=\"%s\"\n", op->fa2_destination);
+        PRINTF("[DEBUG] G...dstaddr=\"%s\"\n",
+               G_swap_params.destination_address);
+        TZ_ASSERT(EXC_REJECT, !strcmp(op->fa2_destination,
+                                      G_swap_params.destination_address));
+        TZ_ASSERT(EXC_REJECT, op->fa2_amount == G_swap_params.amount);
+    } else {
+        TZ_ASSERT(EXC_REJECT, op->total_amount == G_swap_params.amount);
+
+        tz_format_address(op->destination, 22, dstaddr, sizeof(dstaddr));
+
+        PRINTF("[DEBUG] dstaddr=\"%s\"\n", dstaddr);
+        PRINTF("[DEBUG] G...dstaddr=\"%s\"\n",
+               G_swap_params.destination_address);
+        TZ_ASSERT(EXC_REJECT,
+                  !strcmp(dstaddr, G_swap_params.destination_address));
+    }
 
     TZ_POSTAMBLE;
 }

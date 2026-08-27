@@ -254,6 +254,9 @@ typedef struct {
 #define TZ_OPERATION_SOURCE_SIZE      22
 #define TZ_OPERATION_DESTINATION_SIZE 22
 
+/// Base58 Tezos addresses (tz1/tz2/tz3/tz4/KT1) are 36 characters long
+#define TZ_OPERATION_FA2_ADDR_SIZE 37
+
 /**
  * @brief This struct represents the parser of operations
  *
@@ -288,7 +291,15 @@ typedef struct {
 #ifdef HAVE_SWAP
     tz_operation_tag last_tag;   /// last operations tag encountered
     uint16_t         nb_reveal;  /// number of reveal encountered
-#endif                           // HAVE_SWAP
-    uint64_t total_fee;          /// last fee encountered
-    uint64_t total_amount;       /// last amount encountered
+    /// A single FA2 `transfer` was decoded in full. The three fields below
+    /// are meaningful only then. They are kept here, and not in the parser
+    /// frame, because swap validation reads them once parsing is over: see
+    /// swap_check_validity() in handle_swap.c.
+    uint8_t  fa2_swap_ok : 1;
+    uint64_t fa2_token_id;  /// token id of that transfer
+    uint64_t fa2_amount;    /// its amount, in the token's smallest unit
+    char     fa2_destination[TZ_OPERATION_FA2_ADDR_SIZE];  /// its `to_`
+#endif                                                     // HAVE_SWAP
+    uint64_t total_fee;     /// last fee encountered
+    uint64_t total_amount;  /// last amount encountered
 } tz_operation_state;

@@ -22,7 +22,7 @@ from utils.backend import TezosBackend, Version
 
 def test_version(backend: TezosBackend):
     """Test that the app version is the same as the current version."""
-    current_version = Version(Version.AppKind.WALLET, 3, 2, 2)
+    current_version = Version(Version.AppKind.WALLET, 3, 2, 4)
 
     data = backend.version()
 

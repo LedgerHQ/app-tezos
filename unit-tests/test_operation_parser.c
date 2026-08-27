@@ -199,6 +199,36 @@ check_field_complexity(operation_parser_data *data, char *str,
     }
 }
 
+#ifdef HAVE_SWAP
+/* Parse a whole operation, discarding what it prints. Used to inspect the
+   parser state a swap validation would see. */
+static void
+parse_to_completion(operation_parser_data *data, char *str)
+{
+    fill_data_str(data, str);
+    tz_operation_parser_set_size(data->state, (uint16_t)data->str_len);
+    tz_parser_state *st = data->state;
+    while (true) {
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+        }
+        switch (st->errno) {
+        case TZ_BLO_FEED_ME:
+            refill(data);
+            tz_parser_refill(st, data->ibuf, data->ilen);
+            continue;
+        case TZ_BLO_IM_FULL:
+            tz_parser_flush(st, data->obuf, data->olen);
+            continue;
+        case TZ_BLO_DONE:
+            return;
+        default:
+            fail_msg("%s:%d parsing error: %s", __FILE__, __LINE__,
+                     tz_parser_result_name(st->errno));
+        }
+    }
+}
+#endif  // HAVE_SWAP
+
 static void
 check_parser_error(operation_parser_data *data, char *str,
                    tz_parser_result expected)
@@ -1200,6 +1230,73 @@ test_check_fa2_transfer_clear_signing_token_id_gt0(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
+#ifdef HAVE_SWAP
+/* LIVE-36514: a swap paying with an FA2 token signs a `transfer` call, so the
+   recipient and the amount are inside the Michelson parameters and the
+   operation itself carries no tez. Check that the parser hands
+   swap_check_validity() what it needs to match them against the parameters
+   the Exchange application validated.
+
+   This is the operation Ledger Live sent when swapping 100.106851 USDt, with
+   its branch zeroed. */
+static void
+test_check_fa2_transfer_swap_fields(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000a389bc5f";
+    /* KT1XnTn74bUtxHfDtBmm2bGZAQfhPbvKWR8o, the Tether USD contract */
+    const uint8_t usdt_contract[TZ_OPERATION_DESTINATION_SIZE]
+        = {0x01, 0xfe, 0x81, 0x09, 0x59, 0xc3, 0xd6, 0x12, 0x7a, 0x41, 0xcb,
+           0xd4, 0x71, 0xe7, 0xcb, 0x4e, 0x91, 0xa6, 0x1b, 0x78, 0x0b, 0x00};
+
+    parse_to_completion(data, str);
+
+    assert_int_equal(data->state->operation.total_fee, 2000);
+    /* A contract call moves no tez. Comparing this against the swap amount is
+       what used to make the application reject the operation. */
+    assert_int_equal(data->state->operation.total_amount, 0);
+    assert_memory_equal(data->state->operation.destination, usdt_contract,
+                        sizeof(usdt_contract));
+
+    assert_true(data->state->operation.fa2_swap_ok);
+    assert_int_equal(data->state->operation.fa2_token_id, 0);
+    assert_int_equal(data->state->operation.fa2_amount, 100106851);
+    assert_string_equal(data->state->operation.fa2_destination,
+                        "tz1drcp5n9mkJ2eDQQsHBBSDetKJ9s5aKox4");
+}
+
+/* A transfer the FA2 decoder cannot handle falls back to raw Micheline. There
+   is then no validated recipient or amount, so a swap must refuse it. */
+static void
+test_check_fa2_transfer_swap_fields_unset_on_fallback(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
+          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000009902"
+          "00000094070701000000244b543151576462415376615458573847576668664e68"
+          "33"
+          "4a4d6a6758766e5a4141544a570200000064070701000000247372314d79437752"
+          "38"
+          "33685a70684353716159535141705078504d65796b734a57576e680707000000a4"
+          "01070701000000247372314d794377523833685a70684353716159535141705078"
+          "50"
+          "4d65796b734a57576e6807070000008803";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+}
+#endif  // HAVE_SWAP
+
 static void
 test_check_fa2_transfer_multi_item_fallback(void **state)
 {
@@ -1419,6 +1516,11 @@ main(void)
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_negative_amount_fallback),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_whole_number_amount),
+#ifdef HAVE_SWAP
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_fields),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_fields_unset_on_fallback),
+#endif  // HAVE_SWAP
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -1,0 +1,4 @@
+ragger[tests,speculos] >= 1.44.0
+protobuf
+ledger_app_clients.exchange >= 0.0.4
+GitPython

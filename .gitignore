@@ -15,6 +15,8 @@ integration_tests_log
 pattern_registry
 tests/samples
 tests/standalone/snapshots-tmp
+tests/swap/snapshots-tmp
+tests/swap/.test_dependencies/
 unit-tests/build
 *env/
 ledger/

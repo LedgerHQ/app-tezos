@@ -99,10 +99,8 @@ def fa2_transfer_parameters(source: str, destination: str, token_id: int, amount
     Pair(from_, [Pair(to_, Pair(token_id, amount))]), which is what Ledger Live
     sends for a token transfer.
     """
-    transfer = (MICHELINE_PAIR + micheline_string(destination) + MICHELINE_PAIR +
-                micheline_int(token_id) + micheline_int(amount))
-    return micheline_sequence(MICHELINE_PAIR + micheline_string(source) +
-                              micheline_sequence(transfer))
+    transfer = MICHELINE_PAIR + micheline_string(destination) + MICHELINE_PAIR + micheline_int(token_id) + micheline_int(amount)
+    return micheline_sequence(MICHELINE_PAIR + micheline_string(source) + micheline_sequence(transfer))
 
 
 def _operation_header(source_hash: bytes, fees: int) -> bytes:
@@ -127,8 +125,9 @@ def craft_native_transfer(source_hash: bytes, destination: str, amount: int, fee
     return payload
 
 
-def craft_fa2_transfer(source: str, source_hash: bytes, contract_hash: bytes, destination: str,
-                       token_id: int, amount: int, fees: int) -> bytes:
+def craft_fa2_transfer(
+    source: str, source_hash: bytes, contract_hash: bytes, destination: str, token_id: int, amount: int, fees: int
+) -> bytes:
     """An FA2 `transfer` call on a token contract.
 
     The operation carries no tez, its destination is the token contract, and

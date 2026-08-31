@@ -32,9 +32,20 @@ from ledger_app_clients.exchange.test_runner import ExchangeTestRunner
 from ragger.error import ExceptionRAPDU
 
 from . import cal_helper as cal
-from .tezos_transaction import (CLA, EXC_REJECT, INS_GET_PUBLIC_KEY, INS_SIGN, P1_FIRST, P1_LAST,
-                                P2_ED25519, STATUS_OK, blake2_hash_pubkey, craft_fa2_transfer,
-                                craft_native_transfer, encode_tz1)
+from .tezos_transaction import (
+    CLA,
+    EXC_REJECT,
+    INS_GET_PUBLIC_KEY,
+    INS_SIGN,
+    P1_FIRST,
+    P1_LAST,
+    P2_ED25519,
+    STATUS_OK,
+    blake2_hash_pubkey,
+    craft_fa2_transfer,
+    craft_native_transfer,
+    encode_tz1,
+)
 
 
 class TezosFa2Tests(ExchangeTestRunner):
@@ -69,8 +80,7 @@ class TezosFa2Tests(ExchangeTestRunner):
 
     def _get_device_address(self):
         """Read the device public key and derive its tz1 address."""
-        rapdu = self.backend.exchange(CLA, INS_GET_PUBLIC_KEY, P1_FIRST, P2_ED25519,
-                                      cal.XTZ_PACKED_DERIVATION_PATH)
+        rapdu = self.backend.exchange(CLA, INS_GET_PUBLIC_KEY, P1_FIRST, P2_ED25519, cal.XTZ_PACKED_DERIVATION_PATH)
         assert rapdu.status == STATUS_OK
         source_hash = blake2_hash_pubkey(rapdu.data[2:])
         return encode_tz1(source_hash), source_hash
@@ -80,41 +90,38 @@ class TezosFa2Tests(ExchangeTestRunner):
 
         A non-9000 answer raises, so the tampering cases can expect it.
         """
-        rapdu = self.backend.exchange(CLA, INS_SIGN, P1_FIRST, P2_ED25519,
-                                      cal.XTZ_PACKED_DERIVATION_PATH)
+        rapdu = self.backend.exchange(CLA, INS_SIGN, P1_FIRST, P2_ED25519, cal.XTZ_PACKED_DERIVATION_PATH)
         assert rapdu.status == STATUS_OK
         self.backend.exchange(CLA, INS_SIGN, P1_LAST, P2_ED25519, data=payload)
 
     def perform_final_tx(self, destination, send_amount, fees, memo):
         """Sign an FA2 `transfer` of `send_amount` tokens to `destination`."""
         source, source_hash = self._get_device_address()
-        assert source == self.valid_refund, \
-            f"Unexpected device address {source}, expected {self.valid_refund}"
+        assert source == self.valid_refund, f"Unexpected device address {source}, expected {self.valid_refund}"
 
-        self._sign(craft_fa2_transfer(source, source_hash, self.token_contract_hash, destination,
-                                      self.token_id, send_amount, fees))
+        self._sign(
+            craft_fa2_transfer(source, source_hash, self.token_contract_hash, destination, self.token_id, send_amount, fees)
+        )
 
     def perform_test_swap_fa2_valid_1(self):
         """The reported flow: swapping USDt must be signed."""
-        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1,
-                                            self.valid_fees_1, "")
+        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         try:
-            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1,
-                                                self.valid_fees_1, "")
+            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         except ExceptionRAPDU as e:
-            pytest.fail(f"The application refused to sign the FA2 token transfer with SW "
-                        f"0x{e.status:04x}. The operation moves {self.valid_send_amount_1} units "
-                        f"of USDt to {self.valid_destination_1}, both taken from the Michelson "
-                        f"parameters, and carries 0 mutez.")
+            pytest.fail(
+                f"The application refused to sign the FA2 token transfer with SW "
+                f"0x{e.status:04x}. The operation moves {self.valid_send_amount_1} units "
+                f"of USDt to {self.valid_destination_1}, both taken from the Michelson "
+                f"parameters, and carries 0 mutez."
+            )
         self.assert_exchange_is_started()
 
     def perform_test_swap_fa2_wrong_token(self):
         """Transferring a token other than the one quoted must be refused."""
-        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1,
-                                            self.valid_fees_1, "")
+        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         with pytest.raises(ExceptionRAPDU) as e:
-            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1,
-                                                self.valid_fees_1, "")
+            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         assert e.value.status == self.signature_refusal_error_code
         self.assert_exchange_is_started()
 
@@ -140,11 +147,9 @@ class TezosFa2NoTokenConfigTests(TezosFa2Tests):
     currency_configuration = cal.USDT_NO_TOKEN_CONFIGURATION
 
     def perform_test_swap_fa2_no_config(self):
-        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1,
-                                            self.valid_fees_1, "")
+        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         with pytest.raises(ExceptionRAPDU) as e:
-            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1,
-                                                self.valid_fees_1, "")
+            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         assert e.value.status == self.signature_refusal_error_code
         self.assert_exchange_is_started()
 
@@ -164,16 +169,13 @@ class TezosNativeSwapTests(TezosFa2Tests):
         self._sign(craft_native_transfer(source_hash, destination, send_amount, fees))
 
     def perform_test_swap_native_valid_1(self):
-        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1,
-                                            self.valid_fees_1, "")
-        self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1,
-                                            self.valid_fees_1, "")
+        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
+        self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         self.assert_exchange_is_started()
 
 
 # Use a class to reuse the same Speculos instance
 class TestsTezosSwap:
-
     @pytest.mark.parametrize("test_to_run", ["swap_native_valid_1"])
     def test_tezos_native_swap_control(self, backend, exchange_navigation_helper, test_to_run):
         """Sanity check: a native tez swap goes through with this exact setup."""
@@ -183,8 +185,7 @@ class TestsTezosSwap:
     def test_tezos_fa2(self, backend, exchange_navigation_helper, test_to_run):
         TezosFa2Tests(backend, exchange_navigation_helper).run_test(test_to_run)
 
-    @pytest.mark.parametrize("test_to_run",
-                             ["swap_wrong_amount", "swap_wrong_destination", "swap_wrong_fees"])
+    @pytest.mark.parametrize("test_to_run", ["swap_wrong_amount", "swap_wrong_destination", "swap_wrong_fees"])
     def test_tezos_fa2_tampered(self, backend, exchange_navigation_helper, test_to_run):
         """A tampered FA2 transfer must not be signed."""
         TezosFa2Tests(backend, exchange_navigation_helper).run_test(test_to_run)

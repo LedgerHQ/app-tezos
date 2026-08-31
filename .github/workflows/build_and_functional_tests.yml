@@ -27,6 +27,10 @@ on:
       - develop
   pull_request:
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   build_application:
     name: Build application using the reusable workflow

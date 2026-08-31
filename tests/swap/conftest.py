@@ -57,10 +57,7 @@ def snapshots_path():
 @pytest.fixture(scope="function")
 def exchange_navigation_helper(backend, navigator, snapshots_path, test_name):
     """Drive the Exchange screens and compare them against the snapshots."""
-    return ExchangeNavigationHelper(backend=backend,
-                                    navigator=navigator,
-                                    snapshots_path=snapshots_path,
-                                    test_name=test_name)
+    return ExchangeNavigationHelper(backend=backend, navigator=navigator, snapshots_path=snapshots_path, test_name=test_name)
 
 
 def pytest_collection_modifyitems(config, items):

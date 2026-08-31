@@ -1,4 +1,5 @@
 ragger[tests,speculos] >= 1.44.0
 protobuf
+base58
 ledger_app_clients.exchange >= 0.0.4
 GitPython

@@ -41,8 +41,11 @@
 #define ADDRESS_MAX_SIZE 63
 /* the smallest unit is microtez */
 #define DECIMALS         6
-/* Room for the ticker of a token swap, see swap_parse_config() */
-#define TICKER_MAX_SIZE  16
+/* Room for the ticker of a token swap. A ticker is only ever accepted when it
+ * matches the symbol of a registry token, so the registry sizes the buffer.
+ * swap_parse_config() refuses a ticker that does not leave two spare bytes,
+ * hence the extra byte on top of the symbol size. */
+#define TICKER_MAX_SIZE  (FA2_TOKEN_SYMBOL_LENGTH + 1)
 
 /* Check check_address_parameters_t.address_to_check against specified
  * parameters.
@@ -266,9 +269,13 @@ swap_check_validity(void)
          * the two together. */
         token = fa2_find_token(op->destination, op->fa2_token_id);
         TZ_ASSERT(EXC_REJECT, token != NULL);
-        PRINTF("[DEBUG] token=\"%s\" ticker=\"%s\"\n", token->symbol,
+        PRINTF("[DEBUG] token=\"%.*s\" ticker=\"%s\"\n",
+               (int)sizeof(token->symbol), token->symbol,
                G_swap_params.ticker);
-        TZ_ASSERT(EXC_REJECT, !strcmp(token->symbol, G_swap_params.ticker));
+        /* Bounded by the registry field: a symbol that fills it exactly
+         * carries no terminator. */
+        TZ_ASSERT(EXC_REJECT, !strncmp(token->symbol, G_swap_params.ticker,
+                                       sizeof(token->symbol)));
         TZ_ASSERT(EXC_REJECT, token->decimals == G_swap_params.decimals);
 
         PRINTF("[DEBUG] fa2 dstaddr=\"%s\"\n", op->fa2_destination);

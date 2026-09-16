@@ -12,3 +12,15 @@ directory = "./unit-tests/"
 
 [pytest.standalone]
 directory = "./tests/standalone/"
+
+[pytest.swap]
+directory = "./tests/swap/"
+[pytest.swap.dependencies]
+# `develop` is deliberate, and matches every other app declaring this block.
+# The CI (ledger-app-workflows reusable_swap_tests.yml) does not read this
+# section: it always builds app-exchange and app-ethereum from `develop`.
+# Pinning here would only make local runs diverge from what CI actually tests.
+testing_with_latest = [
+    { url = "https://github.com/LedgerHQ/app-exchange", ref = "develop", use_case = "dbg_use_test_keys" },
+    { url = "https://github.com/LedgerHQ/app-ethereum", ref = "develop", use_case = "use_test_keys" },
+]

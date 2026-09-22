@@ -13,10 +13,13 @@ on:
       - develop
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Call Ledger Python linters
-    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_python_checks.yml@v1
+    uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_python_checks.yml@0404474b2a3828026b63bd29841025db8e57eb80  # v1
     with:
       run_type_check: true
       src_directory: .

@@ -8,9 +8,12 @@ on:
     - develop
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   job_functional_tests:
-    uses: LedgerHQ/app-exchange/.github/workflows/reusable_swap_functional_tests.yml@develop
+    uses: LedgerHQ/app-exchange/.github/workflows/reusable_swap_functional_tests.yml@445797d4af46530daa4af104e4ce6d2c9af9204a  # develop
     with:
       branch_for_exchange: 'develop'
       branch_for_tezos: ${{ github.ref }}

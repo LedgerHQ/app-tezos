@@ -1177,8 +1177,13 @@ test_check_fa2_transfer_clear_signing_fields(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
+/* The registry is what ties a destination to the token these labels name.
+   Without an entry the decoded fields keep the careful-review gate that a
+   raw Micheline parameter would get.
+   NOTE: this fixture does not exercise the Micheline fallback - it takes the
+   unregistered-token path. The name it carried before said otherwise. */
 static void
-test_check_fa2_transfer_fallback_uses_complex_parameter(void **state)
+test_check_fa2_transfer_unregistered_keeps_review_gate(void **state)
 {
     operation_parser_data *data = *state;
     char                   str[]
@@ -1192,13 +1197,15 @@ test_check_fa2_transfer_fallback_uses_complex_parameter(void **state)
           "33685a70684353716159535141705078504d65796b734a57576e680707000100a4"
           "01";
     const tz_fields_check fields_check[] = {
-        {"Source",        false, 1},
-        {"Fee",           false, 2},
-        {"Storage limit", false, 3},
-        {"Amount",        false, 4},
-        {"Destination",   false, 5},
-        {"Entrypoint",    false, 8},
-        {"Parameter",     true,  9},
+        {"Source",             false, 1 },
+        {"Fee",                false, 2 },
+        {"Storage limit",      false, 3 },
+        {"Amount",             false, 4 },
+        {"Destination",        false, 5 },
+        {"Entrypoint",         false, 8 },
+        {"Transfer tokens to", true,  10},
+        {"Token ID",           true,  11},
+        {"Amount (raw)",       true,  12},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -1548,7 +1555,7 @@ main(void)
         OPERATION_PARSER_TEST(test_check_sc_rollup_originate_complexity),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_clear_signing_fields),
         OPERATION_PARSER_TEST(
-            test_check_fa2_transfer_fallback_uses_complex_parameter),
+            test_check_fa2_transfer_unregistered_keeps_review_gate),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_unregistered_decodes_fields),
         OPERATION_PARSER_TEST(

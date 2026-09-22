@@ -1201,7 +1201,11 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_stop(IM_FULL);
         }
         STRLCPY(state->field_info.field_name, "Transfer tokens to");
-        state->field_info.is_field_complex = false;
+        /* Only a registry entry authenticates the destination as the token
+           contract these labels claim. Without one the parameters keep the
+           careful-review gate that a raw Micheline expression would get. */
+        state->field_info.is_field_complex
+            = (op->frame->step_read_fa2.token_idx < 0);
         state->field_info.field_index++;
         /* For an unregistered token, show the raw token id before the raw
            amount so the user can tell which token is being moved. */
@@ -1226,7 +1230,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_raise(INVALID_STATE);
         }
         STRLCPY(state->field_info.field_name, "Token ID");
-        state->field_info.is_field_complex = false;
+        state->field_info.is_field_complex = true;
         state->field_info.field_index++;
         op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
         tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
@@ -1252,7 +1256,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
                 STRLCPY(state->field_info.field_name, "Amount (raw)");
             }
         }
-        state->field_info.is_field_complex = false;
+        state->field_info.is_field_complex
+            = (op->frame->step_read_fa2.token_idx < 0);
         state->field_info.field_index++;
         /* Pop the FA2 frame first, then push PRINT so PRINT pops to parent */
         tz_must(pop_frame(state));

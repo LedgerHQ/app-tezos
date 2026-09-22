@@ -1356,6 +1356,13 @@ tz_step_read_set_delegate_params(tz_parser_state *state)
         if (!op->frame->step_read_sdp.int_regs.stop) {
             tz_continue;
         }
+        if (op->frame->step_read_sdp.int_regs.sign) {
+            /* This path copies the magnitude only. A signed operand is
+               reparsed by the generic Micheline printer, which renders the
+               sign. */
+            tz_must(sdp_fail_to_micheline(state));
+            tz_continue;
+        }
         strlcpy(op->sdp_limit_decimal, state->buffers.num.decimal,
                 sizeof(op->sdp_limit_decimal));
         op->frame->step_read_sdp.sub_step = SDP_STEP_INNER_PAIR_TAG;
@@ -1392,6 +1399,10 @@ tz_step_read_set_delegate_params(tz_parser_state *state)
         tz_must(tz_parse_int_step(&state->buffers.num,
                                   &op->frame->step_read_sdp.int_regs, b));
         if (!op->frame->step_read_sdp.int_regs.stop) {
+            tz_continue;
+        }
+        if (op->frame->step_read_sdp.int_regs.sign) {
+            tz_must(sdp_fail_to_micheline(state));
             tz_continue;
         }
         strlcpy(op->sdp_edge_decimal, state->buffers.num.decimal,
@@ -1498,6 +1509,26 @@ tz_step_read_micheline(tz_parser_state *state)
  * @param size: capacity of the str buffer
  * @return bool: true on success, false if the result would not fit
  */
+/**
+ * @brief Insert a minus sign in front of a decimal magnitude, in place.
+ *
+ * @param str: NUL-terminated decimal magnitude
+ * @param size: capacity of the buffer holding `str`
+ * @return bool: false when the buffer cannot hold the extra character
+ */
+static bool
+tz_prepend_minus(char *str, size_t size)
+{
+    size_t len = strlen(str);
+
+    if ((len + 2) > size) {
+        return false;
+    }
+    memmove(str + 1, str, len + 1);
+    str[0] = '-';
+    return true;
+}
+
 static bool
 tz_format_amount(char *str, size_t size)
 {
@@ -1600,6 +1631,14 @@ tz_step_read_num(tz_parser_state *state)
         op->frame->step = TZ_OPERATION_STEP_PRINT;
         switch (op->frame->step_read_num.kind) {
         case TZ_OPERATION_FIELD_INT:
+            /* The magnitude and the sign are parsed into separate places and
+               only the magnitude reaches `decimal`. */
+            if (op->frame->step_read_num.state.sign
+                && !tz_prepend_minus(str,
+                                     sizeof(state->buffers.num.decimal))) {
+                tz_raise(INVALID_DATA);
+            }
+            break;
         case TZ_OPERATION_FIELD_NAT:
             break;
         case TZ_OPERATION_FIELD_FEE:

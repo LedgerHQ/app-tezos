@@ -1450,10 +1450,51 @@ test_check_fa2_transfer_unregistered_decodes_fields(void **state)
     assert_string_equal(value, "100");
 }
 
+/* increase_paid_storage carries a signed Amount. The sign must reach the
+   review screen: same bytes as the simple transaction, tag 0x71 and bit 6 of
+   the first Zarith byte set. */
+static void
+test_check_inc_paid_storage_negative_amount(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "7100ffdd6102321bc251e4a5190ad5b12b251069d9b4a0c21e020304d04e010000"
+          "00000000000000000000000000000000000000";
+    char value[64];
+
+    capture_field_value(data, str, "Amount", value, sizeof(value));
+    assert_string_equal(value, "-5008");
+}
+
+/* The set_delegate_parameters fast path renders the magnitude only, so a
+   signed operand must be handed to the generic Micheline printer. Same bytes
+   as the working case with bit 6 of the first operand's leading byte set. */
+static void
+test_check_set_delegate_parameters_negative_falls_back(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad"
+          "922d045c068660fabe19576f8506a1fa8fa3ff0900000010070700c0a4e8030707"
+          "0080b48913030b";
+    char value[256];
+
+    /* The fast path emits "Limit (stake/bake)" / "Edge (bake/stake)" and
+       never a "Parameter" field, so requiring one both proves the fallback
+       happened and lets the rendered sign be asserted. */
+    capture_field_value(data, str, "Parameter", value, sizeof(value));
+    assert_string_equal(value, "Pair -4000000 (Pair 20000000 Unit)");
+}
+
 int
 main(void)
 {
     const struct CMUnitTest tests[] = {
+        OPERATION_PARSER_TEST(test_check_inc_paid_storage_negative_amount),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_negative_falls_back),
         OPERATION_PARSER_TEST(test_check_proposals_complexity),
         OPERATION_PARSER_TEST(test_check_ballot_complexity),
         OPERATION_PARSER_TEST(test_check_failing_noop_complexity),

@@ -54,3 +54,30 @@ target_link_libraries(test_operation_parser PRIVATE
 )
 
 add_test(NAME test_operation_parser COMMAND test_operation_parser)
+
+add_executable(test_formatting
+  test_formatting.c
+  strlcpy.c
+  digestif/sha256.c
+  ../app/src/parser/formatting.c
+)
+
+target_include_directories(test_formatting PRIVATE
+  ../app/src/parser
+  digestif
+)
+
+target_compile_options(test_formatting PRIVATE
+  -Wall
+  -Wextra
+  -Wconversion
+  -Wredundant-decls
+  -Wshadow
+  -Wno-unused-parameter
+)
+
+target_link_libraries(test_formatting PRIVATE
+  cmocka
+)
+
+add_test(NAME test_formatting COMMAND test_formatting)

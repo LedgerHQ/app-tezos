@@ -81,3 +81,32 @@ target_link_libraries(test_formatting PRIVATE
 )
 
 add_test(NAME test_formatting COMMAND test_formatting)
+
+# ui_strings.c includes SDK headers, so shims/ stands in for them. It must come
+# first so that <io.h>, <os.h> and "globals.h" resolve to the host versions.
+add_executable(test_ui_strings
+  test_ui_strings.c
+  strlcpy.c
+  ../app/src/ui/ui_strings.c
+)
+
+target_include_directories(test_ui_strings PRIVATE
+  shims
+  ../app/src
+  ../app/src/ui
+)
+
+# No -Wredundant-decls here: ui_strings.c repeats the prototypes of its header.
+target_compile_options(test_ui_strings PRIVATE
+  -Wall
+  -Wextra
+  -Wconversion
+  -Wshadow
+  -Wno-unused-parameter
+)
+
+target_link_libraries(test_ui_strings PRIVATE
+  cmocka
+)
+
+add_test(NAME test_ui_strings COMMAND test_ui_strings)

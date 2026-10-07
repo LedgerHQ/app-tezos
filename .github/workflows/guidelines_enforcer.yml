@@ -23,4 +23,10 @@ permissions:
 jobs:
   guidelines_enforcer:
     name: Call Ledger guidelines_enforcer
+    # A called workflow cannot be granted more than its caller allows; these are the scopes
+    # reusable_guidelines_enforcer declares.
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: write
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_guidelines_enforcer.yml@0404474b2a3828026b63bd29841025db8e57eb80  # v1

@@ -21,6 +21,6 @@ directory = "./tests/swap/"
 # section: it always builds app-exchange and app-ethereum from `develop`.
 # Pinning here would only make local runs diverge from what CI actually tests.
 testing_with_latest = [
-    { url = "https://github.com/LedgerHQ/app-exchange", ref = "develop", use_case = "dbg_use_test_keys" },
-    { url = "https://github.com/LedgerHQ/app-ethereum", ref = "develop", use_case = "use_test_keys" },
+    { url = "https://github.com/LedgerHQ/app-exchange-dev", ref = "develop", use_case = "dbg_use_test_keys" },
+    { url = "https://github.com/LedgerHQ/app-ethereum-dev", ref = "develop", use_case = "use_test_keys" },
 ]

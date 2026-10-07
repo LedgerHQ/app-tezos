@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 # Copyright 2024 Functori <contact@functori.com>
 # Copyright 2024 Trilitech <contact@trili.tech>
 

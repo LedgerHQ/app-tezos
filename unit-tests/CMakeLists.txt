@@ -110,3 +110,27 @@ target_link_libraries(test_ui_strings PRIVATE
 )
 
 add_test(NAME test_ui_strings COMMAND test_ui_strings)
+
+add_executable(test_swap_key_policy
+  test_swap_key_policy.c
+  ../app/src/swap_key_policy.c
+)
+
+target_include_directories(test_swap_key_policy PRIVATE
+  ../app/src
+)
+
+target_compile_options(test_swap_key_policy PRIVATE
+  -Wall
+  -Wextra
+  -Wconversion
+  -Wredundant-decls
+  -Wshadow
+  -Wno-unused-parameter
+)
+
+target_link_libraries(test_swap_key_policy PRIVATE
+  cmocka
+)
+
+add_test(NAME test_swap_key_policy COMMAND test_swap_key_policy)

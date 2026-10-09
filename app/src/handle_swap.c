@@ -31,6 +31,7 @@
 #include "format.h"
 #include "handle_swap.h"
 #include "keys.h"
+#include "swap_key_policy.h"
 #include "utils.h"
 
 #include "parser/fa2_tokens.h"
@@ -231,7 +232,10 @@ swap_check_validity(void)
 {
     tz_operation_state *op
         = &global.keys.apdu.sign.u.clear.parser_state.operation;
-    char dstaddr[ADDRESS_MAX_SIZE];
+    char                 dstaddr[ADDRESS_MAX_SIZE];
+    char                 signer[ADDRESS_MAX_SIZE];
+    char                 source[ADDRESS_MAX_SIZE];
+    cx_ecfp_public_key_t pubkey;
     TZ_PREAMBLE((""));
 
     if (!G_called_from_swap) {
@@ -249,6 +253,27 @@ swap_check_validity(void)
     TZ_ASSERT(EXC_REJECT, (op->batch_index - op->nb_reveal) == 1);
     TZ_ASSERT(EXC_REJECT, op->last_tag == TZ_OPERATION_TAG_TRANSACTION);
     TZ_ASSERT(EXC_REJECT, op->total_fee == G_swap_params.fee);
+
+    /* The Exchange application gives us the amount, the fee and the
+     * destination, but not the account that pays, and nothing on screen tells
+     * the user which one signs. So the host does not get to choose the key:
+     * it has to be an account key of the kind the swap flow uses, and the
+     * operation has to come from that very key. This is checked here, right
+     * before signing, and not only when the key was set up. */
+    TZ_ASSERT(EXC_REJECT, swap_signing_key_allowed(
+                              global.path_with_curve.derivation_type
+                                  == DERIVATION_TYPE_ED25519,
+                              global.path_with_curve.bip32_path.components,
+                              global.path_with_curve.bip32_path.length));
+    TZ_LIB_CHECK(derive_pk(&pubkey, global.path_with_curve.derivation_type,
+                           &global.path_with_curve.bip32_path));
+    TZ_LIB_CHECK(derive_pkh(&pubkey, global.path_with_curve.derivation_type,
+                            signer, sizeof(signer)));
+    /* The source is the 21 bytes of a public key hash, as in the parser. */
+    TZ_ASSERT(EXC_REJECT,
+              tz_format_pkh(op->source, 21, source, sizeof(source)) == 0);
+    PRINTF("[DEBUG] source=\"%s\" signer=\"%s\"\n", source, signer);
+    TZ_ASSERT(EXC_REJECT, !strcmp(source, signer));
 
     if (G_swap_params.is_token) {
         /* A token swap is an FA2 `transfer` call on the token contract: the

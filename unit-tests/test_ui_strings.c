@@ -72,7 +72,7 @@ push_filled(char c, size_t len)
 static void
 test_append_last_without_contiguous_room(void **state)
 {
-    tz_ui_strings_t *s = ring();
+    tz_ui_strings_t *s   = ring();
     char            *out = NULL;
     char            *end_before;
     size_t           appended;
@@ -109,7 +109,8 @@ test_append_last_with_room(void **state)
 
 /* Two contiguous bytes remain after `end`: the append is clipped to one
    character. `end` stays one past the terminator, so a byte is left over and
-   a further append writes nothing. It must stay inside the ring throughout. */
+   a further append writes nothing. It must stay inside the ring throughout.
+ */
 static void
 test_append_last_is_clipped_to_the_remaining_room(void **state)
 {

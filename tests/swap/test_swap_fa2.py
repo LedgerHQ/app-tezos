@@ -78,9 +78,9 @@ class TezosFa2Tests(ExchangeTestRunner):
 
     signature_refusal_error_code = EXC_REJECT
 
-    def _get_device_address(self):
-        """Read the device public key and derive its tz1 address."""
-        rapdu = self.backend.exchange(CLA, INS_GET_PUBLIC_KEY, P1_FIRST, P2_ED25519, cal.XTZ_PACKED_DERIVATION_PATH)
+    def _get_device_address(self, packed_path=cal.XTZ_PACKED_DERIVATION_PATH):
+        """Read the device public key at `packed_path` and derive its tz1 address."""
+        rapdu = self.backend.exchange(CLA, INS_GET_PUBLIC_KEY, P1_FIRST, P2_ED25519, packed_path)
         assert rapdu.status == STATUS_OK
         source_hash = blake2_hash_pubkey(rapdu.data[2:])
         return encode_tz1(source_hash), source_hash

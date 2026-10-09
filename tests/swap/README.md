@@ -66,6 +66,8 @@ dependencies declared under `[pytest.swap.dependencies]` in `ledger_app.toml`.
 | `test_tezos_fa2_tampered` | A tampered amount, destination or fee is refused. |
 | `test_tezos_fa2_wrong_token` | Transferring a different registered token is refused. |
 | `test_tezos_fa2_without_token_config` | Without a sub-coin configuration the swap is refused. |
+| `test_tezos_swap_signing_key` | A key of another curve, of another coin or with an unhardened path is refused when it is set up, and an operation whose source is not the signing key is refused when it is checked (V-001). |
+| `test_replay`, `test_replay_as_captured` | The captured Ledger Live signing requests, four component path included, are signed once the token is known, and refused without it. |
 
 That last case is worth keeping in mind: the Exchange application forwards only
 the sub-coin configuration to the coin application, never the ticker. The CAL

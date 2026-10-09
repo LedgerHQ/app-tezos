@@ -16,13 +16,11 @@ jobs:
   job_unit_test:
     name: Call Ledger unit_test
     # A called workflow cannot be granted more than its caller allows; reusable_unit_tests declares
-    # actions: write (for upload-artifact) and, in its coverage job, pull-requests: write and
-    # code-quality: write (PR comment and native PR coverage).
+    # actions: write (for upload-artifact) and, in its coverage job, pull-requests: write (PR comment).
     permissions:
       contents: read
       actions: write
       pull-requests: write
-      code-quality: write
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_unit_tests.yml@0404474b2a3828026b63bd29841025db8e57eb80  # v1
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}

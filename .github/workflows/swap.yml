@@ -19,7 +19,7 @@ jobs:
       contents: write
       actions: write
       pull-requests: write
-    uses: LedgerHQ/app-exchange-dev/.github/workflows/reusable_swap_functional_tests.yml@develop
+    uses: LedgerHQ/app-exchange-dev/.github/workflows/reusable_swap_functional_tests.yml@140d73c2c91ea36502f694570ce262068223a3a8  # develop
 
     with:
       branch_for_tezos: ${{ github.ref }}

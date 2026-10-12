@@ -1508,13 +1508,6 @@ tz_step_read_micheline(tz_parser_state *state)
 }
 
 /**
- * @brief Format a string as an amount
- *
- * @param str: string to format (in place)
- * @param size: capacity of the str buffer
- * @return bool: true on success, false if the result would not fit
- */
-/**
  * @brief Insert a minus sign in front of a decimal magnitude, in place.
  *
  * @param str: NUL-terminated decimal magnitude
@@ -1534,6 +1527,13 @@ tz_prepend_minus(char *str, size_t size)
     return true;
 }
 
+/**
+ * @brief Format a string as an amount
+ *
+ * @param str: string to format (in place)
+ * @param size: capacity of the str buffer
+ * @return bool: true on success, false if the result would not fit
+ */
 static bool
 tz_format_amount(char *str, size_t size)
 {

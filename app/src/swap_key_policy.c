@@ -21,16 +21,18 @@
 #define PATH_COIN_TYPE (BIP32_HARDENED | 1729u)
 
 /* Exchange derives the refund address from 44'/1729'/account' and Ledger Live
-   signs with 44'/1729'/account'/0'. Both are in use, so both are accepted. */
+   signs with 44'/1729'/account'/0'. Both are in use, so both are accepted,
+   and nothing else: the change level of the four component form is always 0'.
+   The account is the one part of the path that cannot be pinned, as Exchange
+   does not tell the application which account the user approved. */
 #define PATH_MIN_LENGTH 3u
 #define PATH_MAX_LENGTH 4u
+#define PATH_CHANGE     (BIP32_HARDENED | 0u)
 
 bool
 swap_signing_key_allowed(bool is_ed25519, const uint32_t *components,
                          size_t length)
 {
-    size_t i;
-
     if (!is_ed25519 || (components == NULL)) {
         return false;
     }
@@ -41,10 +43,11 @@ swap_signing_key_allowed(bool is_ed25519, const uint32_t *components,
         || (components[1] != PATH_COIN_TYPE)) {
         return false;
     }
-    for (i = 2; i < length; i++) {
-        if ((components[i] & BIP32_HARDENED) == 0) {
-            return false;
-        }
+    if ((components[2] & BIP32_HARDENED) == 0) {
+        return false;
+    }
+    if ((length == PATH_MAX_LENGTH) && (components[3] != PATH_CHANGE)) {
+        return false;
     }
     return true;
 }

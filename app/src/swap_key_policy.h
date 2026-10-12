@@ -26,7 +26,7 @@
  * A swap is signed without any review on the device, and the signing key is
  * chosen by the host. So it is limited to what the swap flow itself uses: an
  * ed25519 (tz1) key on a Tezos account path, 44'/1729'/account' or
- * 44'/1729'/account'/change', every component hardened.
+ * 44'/1729'/account'/0', every component hardened.
  *
  * @param is_ed25519: the derivation type is ed25519
  * @param components: path components

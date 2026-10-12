@@ -34,11 +34,26 @@ test_swap_key_accepts_the_paths_of_the_swap_flow(void **state)
 {
     const uint32_t live[]     = {H(44), H(1729), H(0), H(0)};
     const uint32_t exchange[] = {H(44), H(1729), H(0)};
-    const uint32_t account[]  = {H(44), H(1729), H(7), H(3)};
+    const uint32_t account[]  = {H(44), H(1729), H(7), H(0)};
+    const uint32_t account3[] = {H(44), H(1729), H(7)};
 
     assert_true(ALLOWED(true, live));
     assert_true(ALLOWED(true, exchange));
     assert_true(ALLOWED(true, account));
+    assert_true(ALLOWED(true, account3));
+}
+
+/* Both flows use change 0', so the host has no other level to pick. */
+static void
+test_swap_key_rejects_other_change_levels(void **state)
+{
+    const uint32_t next[]    = {H(44), H(1729), H(0), H(1)};
+    const uint32_t account[] = {H(44), H(1729), H(7), H(3)};
+    const uint32_t last[]    = {H(44), H(1729), H(0), H(0x7fffffffu)};
+
+    assert_false(ALLOWED(true, next));
+    assert_false(ALLOWED(true, account));
+    assert_false(ALLOWED(true, last));
 }
 
 /* Without the review screen nothing tells the user which curve signs. */
@@ -105,6 +120,7 @@ main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_swap_key_accepts_the_paths_of_the_swap_flow),
+        cmocka_unit_test(test_swap_key_rejects_other_change_levels),
         cmocka_unit_test(test_swap_key_rejects_other_derivation_types),
         cmocka_unit_test(test_swap_key_rejects_paths_outside_a_tezos_account),
         cmocka_unit_test(test_swap_key_rejects_unhardened_components),

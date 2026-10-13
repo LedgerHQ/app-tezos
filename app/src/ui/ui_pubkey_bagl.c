@@ -55,10 +55,15 @@ UX_STEP_NOCB(ux_pubkey_review_step, pbb,
 #endif
 UX_STEP_NOCB(ux_pubkey_address_step, bn_paging,
            {"Address", G_pubkey.address});
+/* UX_STEP_CB defines a <step>_validateinit() function with external linkage
+   and no prior prototype, which -Wmissing-prototypes rejects. */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
 UX_STEP_CB(ux_pubkey_confirm_step, pb, ux_pubkey_callback(true),
            {&C_icon_validate_14, "Approve"});
 UX_STEP_CB(ux_pubkey_reject_step, pb, ux_pubkey_callback(false),
            {&C_icon_crossmark, "Reject"});
+#pragma clang diagnostic pop
 
 UX_FLOW(ux_pubkey_review_flow,
         &ux_pubkey_review_step,

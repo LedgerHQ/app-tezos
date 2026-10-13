@@ -42,11 +42,16 @@ blindsign_toggle()
     FUNC_LEAVE();
 }
 
+/* UX_STEP_CB defines a <step>_validateinit() function with external linkage
+   and no prior prototype, which -Wmissing-prototypes rejects. */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
 UX_STEP_CB(ux_expert_mode_step, bn, expert_mode_toggle(),
            {"Expert mode", G_settings.expert_mode_state});
 UX_STEP_CB(ux_blindsign_step, bn, blindsign_toggle(),
            {"Allow Blindsigning", G_settings.blindsign_state_desc});
 UX_STEP_CB(ux_back_step, pb, ui_home_init(), {&C_icon_back, "Back"});
+#pragma clang diagnostic pop
 
 UX_FLOW(ux_expert_mode_flow, &ux_expert_mode_step, &ux_blindsign_step,
         &ux_back_step, FLOW_LOOP);

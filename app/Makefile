@@ -21,7 +21,7 @@ ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
 
-include $(BOLOS_SDK)/Makefile.defines
+include $(BOLOS_SDK)/Makefile.target
 
 ########################################
 #        Mandatory configuration       #
@@ -99,34 +99,27 @@ ifneq ($(DEBUG), 0)
   DEFINES += TEZOS_DEBUG
 endif
 
-# CFLAGS
-ENABLE_SDK_WERROR=1
-CFLAGS   += -O3 -Os -Wall -Wextra
-CFLAGS   += -Wassign-enum
-#CFLAGS   += -Wbad-function-cast
-#CFLAGS   += -Wcast-align
-#CFLAGS   += -Wcast-qual
-CFLAGS   += -Wcomma
-CFLAGS   += -Wdeprecated
-#CFLAGS   += -Wmissing-prototypes
-CFLAGS   += -Wnull-pointer-arithmetic
-CFLAGS   += -Wover-aligned
-#CFLAGS   += -Wpointer-arith
-#CFLAGS   += -Wreserved-id-macro
-CFLAGS   += -Wshadow-all
-CFLAGS   += -Wsign-compare
-CFLAGS   += -Wstring-compare
-CFLAGS   += -Wstring-conversion
-CFLAGS   += -Wuninitialized
-#CFLAGS   += -Wunreachable-code-aggressive
-CFLAGS   += -Wwrite-strings
+########################################
+#           Compiler warnings          #
+########################################
+# The optimization level and the baseline warnings come from the SDK
+# (Makefile.defines): only add flags that are not already enabled there.
+# Makefile.defines is included by Makefile.standard_app, so the SDK switches
+# below must be set before it.
+ENABLE_SDK_WERROR = 1
+# The SDK sources are compiled with the app CFLAGS too, and are not clean for
+# every warning. To add one anyway, scope it to the app objects:
+#   $(OBJ_DIR)/app/%.o: CFLAGS += -W<name>
 
 ########################################
 #     Application custom permissions   #
 ########################################
 # See SDK `include/appflags.h` for the purpose of each permission
 #HAVE_APPLICATION_FLAG_DERIVE_MASTER = 1
-HAVE_APPLICATION_FLAG_LIBRARY = 1
+#HAVE_APPLICATION_FLAG_GLOBAL_PIN = 1
+#HAVE_APPLICATION_FLAG_BOLOS_SETTINGS = 1
+# HAVE_APPLICATION_FLAG_LIBRARY is set by ENABLE_SWAP
+#HAVE_APPLICATION_FLAG_LIBRARY = 1
 
 ########################################
 # Application communication interfaces #
@@ -134,12 +127,7 @@ HAVE_APPLICATION_FLAG_LIBRARY = 1
 ENABLE_BLUETOOTH = 1
 #ENABLE_NFC = 1
 ENABLE_SWAP = 1
-
-# U2F - used e.g. by Kukai wallet
-SDK_SOURCE_PATH  += lib_u2f lib_stusb_impl
-DEFINES   += USB_SEGMENT_SIZE=64
-DEFINES   += U2F_PROXY_MAGIC=\"XTZ\"
-DEFINES   += HAVE_IO_U2F HAVE_U2F
+# U2F (used e.g. by Kukai wallet) is enabled by default by the SDK standard app.
 
 ########################################
 #         NBGL custom features         #
@@ -147,6 +135,11 @@ DEFINES   += HAVE_IO_U2F HAVE_U2F
 ENABLE_NBGL_QRCODE = 1
 #ENABLE_NBGL_KEYBOARD = 1
 #ENABLE_NBGL_KEYPAD = 1
+
+########################################
+#        Stack protection features     #
+########################################
+ENABLE_STACK_PROTECTOR = 1
 
 ########################################
 #          Features disablers          #
@@ -160,6 +153,8 @@ ENABLE_NBGL_QRCODE = 1
 #DISABLE_STANDARD_USB = 1
 #DISABLE_STANDARD_WEBUSB = 1
 #DISABLE_STANDARD_BAGL_UX_FLOW = 1
+#DISABLE_DEBUG_LEDGER_ASSERT = 1
+#DISABLE_DEBUG_THROW = 1
 
 include $(BOLOS_SDK)/Makefile.standard_app
 
@@ -171,7 +166,7 @@ mrproper: clean
 .PHONY: app-size-report
 app-size-report: $(BIN_TARGETS) $(DBG_TARGETS)
 	@echo ""
-	@echo "Finished Concordium Ledger app ($(TARGET_NAME)) → $(BIN_DIR)/app.elf"
+	@echo "Finished Tezos Wallet app ($(TARGET_NAME)) → $(BIN_DIR)/app.elf"
 	$(L)$(GCCPATH)arm-none-eabi-size $(BIN_DIR)/app.elf
 
 default: app-size-report

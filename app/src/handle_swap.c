@@ -27,8 +27,8 @@
 #include <io.h>
 #include <string.h>
 #include <swap.h>
+#include <swap_error_code_helpers.h>
 
-#include "format.h"
 #include "handle_swap.h"
 #include "keys.h"
 #include "swap_key_policy.h"
@@ -158,8 +158,6 @@ typedef struct {
 
 static swap_transaction_parameters_t G_swap_params;
 
-static uint8_t *G_swap_transaction_result;
-
 /* Backup up transaction parameters and wipe BSS to avoid collusion with
  * app-exchange BSS data.
  *
@@ -215,8 +213,6 @@ swap_copy_transaction_parameters(create_transaction_parameters_t *params)
 
     os_explicit_zero_BSS_segment();
 
-    G_swap_transaction_result = &params->result;
-
     memcpy(&G_swap_params, &params_copy, sizeof(params_copy));
 
     FUNC_LEAVE();
@@ -226,6 +222,20 @@ error:
     FUNC_LEAVE();
     return false;
 }
+
+/* Refuse the swap when the condition does not hold: answer EXC_REJECT, with
+ * the error code that tells the Exchange application and the host what did
+ * not match (see tz_swap_error_t), and go back to the Exchange application.
+ *
+ * Doesn't return when the condition does not hold. */
+#define SWAP_ASSERT(_common, _app, _cond)                                \
+    do {                                                                 \
+        if (!(_cond)) {                                                  \
+            PRINTF("Swap refused (\"%s\") on %s:%u\n", #_cond, __FILE__, \
+                   __LINE__);                                            \
+            send_swap_error_simple(EXC_REJECT, (_common), (_app));       \
+        }                                                                \
+    } while (0)
 
 void
 swap_check_validity(void)
@@ -249,10 +259,14 @@ swap_check_validity(void)
 
     PRINTF("[DEBUG] batch_index = %u, nb_reveal=%d, tag=%d\n",
            op->batch_index, op->nb_reveal, op->last_tag);
-    TZ_ASSERT(EXC_REJECT, op->nb_reveal <= 1);
-    TZ_ASSERT(EXC_REJECT, (op->batch_index - op->nb_reveal) == 1);
-    TZ_ASSERT(EXC_REJECT, op->last_tag == TZ_OPERATION_TAG_TRANSACTION);
-    TZ_ASSERT(EXC_REJECT, op->total_fee == G_swap_params.fee);
+    SWAP_ASSERT(SWAP_EC_ERROR_WRONG_METHOD, TZ_SWAP_ERR_BATCH,
+                op->nb_reveal <= 1);
+    SWAP_ASSERT(SWAP_EC_ERROR_WRONG_METHOD, TZ_SWAP_ERR_BATCH,
+                (op->batch_index - op->nb_reveal) == 1);
+    SWAP_ASSERT(SWAP_EC_ERROR_WRONG_METHOD, TZ_SWAP_ERR_OPERATION,
+                op->last_tag == TZ_OPERATION_TAG_TRANSACTION);
+    SWAP_ASSERT(SWAP_EC_ERROR_WRONG_FEES, TZ_SWAP_ERR_FEE,
+                op->total_fee == G_swap_params.fee);
 
     /* The Exchange application gives us the amount, the fee and the
      * destination, but not the account that pays, and nothing on screen tells
@@ -260,20 +274,22 @@ swap_check_validity(void)
      * it has to be an account key of the kind the swap flow uses, and the
      * operation has to come from that very key. This is checked here, right
      * before signing, and not only when the key was set up. */
-    TZ_ASSERT(EXC_REJECT, swap_signing_key_allowed(
-                              global.path_with_curve.derivation_type
-                                  == DERIVATION_TYPE_ED25519,
-                              global.path_with_curve.bip32_path.components,
-                              global.path_with_curve.bip32_path.length));
+    SWAP_ASSERT(SWAP_EC_ERROR_GENERIC, TZ_SWAP_ERR_KEY,
+                swap_signing_key_allowed(
+                    global.path_with_curve.derivation_type
+                        == DERIVATION_TYPE_ED25519,
+                    global.path_with_curve.bip32_path.components,
+                    global.path_with_curve.bip32_path.length));
     TZ_LIB_CHECK(derive_pk(&pubkey, global.path_with_curve.derivation_type,
                            &global.path_with_curve.bip32_path));
     TZ_LIB_CHECK(derive_pkh(&pubkey, global.path_with_curve.derivation_type,
                             signer, sizeof(signer)));
     /* The source is the 21 bytes of a public key hash, as in the parser. */
-    TZ_ASSERT(EXC_REJECT,
-              tz_format_pkh(op->source, 21, source, sizeof(source)) == 0);
+    SWAP_ASSERT(SWAP_EC_ERROR_INTERNAL, TZ_SWAP_ERR_SOURCE,
+                tz_format_pkh(op->source, 21, source, sizeof(source)) == 0);
     PRINTF("[DEBUG] source=\"%s\" signer=\"%s\"\n", source, signer);
-    TZ_ASSERT(EXC_REJECT, !strcmp(source, signer));
+    SWAP_ASSERT(SWAP_EC_ERROR_GENERIC, TZ_SWAP_ERR_SOURCE,
+                !strcmp(source, signer));
 
     if (G_swap_params.is_token) {
         /* A token swap is an FA2 `transfer` call on the token contract: the
@@ -281,57 +297,55 @@ swap_check_validity(void)
          * recipient and the amount live in the Michelson parameters. */
         const fa2_token_metadata_t *token;
 
-        TZ_ASSERT(EXC_REJECT, op->total_amount == 0);
+        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_AMOUNT, TZ_SWAP_ERR_TOKEN_TEZ,
+                    op->total_amount == 0);
 
         /* Set only when the parser decoded a single, complete transfer.
          * Anything else - several transfers, an unsupported encoding, an
          * amount we cannot represent - leaves it clear. */
-        TZ_ASSERT(EXC_REJECT, op->fa2_swap_ok);
+        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_METHOD, TZ_SWAP_ERR_TOKEN_TRANSFER,
+                    op->fa2_swap_ok);
 
         /* The token being moved must be the one the swap was quoted for. The
          * ticker comes from the Ledger-signed coin configuration, so matching
          * it against the registry entry of the contract actually called ties
          * the two together. */
         token = fa2_find_token(op->destination, op->fa2_token_id);
-        TZ_ASSERT(EXC_REJECT, token != NULL);
+        SWAP_ASSERT(SWAP_EC_ERROR_GENERIC, TZ_SWAP_ERR_TOKEN_UNKNOWN,
+                    token != NULL);
         PRINTF("[DEBUG] token=\"%.*s\" ticker=\"%s\"\n",
                (int)sizeof(token->symbol), token->symbol,
                G_swap_params.ticker);
         /* Bounded by the registry field: a symbol that fills it exactly
          * carries no terminator. */
-        TZ_ASSERT(EXC_REJECT, !strncmp(token->symbol, G_swap_params.ticker,
-                                       sizeof(token->symbol)));
-        TZ_ASSERT(EXC_REJECT, token->decimals == G_swap_params.decimals);
+        SWAP_ASSERT(SWAP_EC_ERROR_GENERIC, TZ_SWAP_ERR_TOKEN_TICKER,
+                    !strncmp(token->symbol, G_swap_params.ticker,
+                             sizeof(token->symbol)));
+        SWAP_ASSERT(SWAP_EC_ERROR_GENERIC, TZ_SWAP_ERR_TOKEN_DECIMALS,
+                    token->decimals == G_swap_params.decimals);
 
         PRINTF("[DEBUG] fa2 dstaddr=\"%s\"\n", op->fa2_destination);
         PRINTF("[DEBUG] G...dstaddr=\"%s\"\n",
                G_swap_params.destination_address);
-        TZ_ASSERT(EXC_REJECT, !strcmp(op->fa2_destination,
-                                      G_swap_params.destination_address));
-        TZ_ASSERT(EXC_REJECT, op->fa2_amount == G_swap_params.amount);
+        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_DESTINATION, TZ_SWAP_ERR_DESTINATION,
+                    !strcmp(op->fa2_destination,
+                            G_swap_params.destination_address));
+        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_AMOUNT, TZ_SWAP_ERR_AMOUNT,
+                    op->fa2_amount == G_swap_params.amount);
     } else {
-        TZ_ASSERT(EXC_REJECT, op->total_amount == G_swap_params.amount);
+        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_AMOUNT, TZ_SWAP_ERR_AMOUNT,
+                    op->total_amount == G_swap_params.amount);
 
         tz_format_address(op->destination, 22, dstaddr, sizeof(dstaddr));
 
         PRINTF("[DEBUG] dstaddr=\"%s\"\n", dstaddr);
         PRINTF("[DEBUG] G...dstaddr=\"%s\"\n",
                G_swap_params.destination_address);
-        TZ_ASSERT(EXC_REJECT,
-                  !strcmp(dstaddr, G_swap_params.destination_address));
+        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_DESTINATION, TZ_SWAP_ERR_DESTINATION,
+                    !strcmp(dstaddr, G_swap_params.destination_address));
     }
 
     TZ_POSTAMBLE;
-}
-
-/* Set create_transaction.result and call os_lib_end().
- *
- * Doesn't return */
-void __attribute__((noreturn))
-swap_finalize_exchange_sign_transaction(bool is_success)
-{
-    *G_swap_transaction_result = is_success;
-    os_lib_end();
 }
 
 #else   // HAVE_SWAP

@@ -53,7 +53,11 @@ from .tezos_transaction import (
     P2_ED25519,
     P2_SECP256K1,
     STATUS_OK,
+    SWAP_EC_ERROR_GENERIC,
+    SWAP_ERR_KEY,
+    SWAP_ERR_SOURCE,
     craft_native_transfer,
+    swap_error,
 )
 
 
@@ -78,28 +82,32 @@ class TezosSigningKeyTests(TezosNativeSwapTests):
         payload = craft_native_transfer(source_hash, destination, send_amount, fees)
         self.backend.exchange(CLA, INS_SIGN, P1_LAST, self.sign_p2, data=payload)
 
-    def _swap_then_sign_refused(self, status):
-        """Run the swap and expect the signature to be refused with `status`."""
+    def _swap_then_sign_refused(self, status, error):
+        """Run the swap and expect the signature to be refused with `status`.
+
+        `error` is the data of the answer, which tells which check refused.
+        """
         self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         with pytest.raises(ExceptionRAPDU) as e:
             self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         assert e.value.status == status
+        assert e.value.data == error
         self.assert_exchange_is_started()
 
     def perform_test_swap_key_other_curve(self):
         """A key of another curve than ed25519 is refused: the swap is only ever checked for tz1."""
         self.sign_p2 = P2_SECP256K1
-        self._swap_then_sign_refused(EXC_WRONG_VALUES)
+        self._swap_then_sign_refused(EXC_WRONG_VALUES, swap_error(SWAP_EC_ERROR_GENERIC, SWAP_ERR_KEY))
 
     def perform_test_swap_key_other_coin(self):
         """A key of another coin, here Ethereum's, is refused."""
         self.sign_path = pack_derivation_path("m/44'/60'/0'")
-        self._swap_then_sign_refused(EXC_WRONG_VALUES)
+        self._swap_then_sign_refused(EXC_WRONG_VALUES, swap_error(SWAP_EC_ERROR_GENERIC, SWAP_ERR_KEY))
 
     def perform_test_swap_key_unhardened_path(self):
         """A path on the Tezos coin type with an unhardened account is refused."""
         self.sign_path = pack_derivation_path("m/44'/1729'/0")
-        self._swap_then_sign_refused(EXC_WRONG_VALUES)
+        self._swap_then_sign_refused(EXC_WRONG_VALUES, swap_error(SWAP_EC_ERROR_GENERIC, SWAP_ERR_KEY))
 
     def perform_test_swap_key_other_source(self):
         """An operation sent from another account than the one signing it is refused.
@@ -108,7 +116,7 @@ class TezosSigningKeyTests(TezosNativeSwapTests):
         the source gives it away.
         """
         self.source_path = pack_derivation_path("m/44'/1729'/1'")
-        self._swap_then_sign_refused(EXC_REJECT)
+        self._swap_then_sign_refused(EXC_REJECT, swap_error(SWAP_EC_ERROR_GENERIC, SWAP_ERR_SOURCE))
 
 
 # Use a class to reuse the same Speculos instance

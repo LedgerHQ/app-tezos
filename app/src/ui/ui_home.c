@@ -31,9 +31,14 @@
 UX_STEP_NOCB(ux_menu_ready_step, pnn,
              {&C_tezos_16px, "Application", "is ready"});
 UX_STEP_NOCB(ux_menu_version_step, bn, {"Version", APPVERSION});
+/* UX_STEP_CB defines a <step>_validateinit() function with external linkage
+   and no prior prototype, which -Wmissing-prototypes rejects. */
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
 UX_STEP_CB(ux_menu_settings_step, pb, ui_settings_init(SETTINGS_HOME_PAGE),
            {&C_icon_coggle, "Settings"});
 UX_STEP_CB(ux_menu_exit_step, pb, app_exit(), {&C_icon_dashboard_x, "Quit"});
+#pragma clang diagnostic pop
 
 // FLOW for the main menu:
 // #1 screen: ready

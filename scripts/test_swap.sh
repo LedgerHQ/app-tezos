@@ -18,12 +18,12 @@ set -x
 set -e
 
 usage() {
-    echo "Usage: ./scripts/test_swap.sh {build_app_tezos|build_app_ethereum|build_app_exchange|run_tests|run_tests_all|update} {nanos|nanosp|nanox|stax|flex|apex_p}"
+    echo "Usage: ./scripts/test_swap.sh {build_app_tezos|build_app_ethereum|build_app_exchange|run_tests|run_tests_all|update} {nanosp|nanox|stax|flex|apex_p}"
 }
 
 _assert_tezos_repo() {
     set +x
-    message="APP_TEZOS_REPO must refer to a clone of the https://github.com/trilitech/ledger-app-tezos-wallet repository"
+    message="APP_TEZOS_REPO must refer to a clone of the https://github.com/LedgerHQ/app-tezos-dev repository"
     if [ ! -v APP_TEZOS_REPO ]; then
         echo "The variable \$APP_TEZOS_REPO is missing"
         echo $message
@@ -57,7 +57,7 @@ _assert_eth_repo() {
 
 _assert_app_exchange_repo() {
     set +x
-    message="APP_EXCHANGE_REPO must refer to a clone of the https://github.com/functori/app-exchange repository"
+    message="APP_EXCHANGE_REPO must refer to a clone of the https://github.com/LedgerHQ/app-exchange-dev repository"
     if [ ! -v APP_EXCHANGE_REPO ]; then
         echo "The variable \$APP_EXCHANGE_REPO is missing"
         echo $message
@@ -72,7 +72,7 @@ _assert_app_exchange_repo() {
     set -x
 }
 
-devices=("nanos" "nanosp" "nanox" "stax" "flex" "apex_p")
+devices=("nanosp" "nanox" "stax" "flex" "apex_p")
 
 _assert_device() {
     set +x
@@ -121,7 +121,8 @@ _build_side_app() {
     device=$1
     name=$2
     repo=$3
-    name_elf=$name"_"$(echo $device | tr 'sp' 's2')".elf"
+    # Exchange names the Nano S+ binaries "nanos2", the other devices as is.
+    name_elf="${name}_${device/nanosp/nanos2}.elf"
     params="COIN=$name CHAIN=$name DEBUG=1"
 
     _build_app $device $repo $params

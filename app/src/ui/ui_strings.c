@@ -314,7 +314,7 @@ ui_strings_is_empty(void)
 }
 
 #ifdef TEZOS_DEBUG
-void
+static void
 ui_strings_next(char **p)
 {
     tz_ui_strings_t *s = UI_STRINGS;

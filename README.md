@@ -174,11 +174,12 @@ You can reset/set goldimages using the `--golden-run` option
 
 ### Requirement
 
-Our swap tests are located in the https://github.com/functori/app-exchange repository.
+The Exchange application tests of the Tezos swap are located in the https://github.com/LedgerHQ/app-exchange-dev repository.
 You must have a clone of this repository. In the commands below, it must be referenced in the `APP_EXCHANGE_REPO` variable.
+The swap tests that live in this repository are described in [tests/swap/README.md](tests/swap/README.md).
 
 In some of the commands below, other variables will be required:
-- `APP_TEZOS_REPO`: your clone of the https://github.com/trilitech/ledger-app-tezos-wallet repository
+- `APP_TEZOS_REPO`: your clone of the https://github.com/LedgerHQ/app-tezos-dev repository
 - `APP_ETH_REPO`: your clone of the https://github.com/LedgerHQ/app-ethereum repository
 The commands below will consider the version of the current branch of each repository.
 

@@ -1302,6 +1302,28 @@ test_check_fa2_transfer_swap_fields_unset_on_fallback(void **state)
 
     assert_false(data->state->operation.fa2_swap_ok);
 }
+
+/* The swap operation of test_check_fa2_transfer_swap_fields with the sign bit
+   of the amount set (0xa3 -> 0xe3): -100106851. The amount is kept signed
+   for display, and swap validation only takes digits, so the swap is
+   refused. Unsigned, it would have been validated against 100106851. */
+static void
+test_check_fa2_transfer_swap_fields_unset_on_negative_amount(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000e389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+}
 #endif  // HAVE_SWAP
 
 static void
@@ -1320,31 +1342,6 @@ test_check_fa2_transfer_multi_item_fallback(void **state)
           "01070701000000247372314d794377523833685a70684353716159535141705078"
           "50"
           "4d65796b734a57576e6807070000008803";
-    const tz_fields_check fields_check[] = {
-        {"Source",        false, 1},
-        {"Fee",           false, 2},
-        {"Storage limit", false, 3},
-        {"Amount",        false, 4},
-        {"Entrypoint",    false, 8},
-        {"Parameter",     true,  9},
-    };
-    check_field_complexity(data, str, fields_check, sizeof(fields_check));
-}
-
-static void
-test_check_fa2_transfer_negative_amount_fallback(void **state)
-{
-    operation_parser_data *data = *state;
-    char                   str[]
-        = "030000000000000000000000000000000000000000000000000000000000000000"
-          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
-          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006602"
-          "00000061070701000000244b543151576462415376615458573847576668664e68"
-          "33"
-          "4a4d6a6758766e5a4141544a570200000031070701000000247372314d79437752"
-          "38"
-          "33685a70684353716159535141705078504d65796b734a57576e6807070000004"
-          "1";
     const tz_fields_check fields_check[] = {
         {"Source",        false, 1},
         {"Fee",           false, 2},
@@ -1457,6 +1454,48 @@ test_check_fa2_transfer_unregistered_decodes_fields(void **state)
     assert_string_equal(value, "100");
 }
 
+/* The amount is a signed Micheline int and `decimal` holds the magnitude
+   only, so -1 used to be shown as "Token Amount" 0.000001 QUIPU. A negative
+   amount can never be a valid transfer: it is shown raw and signed, behind
+   the careful-review gate, even though the token is in the registry. Same
+   bytes as the QUIPU transfer, with the amount byte 0x41 (-1). */
+static void
+test_check_fa2_transfer_negative_amount_shows_sign(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
+          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006602"
+          "00000061070701000000244b543151576462415376615458573847576668664e68"
+          "33"
+          "4a4d6a6758766e5a4141544a570200000031070701000000247372314d79437752"
+          "38"
+          "33685a70684353716159535141705078504d65796b734a57576e6807070000004"
+          "1";
+    const tz_fields_check fields_check[] = {
+        {"Source",             false, 1 },
+        {"Fee",                false, 2 },
+        {"Storage limit",      false, 3 },
+        {"Amount",             false, 4 },
+        {"Destination",        false, 5 },
+        {"Entrypoint",         false, 8 },
+        {"Transfer tokens to", true,  10},
+        {"Token ID",           true,  11},
+        {"Amount (raw)",       true,  12},
+    };
+    char value[256];
+
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+
+    /* Asserted on the rendered text, as the field check above cannot tell a
+       field that was never emitted from one that was. */
+    capture_field_value(data, str, "Token ID", value, sizeof(value));
+    assert_string_equal(value, "0");
+    capture_field_value(data, str, "Amount (raw)", value, sizeof(value));
+    assert_string_equal(value, "-1");
+}
+
 /* increase_paid_storage carries a signed Amount. The sign must reach the
    review screen: same bytes as the simple transaction, tag 0x71 and bit 6 of
    the first Zarith byte set. */
@@ -1562,12 +1601,14 @@ main(void)
             test_check_fa2_transfer_clear_signing_token_id_gt0),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),
         OPERATION_PARSER_TEST(
-            test_check_fa2_transfer_negative_amount_fallback),
+            test_check_fa2_transfer_negative_amount_shows_sign),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_whole_number_amount),
 #ifdef HAVE_SWAP
         OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_fields),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_swap_fields_unset_on_fallback),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_fields_unset_on_negative_amount),
 #endif  // HAVE_SWAP
     };
 

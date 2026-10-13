@@ -102,6 +102,28 @@ _FA2_TRANSFER_UNREGISTERED_TOKEN_ID_PARAMETER = [
     }
 ]
 
+# FA2 transfer parameter: same as `_FA2_TRANSFER_PARAMETER` but with a negative
+# amount. That is never a valid transfer, so it must not be shown as a "Token
+# Amount" of 200000: the amount is shown raw and signed ("Amount (raw)" of
+# -200000), behind the expert-mode gate.
+_FA2_TRANSFER_NEGATIVE_AMOUNT_PARAMETER = [
+    {
+        "prim": "Pair",
+        "args": [
+            {"string": "KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW"},
+            [
+                {
+                    "prim": "Pair",
+                    "args": [
+                        {"string": "sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh"},
+                        {"prim": "Pair", "args": [{"int": 0}, {"int": -200000}]},
+                    ],
+                }
+            ],
+        ],
+    }
+]
+
 _FA2_KT1_DESTINATION = "KT18fp5rcTW7mbWDmzFwjLDUhs5MeJmagDSZ"
 _FA2_KT1_TOKEN_ID_0_DESTINATION = "KT193D4vozYnhGJQVtw7CoxxqphqUEEwK6Vb"
 
@@ -132,6 +154,13 @@ class TestTransaction(TestOperation):
             destination=_FA2_KT1_DESTINATION,
             entrypoint="transfer",
             parameter=_FA2_TRANSFER_PARAMETER_TOKEN_ID_1,
+        ),
+        # Registered token: without the sign it would show "Token Amount".
+        Flow(
+            "contract_call_fa2_negative_amount",
+            destination=_FA2_KT1_TOKEN_ID_0_DESTINATION,
+            entrypoint="transfer",
+            parameter=_FA2_TRANSFER_NEGATIVE_AMOUNT_PARAMETER,
         ),
     ]
 

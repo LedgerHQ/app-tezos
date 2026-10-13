@@ -687,6 +687,26 @@ tz_step_tag(tz_parser_state *state)
 _Static_assert((TZ_CAPTURE_BUFFER_SIZE % 2U) == 0U,
                "TZ_CAPTURE_BUFFER_SIZE must be even for FA2 CAPTURE split");
 
+/**
+ * @brief Insert a minus sign in front of a decimal magnitude, in place.
+ *
+ * @param str: NUL-terminated decimal magnitude
+ * @param size: capacity of the buffer holding `str`
+ * @return bool: false when the buffer cannot hold the extra character
+ */
+static bool
+tz_prepend_minus(char *str, size_t size)
+{
+    size_t len = strlen(str);
+
+    if ((len + 2) > size) {
+        return false;
+    }
+    memmove(str + 1, str, len + 1);
+    str[0] = '-';
+    return true;
+}
+
 #ifdef HAVE_SWAP
 /**
  * @brief Convert a decimal ASCII string to a uint64.
@@ -1167,6 +1187,19 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (!op->frame->step_read_fa2.num_state.stop) {
             tz_continue;
         }
+        /* The decimal buffer holds the magnitude only, so a negative amount
+         * would be shown as a positive one. A transfer amount is a nat, so
+         * this is never a valid transfer: show it raw, with its sign and
+         * behind the careful-review gate, as for an unregistered token (the
+         * token's decimals and symbol are not applied to it). The sign also
+         * keeps the amount from being recorded for swap validation, which
+         * only accepts digits. */
+        if (op->frame->step_read_fa2.num_state.sign) {
+            FA2_REQUIRE(state,
+                        tz_prepend_minus((char *)state->buffers.num.decimal,
+                                         sizeof(state->buffers.num.decimal)));
+            op->frame->step_read_fa2.token_idx = -1;
+        }
         op->frame->step_read_fa2.sub_step = FA2_STEP_VERIFY_END;
         tz_continue;
     }
@@ -1505,26 +1538,6 @@ tz_step_read_micheline(tz_parser_state *state)
         }
     }
     tz_reraise;
-}
-
-/**
- * @brief Insert a minus sign in front of a decimal magnitude, in place.
- *
- * @param str: NUL-terminated decimal magnitude
- * @param size: capacity of the buffer holding `str`
- * @return bool: false when the buffer cannot hold the extra character
- */
-static bool
-tz_prepend_minus(char *str, size_t size)
-{
-    size_t len = strlen(str);
-
-    if ((len + 2) > size) {
-        return false;
-    }
-    memmove(str + 1, str, len + 1);
-    str[0] = '-';
-    return true;
 }
 
 /**

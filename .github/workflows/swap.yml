@@ -10,12 +10,8 @@ on:
 
 jobs:
   job_functional_tests:
-    uses: LedgerHQ/app-exchange-dev/.github/workflows/reusable_swap_functional_tests.yml@140d73c2c91ea36502f694570ce262068223a3a8  # develop
+    uses: LedgerHQ/app-exchange-dev/.github/workflows/reusable_swap_functional_tests.yml@develop
     with:
-      # Pinning the workflow file is not enough: this input defaults to the
-      # mutable `develop`, and decides which Exchange sources are built and
-      # run. Keep it on the same commit as the `uses:` line above.
-      branch_for_exchange: 140d73c2c91ea36502f694570ce262068223a3a8
       branch_for_tezos: ${{ github.ref }}
       test_filter: '"tezos"'
     secrets:

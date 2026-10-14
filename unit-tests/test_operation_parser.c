@@ -1244,6 +1244,9 @@ test_check_fa2_transfer_swap_fields(void **state)
     assert_int_equal(data->state->operation.fa2_amount, 100106851);
     assert_string_equal(data->state->operation.fa2_destination,
                         "tz1drcp5n9mkJ2eDQQsHBBSDetKJ9s5aKox4");
+    /* The owner is kept for the swap to check against the signer (V-090). */
+    assert_string_equal(data->state->operation.fa2_source,
+                        "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
 }
 
 /* A transfer the FA2 decoder cannot handle falls back to raw Micheline. There
@@ -1335,6 +1338,103 @@ test_check_fa2_transfer_swap_fields_unset_on_unregistered_token(void **state)
     parse_to_completion(data, str);
 
     assert_false(data->state->operation.fa2_swap_ok);
+}
+
+/* V-090: the owner is whatever the host wrote as `from_`, and it is not tied
+   to the operation source. The parser must hand the swap the owner as sent,
+   not the source, so that swap_check_validity() can refuse it. Same bytes as
+   test_check_fa2_transfer_swap_fields with `from_` set to another account:
+   the source, token, amount, recipient and fee are all still the valid ones.
+ */
+static void
+test_check_fa2_transfer_swap_owner_is_not_the_source(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3164726370356e396d6b4a3265"
+          "44515173484242534465744b4a397335614b6f78340200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_true(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_source,
+                        "tz1drcp5n9mkJ2eDQQsHBBSDetKJ9s5aKox4");
+    assert_string_not_equal(data->state->operation.fa2_source,
+                            "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
+}
+
+/* `from_` may also be sent as the 22 bytes of an address. It is read back as
+   the base58 string the swap compares, so both encodings of the same account
+   give the same owner. Same operation as test_check_fa2_transfer_swap_fields
+   with `from_` as bytes. */
+static void
+test_check_fa2_transfer_swap_owner_binary_encoding(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000005b020000005607070a0000001600008be5357b478d9828ede4620a9e"
+          "7ff9f4016693e1020000003407070100000024747a3164726370356e396d6b4a"
+          "326544515173484242534465744b4a397335614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_true(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_source,
+                        "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
+}
+
+/* A string `from_` is compared as a C string, which stops at a NUL. The owner
+   "<signer>\0abc" is 40 bytes on the wire but reads as the signer, so it must
+   not be accepted as the signer's own tokens. It is refused at the parser:
+   the FA2 decoding is dropped and there is no owner for a swap to validate.
+   Same bytes as test_check_fa2_transfer_swap_fields with such a `from_`. */
+static void
+test_check_fa2_transfer_swap_owner_with_embedded_nul(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000028747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390061626302000000340707"
+          "0100000024747a3164726370356e396d6b4a326544515173484242534465744b"
+          "4a397335614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_source, "");
+}
+
+/* An owner that does not fit the buffer cannot be an address. The transfer is
+   still decoded for display, but a swap has no owner to validate. Same bytes
+   as test_check_fa2_transfer_swap_fields with a 40 byte `from_`. */
+static void
+test_check_fa2_transfer_swap_owner_too_long(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000028747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70396162636402000000340707"
+          "0100000024747a3164726370356e396d6b4a326544515173484242534465744b"
+          "4a397335614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_source, "");
 }
 #endif  // HAVE_SWAP
 
@@ -1526,6 +1626,35 @@ test_check_fa2_transfer_unregistered_contract_falls_back(void **state)
     assert_no_fa2_labels(data, str);
 }
 
+/* V-090: an owner string with a NUL inside is not decoded as FA2 either, so
+   the truncated value is never what the FA2 labels show: the transfer is the
+   raw "Parameter", behind the careful-review gate, in every build. Same bytes
+   as test_check_fa2_transfer_swap_owner_with_embedded_nul. */
+static void
+test_check_fa2_transfer_owner_with_embedded_nul_falls_back(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000028747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390061626302000000340707"
+          "0100000024747a3164726370356e396d6b4a326544515173484242534465744b"
+          "4a397335614b6f78340707000000a389bc5f";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+    assert_no_fa2_labels(data, str);
+}
+
 /* The amount is a signed Micheline int and `decimal` holds the magnitude
    only, so -1 used to be shown as "Token Amount" 0.000001 QUIPU. A negative
    amount can never be a valid transfer: it is shown raw and signed, behind
@@ -1670,6 +1799,8 @@ main(void)
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_unregistered_contract_falls_back),
         OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_owner_with_embedded_nul_falls_back),
+        OPERATION_PARSER_TEST(
             test_check_fa2_transfer_clear_signing_token_id_gt0),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),
         OPERATION_PARSER_TEST(
@@ -1685,6 +1816,13 @@ main(void)
             test_check_fa2_transfer_swap_fields_unset_on_unregistered_contract),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_swap_fields_unset_on_unregistered_token),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_owner_is_not_the_source),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_owner_binary_encoding),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_owner_with_embedded_nul),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_owner_too_long),
 #endif  // HAVE_SWAP
     };
 

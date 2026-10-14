@@ -393,6 +393,7 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     op->fa2_token_id       = 0;
     op->fa2_amount         = 0;
     op->fa2_destination[0] = '\0';
+    op->fa2_source[0]      = '\0';
 #endif  // HAVE_SWAP
     op->total_fee     = 0;
     op->total_amount  = 0;
@@ -1006,6 +1007,14 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         }
         /* Address fully read; null-terminate for string case */
         CAPTURE[FA2_FROM_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
+        if (op->frame->step_read_fa2.addr_tag == 0x01) {
+            /* The owner is later compared as a C string. A NUL inside the
+               declared string would cut it short and let a different value
+               pass for the one that is signed. */
+            FA2_REQUIRE(state,
+                        strlen((const char *)(CAPTURE + FA2_FROM_ADDR_OFS))
+                            == (size_t)op->frame->step_read_fa2.addr_ofs);
+        }
         if (op->frame->step_read_fa2.addr_tag == 0x0A) {
             /* Binary address: format it in-place */
             FA2_REQUIRE(state, tz_format_address(
@@ -1212,9 +1221,15 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (fa2_decimal_to_u64((const char *)state->buffers.num.decimal,
                                &op->fa2_amount)
             && (strlen((const char *)(CAPTURE + FA2_TO_ADDR_OFS))
-                < sizeof(op->fa2_destination))) {
+                < sizeof(op->fa2_destination))
+            && (strlen((const char *)(CAPTURE + FA2_FROM_ADDR_OFS))
+                < sizeof(op->fa2_source))) {
             STRLCPY(op->fa2_destination,
                     (const char *)(CAPTURE + FA2_TO_ADDR_OFS));
+            /* The owner whose balance is debited. The host picks it, so the
+               swap must check it against the account that signs. */
+            STRLCPY(op->fa2_source,
+                    (const char *)(CAPTURE + FA2_FROM_ADDR_OFS));
             op->fa2_token_id = op->frame->step_read_fa2.token_id_val;
             op->fa2_swap_ok  = 1;
         }

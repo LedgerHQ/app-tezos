@@ -37,10 +37,12 @@ from .tezos_transaction import (
     EXC_REJECT,
     INS_GET_PUBLIC_KEY,
     INS_SIGN,
+    INS_SIGN_WITH_HASH,
     P1_FIRST,
     P1_LAST,
     P2_ED25519,
     STATUS_OK,
+    address_bytes,
     blake2_hash_pubkey,
     craft_fa2_transfer,
     craft_native_transfer,
@@ -85,14 +87,15 @@ class TezosFa2Tests(ExchangeTestRunner):
         source_hash = blake2_hash_pubkey(rapdu.data[2:])
         return encode_tz1(source_hash), source_hash
 
-    def _sign(self, payload):
-        """Send a payload through the two packets of an INS_SIGN exchange.
+    def _sign(self, payload, ins=INS_SIGN):
+        """Send a payload through the two packets of a signing exchange.
 
+        `ins` is INS_SIGN, or INS_SIGN_WITH_HASH which reaches the same checks.
         A non-9000 answer raises, so the tampering cases can expect it.
         """
-        rapdu = self.backend.exchange(CLA, INS_SIGN, P1_FIRST, P2_ED25519, cal.XTZ_PACKED_DERIVATION_PATH)
+        rapdu = self.backend.exchange(CLA, ins, P1_FIRST, P2_ED25519, cal.XTZ_PACKED_DERIVATION_PATH)
         assert rapdu.status == STATUS_OK
-        self.backend.exchange(CLA, INS_SIGN, P1_LAST, P2_ED25519, data=payload)
+        self.backend.exchange(CLA, ins, P1_LAST, P2_ED25519, data=payload)
 
     def perform_final_tx(self, destination, send_amount, fees, memo):
         """Sign an FA2 `transfer` of `send_amount` tokens to `destination`."""
@@ -153,6 +156,68 @@ class TezosFa2UnregisteredContractTests(TezosFa2Tests):
             self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         assert e.value.status == self.signature_refusal_error_code
         self.assert_exchange_is_started()
+
+
+class TezosFa2ForeignOwnerTests(TezosFa2Tests):
+    """Swap of USDt whose tokens belong to another account (V-090).
+
+    Everything the application used to check is valid: the operation is sent by
+    the key that signs, the contract, token, amount, recipient and fee are the
+    quoted ones. Only the FA2 `from_`, the owner whose balance the contract
+    debits, is not the device's account. If that account made the signer an FA2
+    operator the contract would accept the transfer, and the user would pay
+    with tokens that are not theirs without ever seeing it. Nothing but the
+    application ties `from_` to the signer, so it has to refuse.
+    """
+
+    # An account that is not the device's.
+    foreign_owner = TezosFa2Tests.valid_destination_2
+    # The instruction the transfer is sent with.
+    sign_ins = INS_SIGN
+
+    def _owner(self, signer):
+        """`from_` of the transfer, as the case builds it: a string, as Ledger Live sends it."""
+        return self.foreign_owner
+
+    def perform_final_tx(self, destination, send_amount, fees, memo):
+        signer, source_hash = self._get_device_address()
+        assert signer == self.valid_refund, f"Unexpected device address {signer}, expected {self.valid_refund}"
+        self._sign(
+            craft_fa2_transfer(
+                self._owner(signer), source_hash, self.token_contract_hash, destination, self.token_id, send_amount, fees
+            ),
+            self.sign_ins,
+        )
+
+    def _swap_then_sign_refused(self):
+        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
+        with pytest.raises(ExceptionRAPDU) as e:
+            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
+        assert e.value.status == self.signature_refusal_error_code
+        self.assert_exchange_is_started()
+
+    def perform_test_swap_fa2_foreign_owner(self):
+        """Another owner's tokens, sent with INS_SIGN, must not be signed."""
+        self._swap_then_sign_refused()
+
+    def perform_test_swap_fa2_foreign_owner_with_hash(self):
+        """The same, sent with INS_SIGN_WITH_HASH."""
+        self.sign_ins = INS_SIGN_WITH_HASH
+        self._swap_then_sign_refused()
+
+    def perform_test_swap_fa2_foreign_owner_binary(self):
+        """The same, with the owner given as the bytes of an address rather than a string."""
+        self._owner = lambda signer: address_bytes(self.foreign_owner)
+        self._swap_then_sign_refused()
+
+    def perform_test_swap_fa2_owner_with_nul(self):
+        """The signer's address followed by a NUL and more is not the signer's.
+
+        Read as a C string it is the signer, so it has to be refused before that
+        comparison is made.
+        """
+        self._owner = lambda signer: signer + "\x00" + "abc"
+        self._swap_then_sign_refused()
 
 
 class TezosFa2NoTokenConfigTests(TezosFa2Tests):
@@ -218,6 +283,19 @@ class TestsTezosSwap:
     def test_tezos_fa2_unregistered_contract(self, backend, exchange_navigation_helper, test_to_run):
         """An FA2-shaped transfer to a contract outside the registry must not be signed."""
         TezosFa2UnregisteredContractTests(backend, exchange_navigation_helper).run_test(test_to_run)
+
+    @pytest.mark.parametrize(
+        "test_to_run",
+        [
+            "swap_fa2_foreign_owner",
+            "swap_fa2_foreign_owner_with_hash",
+            "swap_fa2_foreign_owner_binary",
+            "swap_fa2_owner_with_nul",
+        ],
+    )
+    def test_tezos_fa2_foreign_owner(self, backend, exchange_navigation_helper, test_to_run):
+        """Tokens of another owner than the signer must not be signed (V-090)."""
+        TezosFa2ForeignOwnerTests(backend, exchange_navigation_helper).run_test(test_to_run)
 
     @pytest.mark.parametrize("test_to_run", ["swap_fa2_no_config"])
     def test_tezos_fa2_without_token_config(self, backend, exchange_navigation_helper, test_to_run):

@@ -36,6 +36,9 @@ those contracts; the **Token** name field is not shown.
   with **`is_field_complex`** set. No FA2 label (**Transfer tokens to**,
   **Token ID**, **Token Amount**, **Amount (raw)**) is shown. **Destination**
   is always shown.
+- **`from_` string with a NUL inside** (a string whose C-string value is
+  shorter than its declared length): never decoded as FA2, so the truncated
+  value is not what the FA2 labels show and a swap has no owner to validate.
 - **Negative amount** on a registered token: never a valid transfer, so it is
   shown raw and signed (**Amount (raw)**, preceded by **Token ID**), with
   **`is_field_complex`** set.

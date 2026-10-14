@@ -288,6 +288,16 @@ swap_check_validity(void)
          * amount we cannot represent - leaves it clear. */
         TZ_ASSERT(EXC_REJECT, op->fa2_swap_ok);
 
+        /* The tokens must be the signer's own. `from_` is chosen by the host
+         * and is the balance the contract debits. Neither the operation
+         * source nor anything else the host sends ties it to the account that
+         * signs: an owner who made the signer an operator would otherwise be
+         * debited without ever seeing the swap (V-090). Operator-funded swaps
+         * are not supported, as nothing authenticates the owner. */
+        PRINTF("[DEBUG] fa2 from=\"%s\" signer=\"%s\"\n", op->fa2_source,
+               signer);
+        TZ_ASSERT(EXC_REJECT, !strcmp(op->fa2_source, signer));
+
         /* The token being moved must be the one the swap was quoted for. The
          * ticker comes from the Ledger-signed coin configuration, so matching
          * it against the registry entry of the contract actually called ties

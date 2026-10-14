@@ -136,6 +136,25 @@ class TezosFa2WrongTokenTests(TezosFa2Tests):
     token_contract_hash = cal.QUIPU_CONTRACT_HASH
 
 
+class TezosFa2UnregisteredContractTests(TezosFa2Tests):
+    """Swap quoted for USDt, but the operation calls a contract that is not in the registry (V-025).
+
+    The entrypoint and the parameters are chosen by the host, so an FA2-shaped
+    `transfer` to a contract the registry does not list says nothing about what
+    it moves. The application must not decode it as a token transfer, and so
+    has no validated recipient or amount to compare with the swap.
+    """
+
+    token_contract_hash = cal.UNREGISTERED_CONTRACT_HASH
+
+    def perform_test_swap_fa2_unregistered_contract(self):
+        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
+        with pytest.raises(ExceptionRAPDU) as e:
+            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
+        assert e.value.status == self.signature_refusal_error_code
+        self.assert_exchange_is_started()
+
+
 class TezosFa2NoTokenConfigTests(TezosFa2Tests):
     """The situation in production: the CAL sends no sub-coin configuration.
 
@@ -194,6 +213,11 @@ class TestsTezosSwap:
     def test_tezos_fa2_wrong_token(self, backend, exchange_navigation_helper, test_to_run):
         """Transferring another registered token must not be signed."""
         TezosFa2WrongTokenTests(backend, exchange_navigation_helper).run_test(test_to_run)
+
+    @pytest.mark.parametrize("test_to_run", ["swap_fa2_unregistered_contract"])
+    def test_tezos_fa2_unregistered_contract(self, backend, exchange_navigation_helper, test_to_run):
+        """An FA2-shaped transfer to a contract outside the registry must not be signed."""
+        TezosFa2UnregisteredContractTests(backend, exchange_navigation_helper).run_test(test_to_run)
 
     @pytest.mark.parametrize("test_to_run", ["swap_fa2_no_config"])
     def test_tezos_fa2_without_token_config(self, backend, exchange_navigation_helper, test_to_run):

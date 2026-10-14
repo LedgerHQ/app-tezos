@@ -110,7 +110,10 @@ swap_handle_get_printable_amount(get_printable_amount_parameters_t *params)
     uint8_t  decimals                = DECIMALS;
 
     /* Fees are always paid in tez, even when swapping a token. Without a coin
-     * configuration the currency is tez too. */
+     * configuration the currency is tez too, with the limitation described in
+     * swap_copy_transaction_parameters() (V-088): a token the CAL lists
+     * without a configuration is printed as tez, which is what the user then
+     * reviews on the Exchange screen. */
     if (!params->is_fee && (params->coin_configuration != NULL)
         && (params->coin_configuration_length > 0)) {
         if (!swap_parse_config(params->coin_configuration,
@@ -186,7 +189,18 @@ swap_copy_transaction_parameters(create_transaction_parameters_t *params)
 
     /* A coin configuration means the swap sends a token, not tez. Without one
      * we have no way to tell which token an FA2 transfer moves, so token
-     * swaps are only accepted when the Exchange application provides it. */
+     * swaps are only accepted when the Exchange application provides it.
+     *
+     * Known limitation (V-088): the converse is not authenticated. Exchange
+     * gives us the sub-coin configuration only, never the ticker of the
+     * currency it quoted, so "no configuration" cannot be told apart from "a
+     * token the CAL lists without one" and is taken as tez. A host could then
+     * have tez paid in place of such a token, for the same integer amount,
+     * fee and recipient. Refusing every swap without a configuration would
+     * refuse all real tez swaps, so this cannot be closed here: it needs
+     * Exchange to pass the ticker. Until then it only holds while the CAL
+     * gives every non-tez asset it lists for this application a sub-coin
+     * configuration. Keep it that way. */
     if ((params->coin_configuration != NULL)
         && (params->coin_configuration_length > 0)) {
         if (!swap_parse_config(params->coin_configuration,
@@ -320,6 +334,9 @@ swap_check_validity(void)
                                       G_swap_params.destination_address));
         TZ_ASSERT(EXC_REJECT, op->fa2_amount == G_swap_params.amount);
     } else {
+        /* Tez: reached when no coin configuration was given, which is all we
+         * know of the currency. See swap_copy_transaction_parameters() for
+         * what that does and does not guarantee (V-088). */
         TZ_ASSERT(EXC_REJECT, op->total_amount == G_swap_params.amount);
 
         tz_format_address(op->destination, 22, dstaddr, sizeof(dstaddr));

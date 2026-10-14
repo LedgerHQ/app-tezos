@@ -77,3 +77,12 @@ does not publish one for FA2 tokens on Tezos today, so the application cannot
 tell which token an operation moves and refuses to sign - by design. Token
 swaps only work once the CAL provides ticker and decimals, as it already does
 for USDT on TON.
+
+**Known limitation (V-088).** A swap without a coin configuration is taken as a
+native tez swap, because Exchange does not tell the application which currency it
+quoted. A token the CAL lists without a configuration is therefore
+indistinguishable from tez, and a host could have tez paid in its place. The
+application cannot refuse that without refusing every real tez swap
+(`test_tezos_native_swap_control` sends exactly that), so it needs Exchange to
+pass the ticker. Until then, every non-tez asset the CAL lists for Tezos must
+carry a sub-coin configuration.

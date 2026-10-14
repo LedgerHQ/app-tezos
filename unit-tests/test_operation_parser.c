@@ -1177,39 +1177,6 @@ test_check_fa2_transfer_clear_signing_fields(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
-/* The registry is what ties a destination to the token these labels name.
-   Without an entry the decoded fields keep the careful-review gate that a
-   raw Micheline parameter would get.
-   NOTE: this fixture does not exercise the Micheline fallback - it takes the
-   unregistered-token path. The name it carried before said otherwise. */
-static void
-test_check_fa2_transfer_unregistered_keeps_review_gate(void **state)
-{
-    operation_parser_data *data = *state;
-    char                   str[]
-        = "030000000000000000000000000000000000000000000000000000000000000000"
-          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
-          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006702"
-          "00000062070701000000244b543151576462415376615458573847576668664e68"
-          "33"
-          "4a4d6a6758766e5a4141544a570200000032070701000000247372314d79437752"
-          "38"
-          "33685a70684353716159535141705078504d65796b734a57576e680707000100a4"
-          "01";
-    const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
-        {"Destination",        false, 5 },
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", true,  10},
-        {"Token ID",           true,  11},
-        {"Amount (raw)",       true,  12},
-    };
-    check_field_complexity(data, str, fields_check, sizeof(fields_check));
-}
-
 static void
 test_check_fa2_transfer_clear_signing_token_id_gt0(void **state)
 {
@@ -1381,11 +1348,12 @@ test_check_fa2_transfer_whole_number_amount(void **state)
 
 /* Parse `str` and concatenate into `out` the full display value of the first
    field whose name matches `field_name` (a value may span several IM_FULL
-   pages). Used to assert the exact rendered string, which
-   check_field_complexity does not verify. */
-static void
-capture_field_value(operation_parser_data *data, char *str,
-                    const char *field_name, char *out, size_t out_size)
+   pages). Returns whether such a field was emitted. Used to assert the exact
+   rendered string, and that a label was never shown, neither of which
+   check_field_complexity verifies. */
+static bool
+find_field_value(operation_parser_data *data, char *str,
+                 const char *field_name, char *out, size_t out_size)
 {
     /* Re-initialize the parser so the helper can be called several times (for
        different fields) on the same test data. */
@@ -1417,21 +1385,47 @@ capture_field_value(operation_parser_data *data, char *str,
             tz_parser_flush(st, data->obuf, data->olen);
             continue;
         case TZ_BLO_DONE:
-            assert_true(seen);
-            return;
+            return seen;
         default:
             fail_msg("%s:%d parsing error: %s", __FILE__, __LINE__,
                      tz_parser_result_name(st->errno));
         }
         break;
     }
+    return seen;
 }
 
-/* An FA2 transfer to a contract/token_id that is not in the registry is
-   decoded into labeled fields with the raw (integer) amount, rather than
-   falling back to a raw Micheline blob. */
 static void
-test_check_fa2_transfer_unregistered_decodes_fields(void **state)
+capture_field_value(operation_parser_data *data, char *str,
+                    const char *field_name, char *out, size_t out_size)
+{
+    assert_true(find_field_value(data, str, field_name, out, out_size));
+}
+
+/* The FA2 labels name a token transfer, so they may only be shown when the
+   destination and token id are in the registry. */
+static void
+assert_no_fa2_labels(operation_parser_data *data, char *str)
+{
+    static const char *const labels[]
+        = {"Transfer tokens to", "Token ID", "Token Amount", "Amount (raw)"};
+    char value[256];
+
+    for (size_t i = 0; i < sizeof(labels) / sizeof(labels[0]); i++) {
+        if (find_field_value(data, str, labels[i], value, sizeof(value))) {
+            fail_msg(
+                "'%s' shown for a destination/token id that is not in "
+                "the registry",
+                labels[i]);
+        }
+    }
+}
+
+/* A registered contract called with a token id the registry does not list
+   gets no FA2 labels: the transfer is shown as the raw Micheline parameter,
+   behind the careful-review gate. */
+static void
+test_check_fa2_transfer_unregistered_token_falls_back(void **state)
 {
     operation_parser_data *data = *state;
     char                   str[]
@@ -1444,14 +1438,47 @@ test_check_fa2_transfer_unregistered_decodes_fields(void **state)
           "38"
           "33685a70684353716159535141705078504d65796b734a57576e680707000100a4"
           "01";
-    char value[256];
-    capture_field_value(data, str, "Transfer tokens to", value,
-                        sizeof(value));
-    assert_string_equal(value, "sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh");
-    capture_field_value(data, str, "Token ID", value, sizeof(value));
-    assert_string_equal(value, "1");
-    capture_field_value(data, str, "Amount (raw)", value, sizeof(value));
-    assert_string_equal(value, "100");
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+    assert_no_fa2_labels(data, str);
+}
+
+/* V-025: the entrypoint name and the parameter shape come from the host, so a
+   contract that is not in the registry must not get FA2 labels either, even
+   for an exact FA2 `transfer` parameter. Same bytes as
+   test_check_fa2_transfer_clear_signing_fields, with the contract hash
+   replaced by one the registry does not list. */
+static void
+test_check_fa2_transfer_unregistered_contract_falls_back(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e8070164640001aeb9b0d5"
+          "4623cbf2301c4412e15055922be396f20001ff087472616e736665720000006802"
+          "00000063070701000000244b543151576462415376615458573847576668664e68"
+          "334a4d6a6758766e5a4141544a570200000033070701000000247372314d794377"
+          "523833685a70684353716159535141705078504d65796b734a57576e6807070000"
+          "0080b518";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+    assert_no_fa2_labels(data, str);
 }
 
 /* The amount is a signed Micheline int and `decimal` holds the magnitude
@@ -1594,9 +1621,9 @@ main(void)
         OPERATION_PARSER_TEST(test_check_sc_rollup_originate_complexity),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_clear_signing_fields),
         OPERATION_PARSER_TEST(
-            test_check_fa2_transfer_unregistered_keeps_review_gate),
+            test_check_fa2_transfer_unregistered_token_falls_back),
         OPERATION_PARSER_TEST(
-            test_check_fa2_transfer_unregistered_decodes_fields),
+            test_check_fa2_transfer_unregistered_contract_falls_back),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_clear_signing_token_id_gt0),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),

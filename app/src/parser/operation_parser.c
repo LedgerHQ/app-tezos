@@ -676,7 +676,7 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_AMOUNT_VAL      21 /* read varint */
 #define FA2_STEP_VERIFY_END      22 /* verify no extra outer items */
 #define FA2_STEP_EMIT_TO_ADDR    23 /* emit "Transfer tokens to" field */
-#define FA2_STEP_EMIT_TOKEN_ID   25 /* emit "Token ID" (unregistered token) */
+#define FA2_STEP_EMIT_TOKEN_ID   25 /* emit "Token ID" (raw amount only) */
 #define FA2_STEP_EMIT_AMOUNT     24 /* emit amount field */
 
 /* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
@@ -1151,18 +1151,13 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_continue;
         }
 
+        /* The registry ties a destination and token id to the token the FA2
+           labels name. A pair it does not list is shown as the raw Micheline
+           parameter, never under FA2 labels. */
         token = fa2_find_token(op->destination,
                                op->frame->step_read_fa2.token_id_val);
-
-        if (token != NULL) {
-            op->frame->step_read_fa2.token_idx = fa2_token_index(token);
-        } else {
-            /* Unregistered token: decimals/symbol are unknown. Rather than
-               falling back to raw Micheline, display the decoded fields with
-               the raw (integer) amount. token_idx == -1 selects that path in
-               the emit steps. */
-            op->frame->step_read_fa2.token_idx = -1;
-        }
+        FA2_REQUIRE(state, token != NULL);
+        op->frame->step_read_fa2.token_idx = fa2_token_index(token);
 
         op->frame->step_read_fa2.sub_step = FA2_STEP_AMOUNT_TAG;
         tz_continue;
@@ -1190,10 +1185,10 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         /* The decimal buffer holds the magnitude only, so a negative amount
          * would be shown as a positive one. A transfer amount is a nat, so
          * this is never a valid transfer: show it raw, with its sign and
-         * behind the careful-review gate, as for an unregistered token (the
-         * token's decimals and symbol are not applied to it). The sign also
-         * keeps the amount from being recorded for swap validation, which
-         * only accepts digits. */
+         * behind the careful-review gate (the token's decimals and symbol
+         * are not applied to it). token_idx == -1 selects that path in the
+         * emit steps. The sign also keeps the amount from being recorded for
+         * swap validation, which only accepts digits. */
         if (op->frame->step_read_fa2.num_state.sign) {
             FA2_REQUIRE(state,
                         tz_prepend_minus((char *)state->buffers.num.decimal,
@@ -1234,14 +1229,15 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_stop(IM_FULL);
         }
         STRLCPY(state->field_info.field_name, "Transfer tokens to");
-        /* Only a registry entry authenticates the destination as the token
-           contract these labels claim. Without one the parameters keep the
-           careful-review gate that a raw Micheline expression would get. */
+        /* The destination and token id are in the registry, so these labels
+           are authenticated. The one exception is the raw negative amount
+           (token_idx == -1), which keeps the careful-review gate that a raw
+           Micheline expression would get. */
         state->field_info.is_field_complex
             = (op->frame->step_read_fa2.token_idx < 0);
         state->field_info.field_index++;
-        /* For an unregistered token, show the raw token id before the raw
-           amount so the user can tell which token is being moved. */
+        /* For a raw amount, show the token id before it so the user can tell
+           which token is being moved. */
         op->frame->step_read_fa2.sub_step
             = (op->frame->step_read_fa2.token_idx < 0)
                   ? FA2_STEP_EMIT_TOKEN_ID
@@ -1251,7 +1247,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         tz_continue;
 
     case FA2_STEP_EMIT_TOKEN_ID:
-        /* Emit "Token ID" for unregistered tokens. The sender address slot
+        /* Emit "Token ID" before a raw amount. The sender address slot
            (FROM_ADDR half of CAPTURE) is no longer needed and is reused as
            scratch for the formatted id. */
         if (regs->oofs > 0) {
@@ -1271,9 +1267,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         tz_continue;
 
     case FA2_STEP_EMIT_AMOUNT:
-        /* Emit the amount: "Token Amount" (with symbol) for a registered
-           token, or "Amount (raw)" (the on-chain integer, decimals unknown)
-           for an unregistered one. */
+        /* Emit the amount: "Token Amount" (with symbol) normally, or
+           "Amount (raw)" (the signed on-chain integer, no decimals applied)
+           when token_idx == -1. */
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
         }
@@ -2129,8 +2125,12 @@ tz_step_field(tz_parser_state *state)
         break;
     }
     case TZ_OPERATION_FIELD_EXPR: {
-        if (op->is_fa2_candidate && !field->skip) {
-            const fa2_token_metadata_t *token;
+        /* The entrypoint name and the shape of the parameter are chosen by
+           the host, so they cannot give a contract's fields their meaning:
+           only a contract listed in the registry may be decoded as FA2. Any
+           other KT1 gets the generic Micheline review. */
+        if (op->is_fa2_candidate && !field->skip
+            && fa2_contract_is_registered(op->destination)) {
             state->field_info.is_field_complex = false;
             op->frame->step = TZ_OPERATION_STEP_READ_FA2_TRANSFER;
             op->frame->step_read_fa2.sub_step       = FA2_STEP_OUTER_SEQ_TAG;
@@ -2141,12 +2141,6 @@ tz_step_field(tz_parser_state *state)
             op->frame->step_read_fa2.token_id_shift = 0;
             op->frame->step_read_fa2.token_id_val   = 0;
             op->frame->step_read_fa2.token_idx      = -1;
-
-            token = fa2_find_token(op->destination,
-                                   op->frame->step_read_fa2.token_id_val);
-            if (token != NULL) {
-                op->frame->step_read_fa2.token_idx = fa2_token_index(token);
-            }
         } else if ((strcmp(op->manager_entrypoint, "set_delegate_parameters")
                     == 0)
                    && !field->skip) {

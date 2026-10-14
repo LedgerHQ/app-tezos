@@ -1291,6 +1291,51 @@ test_check_fa2_transfer_swap_fields_unset_on_negative_amount(void **state)
 
     assert_false(data->state->operation.fa2_swap_ok);
 }
+
+/* V-025: a destination that is not in the registry is never decoded as FA2,
+   so a swap has no validated recipient or amount and must refuse it. Same
+   bytes as test_check_fa2_transfer_swap_fields, with the contract hash
+   replaced by one the registry does not list. */
+static void
+test_check_fa2_transfer_swap_fields_unset_on_unregistered_contract(
+    void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01aeb9b0d54623cbf2301c4412e15055922be396f200ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+}
+
+/* The USDt contract is in the registry but token id 1 is not, so the
+   (contract, token id) pair is not authenticated: the transfer falls back to
+   raw Micheline and a swap must refuse it. Same bytes as
+   test_check_fa2_transfer_swap_fields with the token id set to 1. */
+static void
+test_check_fa2_transfer_swap_fields_unset_on_unregistered_token(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000100a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+}
 #endif  // HAVE_SWAP
 
 static void
@@ -1636,6 +1681,10 @@ main(void)
             test_check_fa2_transfer_swap_fields_unset_on_fallback),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_swap_fields_unset_on_negative_amount),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_fields_unset_on_unregistered_contract),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_fields_unset_on_unregistered_token),
 #endif  // HAVE_SWAP
     };
 

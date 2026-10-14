@@ -126,6 +126,8 @@ _FA2_TRANSFER_NEGATIVE_AMOUNT_PARAMETER = [
 
 _FA2_KT1_DESTINATION = "KT18fp5rcTW7mbWDmzFwjLDUhs5MeJmagDSZ"
 _FA2_KT1_TOKEN_ID_0_DESTINATION = "KT193D4vozYnhGJQVtw7CoxxqphqUEEwK6Vb"
+# A KT1 that is not in the FA2 token registry.
+_FA2_KT1_UNREGISTERED_DESTINATION = "KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT"
 
 
 class TestTransaction(TestOperation):
@@ -148,6 +150,15 @@ class TestTransaction(TestOperation):
             destination=_FA2_KT1_DESTINATION,
             entrypoint="transfer",
             parameter=_FA2_TRANSFER_UNREGISTERED_TOKEN_ID_PARAMETER,
+        ),
+        # Same parameter as "contract_call", to a contract that is not in the
+        # registry: the host picks the entrypoint and the parameter, so this is
+        # shown as the raw "Parameter", never under FA2 labels.
+        Flow(
+            "contract_call_fa2_unregistered_contract",
+            destination=_FA2_KT1_UNREGISTERED_DESTINATION,
+            entrypoint="transfer",
+            parameter=_FA2_TRANSFER_PARAMETER,
         ),
         Flow(
             "contract_call_fa2_token_id_not_0",

@@ -191,16 +191,19 @@ swap_copy_transaction_parameters(create_transaction_parameters_t *params)
      * we have no way to tell which token an FA2 transfer moves, so token
      * swaps are only accepted when the Exchange application provides it.
      *
-     * Known limitation (V-088): the converse is not authenticated. Exchange
-     * gives us the sub-coin configuration only, never the ticker of the
-     * currency it quoted, so "no configuration" cannot be told apart from "a
-     * token the CAL lists without one" and is taken as tez. A host could then
-     * have tez paid in place of such a token, for the same integer amount,
-     * fee and recipient. Refusing every swap without a configuration would
-     * refuse all real tez swaps, so this cannot be closed here: it needs
-     * Exchange to pass the ticker. Until then it only holds while the CAL
-     * gives every non-tez asset it lists for this application a sub-coin
-     * configuration. Keep it that way. */
+     * Known limitation (V-088, app-tezos-dev#66), OPEN today: the converse is
+     * not authenticated. Exchange gives us the sub-coin configuration only,
+     * never the ticker of the currency it quoted, so "no configuration"
+     * cannot be told apart from "a token the CAL lists without one" and is
+     * taken as tez. The CAL lists USDt that way today (see
+     * USDT_NO_TOKEN_CONFIGURATION in tests/swap/cal_helper.py), so for a swap
+     * quoted in USDt the host can send a plain tez transfer with the same
+     * integer amount, fee and recipient, and we sign it without asking:
+     * 100106851 USDt base units become 100.106851 XTZ. Refusing every swap
+     * without a configuration would refuse all real tez swaps, so this
+     * cannot be closed here. It needs Exchange to pass the ticker, or the CAL
+     * to give every non-tez asset it lists for this application a sub-coin
+     * configuration. */
     if ((params->coin_configuration != NULL)
         && (params->coin_configuration_length > 0)) {
         if (!swap_parse_config(params->coin_configuration,

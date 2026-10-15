@@ -1364,8 +1364,6 @@ test_check_fa2_transfer_swap_owner_is_not_the_source(void **state)
     assert_true(data->state->operation.fa2_swap_ok);
     assert_string_equal(data->state->operation.fa2_source,
                         "tz1drcp5n9mkJ2eDQQsHBBSDetKJ9s5aKox4");
-    assert_string_not_equal(data->state->operation.fa2_source,
-                            "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
 }
 
 /* `from_` may also be sent as the 22 bytes of an address. It is read back as
@@ -1413,6 +1411,30 @@ test_check_fa2_transfer_swap_owner_with_embedded_nul(void **state)
 
     assert_false(data->state->operation.fa2_swap_ok);
     assert_string_equal(data->state->operation.fa2_source, "");
+}
+
+/* The same for the recipient: "<payin>\0abc" is 40 bytes on the wire but
+   reads as the payin address when compared as a C string, so it must not be
+   accepted as the address the swap was quoted for. It is refused at the
+   parser, and there is no recipient for a swap to validate. Same bytes as
+   test_check_fa2_transfer_swap_fields with such a `to_`. */
+static void
+test_check_fa2_transfer_swap_recipient_with_embedded_nul(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000038070701000000"
+          "28747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f7834006162630707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_destination, "");
 }
 
 /* An owner that does not fit the buffer cannot be an address. The transfer is
@@ -1655,6 +1677,34 @@ test_check_fa2_transfer_owner_with_embedded_nul_falls_back(void **state)
     assert_no_fa2_labels(data, str);
 }
 
+/* The same for the recipient: a `to_` string with a NUL inside is not decoded
+   as FA2, so "Transfer tokens to" never shows the truncated value. Same bytes
+   as test_check_fa2_transfer_swap_recipient_with_embedded_nul. */
+static void
+test_check_fa2_transfer_recipient_with_embedded_nul_falls_back(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000038070701000000"
+          "28747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f7834006162630707000000a389bc5f";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+    assert_no_fa2_labels(data, str);
+}
+
 /* The amount is a signed Micheline int and `decimal` holds the magnitude
    only, so -1 used to be shown as "Token Amount" 0.000001 QUIPU. A negative
    amount can never be a valid transfer: it is shown raw and signed, behind
@@ -1801,6 +1851,8 @@ main(void)
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_owner_with_embedded_nul_falls_back),
         OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_recipient_with_embedded_nul_falls_back),
+        OPERATION_PARSER_TEST(
             test_check_fa2_transfer_clear_signing_token_id_gt0),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),
         OPERATION_PARSER_TEST(
@@ -1822,6 +1874,8 @@ main(void)
             test_check_fa2_transfer_swap_owner_binary_encoding),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_swap_owner_with_embedded_nul),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_recipient_with_embedded_nul),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_owner_too_long),
 #endif  // HAVE_SWAP
     };

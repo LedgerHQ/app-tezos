@@ -23,8 +23,12 @@ were a native transfer, and answered 0x6985 to every such signature.
 swap_check_validity() in app/src/handle_swap.c now branches on whether the
 Exchange application provided a coin configuration. Without one the
 application cannot tell which token the operation moves, so it must keep
-refusing - which is what happens with the CAL configuration in production
-today, see USDT_NO_TOKEN_CONFIGURATION.
+refusing an FA2 transfer - which is what happens with the CAL configuration in
+production today, see USDT_NO_TOKEN_CONFIGURATION.
+
+The same missing configuration makes the swap look like a tez swap, so a plain
+tez transfer is signed for it. That is the open V-088 limitation, pinned by
+TezosNativeTransferForTokenSwapTests.
 """
 
 import pytest
@@ -258,6 +262,24 @@ class TezosNativeSwapTests(TezosFa2Tests):
         self.assert_exchange_is_started()
 
 
+class TezosNativeTransferForTokenSwapTests(TezosNativeSwapTests):
+    """Known limitation (V-088, app-tezos-dev#66): a tez transfer is signed for a swap quoted in USDt.
+
+    The CAL sends no sub-coin configuration for USDt, so the swap reaches the
+    application exactly like a tez swap. The host then sends a plain tez
+    transfer with the quoted amount, fee and recipient, and nothing the
+    application can check differs: 100106851 USDt base units become
+    100.106851 XTZ, and the Exchange screen prints them as XTZ.
+
+    This pins what happens today. It has to flip to a refusal once Exchange
+    passes the ticker, or once the CAL gives USDt a sub-coin configuration.
+    """
+
+    currency_configuration = cal.USDT_NO_TOKEN_CONFIGURATION
+    # The amount of the USDt swap, not the 10 tez of the control case.
+    valid_send_amount_1 = TezosFa2Tests.valid_send_amount_1
+
+
 # Use a class to reuse the same Speculos instance
 class TestsTezosSwap:
     @pytest.mark.parametrize("test_to_run", ["swap_native_valid_1"])
@@ -301,3 +323,8 @@ class TestsTezosSwap:
     def test_tezos_fa2_without_token_config(self, backend, exchange_navigation_helper, test_to_run):
         """An FA2 swap with no sub-coin configuration must stay refused."""
         TezosFa2NoTokenConfigTests(backend, exchange_navigation_helper).run_test(test_to_run)
+
+    @pytest.mark.parametrize("test_to_run", ["swap_native_valid_1"])
+    def test_tezos_native_transfer_for_token_swap(self, backend, exchange_navigation_helper, test_to_run):
+        """V-088, open: a tez transfer is signed for a swap quoted in USDt with no sub-coin configuration."""
+        TezosNativeTransferForTokenSwapTests(backend, exchange_navigation_helper).run_test(test_to_run)

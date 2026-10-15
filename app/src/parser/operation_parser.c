@@ -1083,6 +1083,14 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         }
         /* Address fully read; null-terminate for string case */
         CAPTURE[FA2_TO_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
+        if (op->frame->step_read_fa2.addr_tag == 0x01) {
+            /* The recipient is later compared as a C string. A NUL inside the
+               declared string would cut it short and let a different value
+               pass for the one that is signed. */
+            FA2_REQUIRE(state,
+                        strlen((const char *)(CAPTURE + FA2_TO_ADDR_OFS))
+                            == (size_t)op->frame->step_read_fa2.addr_ofs);
+        }
         if (op->frame->step_read_fa2.addr_tag == 0x0A) {
             FA2_REQUIRE(state,
                         tz_format_address(CAPTURE + FA2_TO_ADDR_OFS,

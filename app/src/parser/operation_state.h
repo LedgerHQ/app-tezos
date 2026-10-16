@@ -291,7 +291,7 @@ typedef struct {
 #ifdef HAVE_SWAP
     tz_operation_tag last_tag;   /// last operations tag encountered
     uint16_t         nb_reveal;  /// number of reveal encountered
-    /// A single FA2 `transfer` was decoded in full. The three fields below
+    /// A single FA2 `transfer` was decoded in full. The four fields below
     /// are meaningful only then. They are kept here, and not in the parser
     /// frame, because swap validation reads them once parsing is over: see
     /// swap_check_validity() in handle_swap.c.
@@ -299,6 +299,7 @@ typedef struct {
     uint64_t fa2_token_id;  /// token id of that transfer
     uint64_t fa2_amount;    /// its amount, in the token's smallest unit
     char     fa2_destination[TZ_OPERATION_FA2_ADDR_SIZE];  /// its `to_`
+    char     fa2_source[TZ_OPERATION_FA2_ADDR_SIZE];       /// its `from_`
 #endif                                                     // HAVE_SWAP
     uint64_t total_fee;     /// last fee encountered
     uint64_t total_amount;  /// last amount encountered

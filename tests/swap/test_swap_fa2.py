@@ -326,5 +326,5 @@ class TestsTezosSwap:
 
     @pytest.mark.parametrize("test_to_run", ["swap_native_valid_1"])
     def test_tezos_native_transfer_for_token_swap(self, backend, exchange_navigation_helper, test_to_run):
-        """Known limitation (app-tezos-dev#66): a tez transfer is signed for a swap quoted in USDt with no sub-coin configuration."""
+        """Known limitation: a tez transfer is signed for a USDt swap with no sub-coin configuration."""
         TezosNativeTransferForTokenSwapTests(backend, exchange_navigation_helper).run_test(test_to_run)

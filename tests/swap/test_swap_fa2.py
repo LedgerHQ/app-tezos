@@ -27,7 +27,7 @@ refusing an FA2 transfer - which is what happens with the CAL configuration in
 production today, see USDT_NO_TOKEN_CONFIGURATION.
 
 The same missing configuration makes the swap look like a tez swap, so a plain
-tez transfer is signed for it. That is the open V-088 limitation, pinned by
+tez transfer is signed for it. That is the open limitation app-tezos-dev#66, pinned by
 TezosNativeTransferForTokenSwapTests.
 """
 
@@ -144,7 +144,7 @@ class TezosFa2WrongTokenTests(TezosFa2Tests):
 
 
 class TezosFa2UnregisteredContractTests(TezosFa2Tests):
-    """Swap quoted for USDt, but the operation calls a contract that is not in the registry (V-025).
+    """Swap quoted for USDt, but the operation calls a contract that is not in the registry.
 
     The entrypoint and the parameters are chosen by the host, so an FA2-shaped
     `transfer` to a contract the registry does not list says nothing about what
@@ -163,7 +163,7 @@ class TezosFa2UnregisteredContractTests(TezosFa2Tests):
 
 
 class TezosFa2ForeignOwnerTests(TezosFa2Tests):
-    """Swap of USDt whose tokens belong to another account (V-090).
+    """Swap of USDt whose tokens belong to another account.
 
     Everything the application used to check is valid: the operation is sent by
     the key that signs, the contract, token, amount, recipient and fee are the
@@ -263,7 +263,7 @@ class TezosNativeSwapTests(TezosFa2Tests):
 
 
 class TezosNativeTransferForTokenSwapTests(TezosNativeSwapTests):
-    """Known limitation (V-088, app-tezos-dev#66): a tez transfer is signed for a swap quoted in USDt.
+    """Known limitation (app-tezos-dev#66): a tez transfer is signed for a swap quoted in USDt.
 
     The CAL sends no sub-coin configuration for USDt, so the swap reaches the
     application exactly like a tez swap. The host then sends a plain tez
@@ -316,7 +316,7 @@ class TestsTezosSwap:
         ],
     )
     def test_tezos_fa2_foreign_owner(self, backend, exchange_navigation_helper, test_to_run):
-        """Tokens of another owner than the signer must not be signed (V-090)."""
+        """Tokens of another owner than the signer must not be signed."""
         TezosFa2ForeignOwnerTests(backend, exchange_navigation_helper).run_test(test_to_run)
 
     @pytest.mark.parametrize("test_to_run", ["swap_fa2_no_config"])
@@ -326,5 +326,5 @@ class TestsTezosSwap:
 
     @pytest.mark.parametrize("test_to_run", ["swap_native_valid_1"])
     def test_tezos_native_transfer_for_token_swap(self, backend, exchange_navigation_helper, test_to_run):
-        """V-088, open: a tez transfer is signed for a swap quoted in USDt with no sub-coin configuration."""
+        """Known limitation (app-tezos-dev#66): a tez transfer is signed for a swap quoted in USDt with no sub-coin configuration."""
         TezosNativeTransferForTokenSwapTests(backend, exchange_navigation_helper).run_test(test_to_run)

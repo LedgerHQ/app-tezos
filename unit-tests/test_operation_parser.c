@@ -1269,7 +1269,7 @@ test_check_fa2_transfer_swap_fields(void **state)
     assert_int_equal(data->state->operation.fa2_amount, 100106851);
     assert_string_equal(data->state->operation.fa2_destination,
                         "tz1drcp5n9mkJ2eDQQsHBBSDetKJ9s5aKox4");
-    /* The owner is kept for the swap to check against the signer (V-090). */
+    /* The owner is kept for the swap to check against the signer. */
     assert_string_equal(data->state->operation.fa2_source,
                         "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
 }
@@ -1320,7 +1320,7 @@ test_check_fa2_transfer_swap_fields_unset_on_negative_amount(void **state)
     assert_false(data->state->operation.fa2_swap_ok);
 }
 
-/* V-025: a destination that is not in the registry is never decoded as FA2,
+/* A destination that is not in the registry is never decoded as FA2,
    so a swap has no validated recipient or amount and must refuse it. Same
    bytes as test_check_fa2_transfer_swap_fields, with the contract hash
    replaced by one the registry does not list. */
@@ -1365,7 +1365,7 @@ test_check_fa2_transfer_swap_fields_unset_on_unregistered_token(void **state)
     assert_false(data->state->operation.fa2_swap_ok);
 }
 
-/* V-090: the owner is whatever the host wrote as `from_`, and it is not tied
+/* The owner is whatever the host wrote as `from_`, and it is not tied
    to the operation source. The parser must hand the swap the owner as sent,
    not the source, so that swap_check_validity() can refuse it. Same bytes as
    test_check_fa2_transfer_swap_fields with `from_` set to another account:
@@ -1643,7 +1643,7 @@ test_check_fa2_transfer_unregistered_token_falls_back(void **state)
     assert_no_fa2_labels(data, str);
 }
 
-/* V-025: the entrypoint name and the parameter shape come from the host, so a
+/* The entrypoint name and the parameter shape come from the host, so a
    contract that is not in the registry must not get FA2 labels either, even
    for an exact FA2 `transfer` parameter. Same bytes as
    test_check_fa2_transfer_clear_signing_fields, with the contract hash
@@ -1673,7 +1673,7 @@ test_check_fa2_transfer_unregistered_contract_falls_back(void **state)
     assert_no_fa2_labels(data, str);
 }
 
-/* V-090: an owner string with a NUL inside is not decoded as FA2 either, so
+/* An owner string with a NUL inside is not decoded as FA2 either, so
    the truncated value is never what the FA2 labels show: the transfer is the
    raw "Parameter", behind the careful-review gate, in every build. Same bytes
    as test_check_fa2_transfer_swap_owner_with_embedded_nul. */

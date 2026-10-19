@@ -113,7 +113,7 @@ class TestStaking2DocExamples(TestOperation):
             },
         ),
         # Same entrypoint and parameter sent to a KT1: that contract runs its own code,
-        # so no "Limit"/"Edge" labels, only the raw "Parameter" (V-049).
+        # so no "Limit"/"Edge" labels, only the raw "Parameter".
         Flow(
             "staking2_set_delegate_parameters_kt1",
             amount=0,
@@ -127,7 +127,7 @@ class TestStaking2DocExamples(TestOperation):
                 ],
             },
         ),
-        # finalize_unstake to a KT1: no "Note" about a sponsored staker (V-049).
+        # finalize_unstake to a KT1: no "Note" about a sponsored staker.
         Flow(
             "staking2_finalize_unstake_kt1",
             amount=0,

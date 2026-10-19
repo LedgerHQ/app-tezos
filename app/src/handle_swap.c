@@ -111,7 +111,7 @@ swap_handle_get_printable_amount(get_printable_amount_parameters_t *params)
 
     /* Fees are always paid in tez, even when swapping a token. Without a coin
      * configuration the currency is tez too, with the limitation described in
-     * swap_copy_transaction_parameters() (V-088): a token the CAL lists
+     * swap_copy_transaction_parameters(): a token the CAL lists
      * without a configuration is printed as tez, which is what the user then
      * reviews on the Exchange screen. */
     if (!params->is_fee && (params->coin_configuration != NULL)
@@ -187,23 +187,24 @@ swap_copy_transaction_parameters(create_transaction_parameters_t *params)
         goto error;
     }
 
-    /* A coin configuration means the swap sends a token, not tez. Without one
-     * we have no way to tell which token an FA2 transfer moves, so token
+    /* A coin configuration means the swap sends a token, not tez. It is the
+     * only thing that tells us which token the swap was quoted for, so token
      * swaps are only accepted when the Exchange application provides it.
      *
-     * Known limitation (V-088, app-tezos-dev#66), OPEN today: the converse is
-     * not authenticated. Exchange gives us the sub-coin configuration only,
-     * never the ticker of the currency it quoted, so "no configuration"
-     * cannot be told apart from "a token the CAL lists without one" and is
-     * taken as tez. The CAL lists USDt that way today (see
-     * USDT_NO_TOKEN_CONFIGURATION in tests/swap/cal_helper.py), so for a swap
-     * quoted in USDt the host can send a plain tez transfer with the same
-     * integer amount, fee and recipient, and we sign it without asking:
-     * 100106851 USDt base units become 100.106851 XTZ. Refusing every swap
-     * without a configuration would refuse all real tez swaps, so this
-     * cannot be closed here. It needs Exchange to pass the ticker, or the CAL
-     * to give every non-tez asset it lists for this application a sub-coin
-     * configuration. */
+     * Known limitation (app-tezos-dev#66): the absence of a configuration
+     * does not prove the currency is tez. Exchange gives us the sub-coin
+     * configuration only, never the ticker it quoted, so "no configuration"
+     * cannot be told apart from "a token the CAL lists without one", and we
+     * take it as tez. The CAL lists USDt that way (see
+     * USDT_NO_TOKEN_CONFIGURATION in tests/swap/cal_helper.py). For a swap
+     * quoted in USDt, the host can therefore send a plain tez transfer with
+     * the same integer amount, fee and recipient: the Exchange screen shows
+     * it as tez (100106851 USDt base units become 100.106851 XTZ), and once
+     * the user approves that screen we sign with no further prompt.
+     * Refusing every swap without a configuration would refuse all real tez
+     * swaps, so this cannot be closed here. It needs Exchange to pass the
+     * ticker, or the CAL to give every non-tez asset it lists for this
+     * application a sub-coin configuration. */
     if ((params->coin_configuration != NULL)
         && (params->coin_configuration_length > 0)) {
         if (!swap_parse_config(params->coin_configuration,
@@ -309,7 +310,7 @@ swap_check_validity(void)
          * and is the balance the contract debits. Neither the operation
          * source nor anything else the host sends ties it to the account that
          * signs: an owner who made the signer an operator would otherwise be
-         * debited without ever seeing the swap (V-090). Operator-funded swaps
+         * debited without ever seeing the swap. Operator-funded swaps
          * are not supported, as nothing authenticates the owner. */
         PRINTF("[DEBUG] fa2 from=\"%s\" signer=\"%s\"\n", op->fa2_source,
                signer);
@@ -339,7 +340,7 @@ swap_check_validity(void)
     } else {
         /* Tez: reached when no coin configuration was given, which is all we
          * know of the currency. See swap_copy_transaction_parameters() for
-         * what that does and does not guarantee (V-088). */
+         * what that does and does not guarantee. */
         TZ_ASSERT(EXC_REJECT, op->total_amount == G_swap_params.amount);
 
         tz_format_address(op->destination, 22, dstaddr, sizeof(dstaddr));

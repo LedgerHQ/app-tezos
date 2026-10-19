@@ -102,7 +102,7 @@ class TezosReplayTests(TezosFa2Tests):
     operation is the address of the captured device.
 
     The application now requires an operation to come from the key that signs
-    it (V-001), and the tokens to be that key's own (V-090). So what is changed
+    it, and the tokens to be that key's own. So what is changed
     in the replay is the account of the captured device, in the two places it
     is written: the `source` of the reveal and of the transaction, where its key
     hash is replaced byte for byte by the hash of the Speculos key at the path

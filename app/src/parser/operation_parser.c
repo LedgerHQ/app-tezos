@@ -439,8 +439,10 @@ tz_manager_entrypoint_set(tz_operation_state *op, const char *name)
 static bool
 tz_implicit_fee_payer_differs_from_dest(const tz_operation_state *op)
 {
+    /* Only an implicit account can be a staker: an originated contract runs
+       its own code under this entrypoint name. */
     if (op->destination[0] != 0x00) {
-        return true;
+        return false;
     }
     return memcmp(op->source, op->destination + 1, 21) != 0;
 }
@@ -2150,8 +2152,9 @@ tz_step_field(tz_parser_state *state)
     case TZ_OPERATION_FIELD_EXPR: {
         /* The entrypoint name and the shape of the parameter are chosen by
            the host, so they cannot give a contract's fields their meaning:
-           only a contract listed in the registry may be decoded as FA2. Any
-           other KT1 gets the generic Micheline review. */
+           only a contract listed in the registry may be decoded as FA2, and
+           set_delegate_parameters only means staking when sent to an implicit
+           account. Any other KT1 gets the generic Micheline review. */
         if (op->is_fa2_candidate && !field->skip
             && fa2_contract_is_registered(op->destination)) {
             state->field_info.is_field_complex = false;
@@ -2164,8 +2167,10 @@ tz_step_field(tz_parser_state *state)
             op->frame->step_read_fa2.token_id_shift = 0;
             op->frame->step_read_fa2.token_id_val   = 0;
             op->frame->step_read_fa2.token_idx      = -1;
-        } else if ((strcmp(op->manager_entrypoint, "set_delegate_parameters")
-                    == 0)
+        } else if ((op->destination[0] == 0x00)
+                   && (strcmp(op->manager_entrypoint,
+                              "set_delegate_parameters")
+                       == 0)
                    && !field->skip) {
             op->frame->step = TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS;
             op->frame->step_read_sdp.sub_step = SDP_STEP_SAVE_START;

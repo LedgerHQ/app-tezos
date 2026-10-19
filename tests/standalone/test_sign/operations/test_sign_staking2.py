@@ -45,6 +45,8 @@ from .helper import Flow, TestOperation
 _SELF = "tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU"
 # Distinct implicit for Seoul+ third-party finalize (fee payer ≠ staker).
 _STAKER_OTHER = "tz1ixvCiPJYyMjsp2nKBVaq54f6AdbV8hCKa"
+# An originated contract: the reserved entrypoint names mean nothing special there.
+_KT1 = "KT18amZmM5W7qDWVt2pH6uj7sCEd3kbzLrHT"
 
 
 class TestStaking2DocExamples(TestOperation):
@@ -109,6 +111,29 @@ class TestStaking2DocExamples(TestOperation):
                     {"prim": "Pair", "args": [{"int": 20000000}, {"prim": "Unit"}]},
                 ],
             },
+        ),
+        # Same entrypoint and parameter sent to a KT1: that contract runs its own code,
+        # so no "Limit"/"Edge" labels, only the raw "Parameter" (V-049).
+        Flow(
+            "staking2_set_delegate_parameters_kt1",
+            amount=0,
+            destination=_KT1,
+            entrypoint="set_delegate_parameters",
+            parameter={
+                "prim": "Pair",
+                "args": [
+                    {"int": 4000000},
+                    {"prim": "Pair", "args": [{"int": 20000000}, {"prim": "Unit"}]},
+                ],
+            },
+        ),
+        # finalize_unstake to a KT1: no "Note" about a sponsored staker (V-049).
+        Flow(
+            "staking2_finalize_unstake_kt1",
+            amount=0,
+            destination=_KT1,
+            entrypoint="finalize_unstake",
+            parameter={"prim": "Unit"},
         ),
     ]
 

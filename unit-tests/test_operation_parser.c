@@ -569,7 +569,7 @@ test_check_sponsored_finalize_unstake(void **state)
 
 /* finalize_unstake: KT1 (originated) destination.
  * destination[0] = 0x01 ≠ 0x00 → tz_implicit_fee_payer_differs_from_dest
- * returns true (line 409), Note field shown. */
+ * returns false: a contract is not a staker, so no sponsored Note. */
 static void
 test_check_finalize_unstake_kt1_dest(void **state)
 {
@@ -587,7 +587,6 @@ test_check_finalize_unstake_kt1_dest(void **state)
         {"Amount",        false, 4},
         {"Destination",   false, 5},
         {"Entrypoint",    false, 8},
-        {"Note",          false, 9},
         {"Parameter",     false, 9},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
@@ -665,6 +664,32 @@ test_check_set_delegate_parameters_complexity(void **state)
         {"Entrypoint",         false, 8},
         {"Limit (stake/bake)", false, 9},
         {"Edge (bake/stake)",  false, 9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* set_delegate_parameters: KT1 (originated) destination. Same entrypoint and
+ * well-formed parameter as the implicit test above, but a contract runs its
+ * own code under that name, so it must not get the staking labels: generic
+ * complex Parameter instead. */
+static void
+test_check_set_delegate_parameters_kt1_dest(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b80200310200"
+          "01000000000000000000000000000000000000000000ff090000001007070080a4"
+          "e8030707"
+          "0080b48913030b";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -1812,6 +1837,7 @@ main(void)
         OPERATION_PARSER_TEST(test_check_finalize_unstake_kt1_dest),
         OPERATION_PARSER_TEST(test_check_print_string_skip),
         OPERATION_PARSER_TEST(test_check_set_delegate_parameters_complexity),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_kt1_dest),
         OPERATION_PARSER_TEST(
             test_check_set_delegate_parameters_sdp_fallback),
         OPERATION_PARSER_TEST(

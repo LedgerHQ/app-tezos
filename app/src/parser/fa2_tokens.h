@@ -39,6 +39,11 @@ const fa2_token_metadata_t *fa2_token_by_index(int16_t idx);
 
 int16_t fa2_token_index(const fa2_token_metadata_t *token);
 
+/* Whether the KT1 destination is a contract listed in the registry, for any
+   token id. Only a listed contract is trusted to give the FA2 `transfer`
+   fields their meaning. */
+bool fa2_contract_is_registered(const uint8_t *destination);
+
 const fa2_token_metadata_t *fa2_find_token(const uint8_t *destination,
                                            uint64_t       token_id);
 #endif  // FA_TOKENS_H

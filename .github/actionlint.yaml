@@ -1,6 +1,0 @@
-# actionlint does not know the `code-quality` permission scope yet (latest release: v1.7.12). The reusable unit-test
-# workflow declares it, and a caller must grant it or the workflow fails at startup (see unit_tests.yml).
-paths:
-  .github/workflows/unit_tests.yml:
-    ignore:
-      - 'unknown permission scope "code-quality"'

@@ -21,6 +21,7 @@ from base58 import b58decode, b58encode
 CLA = 0x80
 INS_GET_PUBLIC_KEY = 0x02
 INS_SIGN = 0x04
+INS_SIGN_WITH_HASH = 0x0F
 P1_FIRST = 0x00
 P1_LAST = 0x81
 P2_ED25519 = 0x00
@@ -108,18 +109,30 @@ def micheline_string(value: str) -> bytes:
     return b"\x01" + len(raw).to_bytes(4, "big") + raw
 
 
+def micheline_bytes(value: bytes) -> bytes:
+    return b"\x0a" + len(value).to_bytes(4, "big") + value
+
+
+def address_bytes(address: str) -> bytes:
+    """The 22 bytes a tz1 address takes as a Michelson `address` in binary form."""
+    return b"\x00\x00" + decode_tz1(address)
+
+
 def micheline_sequence(payload: bytes) -> bytes:
     return b"\x02" + len(payload).to_bytes(4, "big") + payload
 
 
-def fa2_transfer_parameters(source: str, destination: str, token_id: int, amount: int) -> bytes:
+def fa2_transfer_parameters(source: str | bytes, destination: str, token_id: int, amount: int) -> bytes:
     """Parameters of an FA2 `transfer` entrypoint call.
 
     Pair(from_, [Pair(to_, Pair(token_id, amount))]), which is what Ledger Live
-    sends for a token transfer.
+    sends for a token transfer. `source` is `from_`, the owner whose balance is
+    debited: a str is sent as a Michelson string, which is what Ledger Live does,
+    and bytes as the binary form of an address.
     """
+    owner = micheline_bytes(source) if isinstance(source, bytes) else micheline_string(source)
     transfer = MICHELINE_PAIR + micheline_string(destination) + MICHELINE_PAIR + micheline_int(token_id) + micheline_int(amount)
-    return micheline_sequence(MICHELINE_PAIR + micheline_string(source) + micheline_sequence(transfer))
+    return micheline_sequence(MICHELINE_PAIR + owner + micheline_sequence(transfer))
 
 
 def _operation_header(source_hash: bytes, fees: int) -> bytes:
@@ -172,12 +185,16 @@ def craft_revealed_native_transfer(public_key: bytes, destination: str, amount: 
 
 
 def craft_fa2_transfer(
-    source: str, source_hash: bytes, contract_hash: bytes, destination: str, token_id: int, amount: int, fees: int
+    source: str | bytes, source_hash: bytes, contract_hash: bytes, destination: str, token_id: int, amount: int, fees: int
 ) -> bytes:
     """An FA2 `transfer` call on a token contract.
 
     The operation carries no tez, its destination is the token contract, and
     the recipient and the amount are inside the Michelson parameters.
+
+    `source_hash` is the key that sends the operation, and `source` the FA2
+    `from_`, the owner of the tokens. Nothing makes them the same account: a
+    case that wants another owner passes it as `source`.
     """
     payload = _operation_header(source_hash, fees)
     payload += zarith(0)

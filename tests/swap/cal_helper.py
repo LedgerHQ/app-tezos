@@ -52,3 +52,6 @@ USDT_TOKEN_ID = 0
 # KT193D4vozYnhGJQVtw7CoxxqphqUEEwK6Vb, "Quipuswap Governance" / QUIPU. It has
 # 6 decimals too, so only the ticker tells it apart from USDt.
 QUIPU_CONTRACT_HASH = bytes.fromhex("05001a8af813094ee8bf162ac2093a8937e8ba83")
+# KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW. NOT in the registry: the application
+# has no reason to trust what an FA2-shaped call to it means.
+UNREGISTERED_CONTRACT_HASH = bytes.fromhex("aeb9b0d54623cbf2301c4412e15055922be396f2")

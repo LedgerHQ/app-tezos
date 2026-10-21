@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Which key a swap may be signed with (V-001).
+"""Which key a swap may be signed with.
 
 A swap is signed without any review on the device, and the key that signs is
 chosen by the host in the first signing APDU. The application therefore only

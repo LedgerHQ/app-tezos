@@ -51,6 +51,7 @@ def swap_error(common_code: int, application_code: int) -> bytes:
     """The data of the answer to a refused swap."""
     return bytes([common_code, application_code])
 
+
 # Micheline "prim with 2 arguments, no annotation" (0x07) applied to Pair (0x07)
 MICHELINE_PAIR = b"\x07\x07"
 

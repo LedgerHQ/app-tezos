@@ -292,12 +292,12 @@ swap_check_validity(void)
      * it has to be an account key of the kind the swap flow uses, and the
      * operation has to come from that very key. This is checked here, right
      * before signing, and not only when the key was set up. */
-    SWAP_ASSERT(SWAP_EC_ERROR_GENERIC, TZ_SWAP_ERR_KEY,
-                swap_signing_key_allowed(
-                    global.path_with_curve.derivation_type
-                        == DERIVATION_TYPE_ED25519,
-                    global.path_with_curve.bip32_path.components,
-                    global.path_with_curve.bip32_path.length));
+    SWAP_ASSERT(
+        SWAP_EC_ERROR_GENERIC, TZ_SWAP_ERR_KEY,
+        swap_signing_key_allowed(
+            global.path_with_curve.derivation_type == DERIVATION_TYPE_ED25519,
+            global.path_with_curve.bip32_path.components,
+            global.path_with_curve.bip32_path.length));
     TZ_LIB_CHECK(derive_pk(&pubkey, global.path_with_curve.derivation_type,
                            &global.path_with_curve.bip32_path));
     TZ_LIB_CHECK(derive_pkh(&pubkey, global.path_with_curve.derivation_type,
@@ -356,9 +356,9 @@ swap_check_validity(void)
         PRINTF("[DEBUG] fa2 dstaddr=\"%s\"\n", op->fa2_destination);
         PRINTF("[DEBUG] G...dstaddr=\"%s\"\n",
                G_swap_params.destination_address);
-        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_DESTINATION, TZ_SWAP_ERR_DESTINATION,
-                    !strcmp(op->fa2_destination,
-                            G_swap_params.destination_address));
+        SWAP_ASSERT(
+            SWAP_EC_ERROR_WRONG_DESTINATION, TZ_SWAP_ERR_DESTINATION,
+            !strcmp(op->fa2_destination, G_swap_params.destination_address));
         SWAP_ASSERT(SWAP_EC_ERROR_WRONG_AMOUNT, TZ_SWAP_ERR_AMOUNT,
                     op->fa2_amount == G_swap_params.amount);
     } else {

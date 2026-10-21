@@ -39,6 +39,7 @@
 #include "handle_swap.h"
 #include "keys.h"
 #include "sign.h"
+#include "swap_key_policy.h"
 #include "ui_stream.h"
 
 #include "parser/parser_state.h"
@@ -753,6 +754,25 @@ handle_signing_key_setup(buffer_t *cdata, derivation_type_t derivation_type,
 
     TZ_LIB_CHECK(read_bip32_path(&global.path_with_curve.bip32_path, cdata));
     global.path_with_curve.derivation_type = derivation_type;
+
+#ifdef HAVE_SWAP
+    /* Nothing is shown during a swap, so the host does not get to pick any
+       key it likes. swap_check_validity() checks this again right before
+       signing, as the path is still writable by other APDUs until then.
+       A refused key ends the swap, as a refused operation does in
+       swap_check_validity(): the host gets no second try with another key,
+       and the device goes back to Exchange instead of staying in this
+       application.
+     */
+    if (G_called_from_swap
+        && !swap_signing_key_allowed(
+            derivation_type == DERIVATION_TYPE_ED25519,
+            global.path_with_curve.bip32_path.components,
+            global.path_with_curve.bip32_path.length)) {
+        G_swap_response_ready = true;
+        TZ_FAIL(EXC_WRONG_VALUES);
+    }
+#endif
 
     CX_CHECK(cx_blake2b_init_no_throw(&global.keys.apdu.hash.state,
                                       SIGN_HASH_SIZE * 8));

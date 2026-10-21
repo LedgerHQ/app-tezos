@@ -272,6 +272,25 @@ fa2_token_index(const fa2_token_metadata_t *token)
     return (int16_t)idx;
 }
 
+bool
+fa2_contract_is_registered(const uint8_t *destination)
+{
+    if (destination == NULL) {
+        return false;
+    }
+    if (destination[0] != 1) {
+        return false;
+    }
+    for (size_t i = 0; i < FA2_TOKEN_REGISTRY_SIZE; i++) {
+        if (memcmp(destination + 1, FA2_TOKEN_REGISTRY[i].contract_hash,
+                   FA2_TOKEN_CONTRACT_HASH_LENGTH)
+            == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const fa2_token_metadata_t *
 fa2_find_token(const uint8_t *destination, uint64_t token_id)
 {

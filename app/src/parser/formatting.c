@@ -227,6 +227,7 @@ tz_format_base58(const uint8_t *n, size_t l, char *obuf, size_t olen)
 {
     int    carry;
     size_t i, j, high, zcount = 0, obuf_len = TZ_BASE58_BUFFER_SIZE(l);
+    size_t out_len;
 
     if (olen < obuf_len) {
         PRINTF("[DEBUG] tz_format_base58() called with %u obuf need %u\n",
@@ -249,14 +250,28 @@ tz_format_base58(const uint8_t *n, size_t l, char *obuf, size_t olen)
         }
     }
 
-    if (zcount) {
-        memset(obuf, '1', zcount);
+    /* Locate the first significant digit. Bounded by obuf_len: a zero value
+       leaves every slot of the scratch area at 0. */
+    for (j = 0; (j < obuf_len) && !obuf[j]; ++j) {
+        // Skip the unused high-order slots
     }
 
-    for (j = 0; !obuf[j]; ++j) {
-        // Find the last index of obuf
+    /* A leading zero byte is not a digit, it is rendered as the alphabet's
+       first character. Refuse rather than truncate or write past the
+       caller's buffer: obuf[out_len] holds the terminator. */
+    out_len = zcount + (obuf_len - j);
+    if ((zcount > j) || (out_len >= olen)) {
+        PRINTF("[DEBUG] tz_format_base58() needs %u, obuf is %u\n", out_len,
+               olen);
+        return 1;
     }
-    for (i = 0; j < obuf_len; ++i, ++j) {
+
+    /* The prefix is written only after the digits have been translated, so
+       the alphabet is never indexed with an already-translated character. */
+    for (i = 0; i < zcount; ++i) {
+        obuf[i] = tz_b58digits_ordered[0];
+    }
+    for (; j < obuf_len; ++i, ++j) {
         obuf[i] = tz_b58digits_ordered[(unsigned)obuf[j]];
     }
     obuf[i] = '\0';

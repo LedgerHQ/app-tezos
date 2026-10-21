@@ -97,4 +97,8 @@ def test_quit(tezos_navigator: TezosNavigator, backend: TezosBackend):
         except requests.exceptions.ChunkedEncodingError:
             pass
     else:
-        tezos_navigator.home.quit()
+        try:
+            tezos_navigator.home.quit()
+        except (requests.exceptions.ConnectionError, requests.exceptions.ChunkedEncodingError):
+            # Speculos exits with the app, which can cut the response to the quit touch short.
+            pass

@@ -37,6 +37,7 @@ from ragger.backend import RaisePolicy
 
 from . import cal_helper as cal
 from .test_swap_fa2 import TezosFa2Tests
+from .tezos_transaction import encode_tz1
 
 LOG = Path(__file__).parent / "logs" / "apdu_20260904_105509.log"
 
@@ -55,6 +56,12 @@ CAPTURED_PAYIN_ADDRESS = "tz1fvBBFB8tcCj1MqtuqSRkVJbf4ZLQob9GY"
 CAPTURED_TOKEN_AMOUNT = 31000000
 #   the fee of the swap, which the reveal and the transaction share
 CAPTURED_TOTAL_FEE = 4000
+#   hash of the key that signed in the capture: the `source` of the reveal and of
+#   the transaction, each behind a 0x00 (tz1) curve byte
+CAPTURED_SOURCE_HASH = bytes.fromhex("a2ff62c6bd8ba3472d13fd7dbe11c9d2d670039d")
+#   the same account as the `from_` of the FA2 parameters, the owner of the
+#   tokens, which Ledger Live writes as a string
+CAPTURED_OWNER = "tz1aVt6iSaVL3snWCtYr7wR7ffmzCCdx9ZDL"
 
 
 def read_capture(path=LOG):
@@ -92,9 +99,15 @@ class TezosReplayTests(TezosFa2Tests):
     The refund address is the one thing that cannot come from the capture:
     Exchange has the application derive it and compare, so it has to be the
     address of the Speculos seed, while the `from_` inside the captured
-    operation is the address of the captured device. The application does not
-    check the source of an operation against the signing key, so this does not
-    change what is being replayed.
+    operation is the address of the captured device.
+
+    The application now requires an operation to come from the key that signs
+    it, and the tokens to be that key's own. So what is changed
+    in the replay is the account of the captured device, in the two places it
+    is written: the `source` of the reveal and of the transaction, where its key
+    hash is replaced byte for byte by the hash of the Speculos key at the path
+    being signed with, and the `from_` of the FA2 parameters, where its address
+    is replaced by the address of that key. Nothing else is modified.
     """
 
     valid_destination_1 = CAPTURED_PAYIN_ADDRESS
@@ -114,7 +127,18 @@ class TezosReplayTests(TezosFa2Tests):
         assert fees == CAPTURED_TOTAL_FEE
 
         requests = signing_requests()
-        for index, (apdu, captured_status) in enumerate(requests):
+        # The first request is the derivation path of the signature, in the format
+        # GET_PUBLIC_KEY takes. It may differ from the path of the refund address.
+        _, source_hash = self._get_device_address(requests[0][0][5:])
+        captured_source = b"\x00" + CAPTURED_SOURCE_HASH
+        replayed_source = b"\x00" + source_hash
+        # Same length, so none of the sizes in the operation moves.
+        replayed_owner = encode_tz1(source_hash)
+        assert len(replayed_owner) == len(CAPTURED_OWNER)
+
+        for index, (captured_apdu, captured_status) in enumerate(requests):
+            apdu = captured_apdu.replace(captured_source, replayed_source)
+            apdu = apdu.replace(CAPTURED_OWNER.encode(), replayed_owner.encode())
             last = index == len(requests) - 1
             expected = self.expected_final_status if last else STATUS_OK
 

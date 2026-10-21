@@ -31,6 +31,7 @@
 #include "format.h"
 #include "handle_swap.h"
 #include "keys.h"
+#include "swap_key_policy.h"
 #include "utils.h"
 
 #include "parser/fa2_tokens.h"
@@ -109,7 +110,10 @@ swap_handle_get_printable_amount(get_printable_amount_parameters_t *params)
     uint8_t  decimals                = DECIMALS;
 
     /* Fees are always paid in tez, even when swapping a token. Without a coin
-     * configuration the currency is tez too. */
+     * configuration the currency is tez too, with the limitation described in
+     * swap_copy_transaction_parameters(): a token the CAL lists
+     * without a configuration is printed as tez, which is what the user then
+     * reviews on the Exchange screen. */
     if (!params->is_fee && (params->coin_configuration != NULL)
         && (params->coin_configuration_length > 0)) {
         if (!swap_parse_config(params->coin_configuration,
@@ -183,9 +187,24 @@ swap_copy_transaction_parameters(create_transaction_parameters_t *params)
         goto error;
     }
 
-    /* A coin configuration means the swap sends a token, not tez. Without one
-     * we have no way to tell which token an FA2 transfer moves, so token
-     * swaps are only accepted when the Exchange application provides it. */
+    /* A coin configuration means the swap sends a token, not tez. It is the
+     * only thing that tells us which token the swap was quoted for, so token
+     * swaps are only accepted when the Exchange application provides it.
+     *
+     * Known limitation (app-tezos-dev#66): the absence of a configuration
+     * does not prove the currency is tez. Exchange gives us the sub-coin
+     * configuration only, never the ticker it quoted, so "no configuration"
+     * cannot be told apart from "a token the CAL lists without one", and we
+     * take it as tez. The CAL lists USDt that way (see
+     * USDT_NO_TOKEN_CONFIGURATION in tests/swap/cal_helper.py). For a swap
+     * quoted in USDt, the host can therefore send a plain tez transfer with
+     * the same integer amount, fee and recipient: the Exchange screen shows
+     * it as tez (100106851 USDt base units become 100.106851 XTZ), and once
+     * the user approves that screen we sign with no further prompt.
+     * Refusing every swap without a configuration would refuse all real tez
+     * swaps, so this cannot be closed here. It needs Exchange to pass the
+     * ticker, or the CAL to give every non-tez asset it lists for this
+     * application a sub-coin configuration. */
     if ((params->coin_configuration != NULL)
         && (params->coin_configuration_length > 0)) {
         if (!swap_parse_config(params->coin_configuration,
@@ -231,7 +250,10 @@ swap_check_validity(void)
 {
     tz_operation_state *op
         = &global.keys.apdu.sign.u.clear.parser_state.operation;
-    char dstaddr[ADDRESS_MAX_SIZE];
+    char                 dstaddr[ADDRESS_MAX_SIZE];
+    char                 signer[ADDRESS_MAX_SIZE];
+    char                 source[ADDRESS_MAX_SIZE];
+    cx_ecfp_public_key_t pubkey;
     TZ_PREAMBLE((""));
 
     if (!G_called_from_swap) {
@@ -250,6 +272,27 @@ swap_check_validity(void)
     TZ_ASSERT(EXC_REJECT, op->last_tag == TZ_OPERATION_TAG_TRANSACTION);
     TZ_ASSERT(EXC_REJECT, op->total_fee == G_swap_params.fee);
 
+    /* The Exchange application gives us the amount, the fee and the
+     * destination, but not the account that pays, and nothing on screen tells
+     * the user which one signs. So the host does not get to choose the key:
+     * it has to be an account key of the kind the swap flow uses, and the
+     * operation has to come from that very key. This is checked here, right
+     * before signing, and not only when the key was set up. */
+    TZ_ASSERT(EXC_REJECT, swap_signing_key_allowed(
+                              global.path_with_curve.derivation_type
+                                  == DERIVATION_TYPE_ED25519,
+                              global.path_with_curve.bip32_path.components,
+                              global.path_with_curve.bip32_path.length));
+    TZ_LIB_CHECK(derive_pk(&pubkey, global.path_with_curve.derivation_type,
+                           &global.path_with_curve.bip32_path));
+    TZ_LIB_CHECK(derive_pkh(&pubkey, global.path_with_curve.derivation_type,
+                            signer, sizeof(signer)));
+    /* The source is the 21 bytes of a public key hash, as in the parser. */
+    TZ_ASSERT(EXC_REJECT,
+              tz_format_pkh(op->source, 21, source, sizeof(source)) == 0);
+    PRINTF("[DEBUG] source=\"%s\" signer=\"%s\"\n", source, signer);
+    TZ_ASSERT(EXC_REJECT, !strcmp(source, signer));
+
     if (G_swap_params.is_token) {
         /* A token swap is an FA2 `transfer` call on the token contract: the
          * operation carries no tez, its destination is the contract, and the
@@ -262,6 +305,16 @@ swap_check_validity(void)
          * Anything else - several transfers, an unsupported encoding, an
          * amount we cannot represent - leaves it clear. */
         TZ_ASSERT(EXC_REJECT, op->fa2_swap_ok);
+
+        /* The tokens must be the signer's own. `from_` is chosen by the host
+         * and is the balance the contract debits. Neither the operation
+         * source nor anything else the host sends ties it to the account that
+         * signs: an owner who made the signer an operator would otherwise be
+         * debited without ever seeing the swap. Operator-funded swaps
+         * are not supported, as nothing authenticates the owner. */
+        PRINTF("[DEBUG] fa2 from=\"%s\" signer=\"%s\"\n", op->fa2_source,
+               signer);
+        TZ_ASSERT(EXC_REJECT, !strcmp(op->fa2_source, signer));
 
         /* The token being moved must be the one the swap was quoted for. The
          * ticker comes from the Ledger-signed coin configuration, so matching
@@ -285,6 +338,9 @@ swap_check_validity(void)
                                       G_swap_params.destination_address));
         TZ_ASSERT(EXC_REJECT, op->fa2_amount == G_swap_params.amount);
     } else {
+        /* Tez: reached when no coin configuration was given, which is all we
+         * know of the currency. See swap_copy_transaction_parameters() for
+         * what that does and does not guarantee. */
         TZ_ASSERT(EXC_REJECT, op->total_amount == G_swap_params.amount);
 
         tz_format_address(op->destination, 22, dstaddr, sizeof(dstaddr));

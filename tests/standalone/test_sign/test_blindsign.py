@@ -449,8 +449,7 @@ def test_blindsign_too_deep(
 
     with backend.sign(account, expression, with_hash=True) as result:
         if device.type == DeviceType.NANOS:
-            ### Simulate `navigate_review` up to `ACCEPT_RISK` because the nanos screen can look like it hasn't changed.  # noqa: E501
-
+            ### Simulate `navigate_review` up to `ACCEPT_RISK` because the nanos screen can look like it hasn't changed.
             instructions: list[NavIns | BaseNavInsID] = [
                 # 'Review operation'
                 NavInsID.RIGHT_CLICK,  # 'Expression {{{...{{{'

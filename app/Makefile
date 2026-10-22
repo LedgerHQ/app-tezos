@@ -127,7 +127,9 @@ ENABLE_SDK_WERROR = 1
 ENABLE_BLUETOOTH = 1
 #ENABLE_NFC = 1
 ENABLE_SWAP = 1
-# U2F (used e.g. by Kukai wallet) is enabled by default by the SDK standard app.
+# U2F (used e.g. by Kukai wallet) is enabled by default by the SDK standard app,
+# with its sources and USB_SEGMENT_SIZE. U2F_PROXY_MAGIC is not defined: the
+# SDK no longer reads it (removed from lib_u2f in the IO revamp).
 
 ########################################
 #         NBGL custom features         #

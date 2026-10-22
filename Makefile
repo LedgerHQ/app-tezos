@@ -15,7 +15,7 @@ debug: app_nanos_dbg.tgz \
 	app_flex_dbg.tgz \
 	app_apex_p_dbg.tgz
 
-.PHONY: clean all debug format integration_tests unit_tests scan-build%	\
+.PHONY: clean all debug format integration_tests unit_tests fuzz scan-build%	\
 	integration_tests_basic integration_tests_basic_% docker_%
 
 DOCKER			= docker
@@ -107,6 +107,15 @@ unit_tests:	test/samples/micheline/nano/samples.hex	\
 
 	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/unit
 	$(DOCKER_RUN_APP_BUILDER) bash -c "cd /app/unit-tests && cmake -Bbuild -H. && cmake --build build && CTEST_OUTPUT_ON_FAILURE=1 ctest --test-dir build"
+
+# Fuzz the operation parser under ASan/UBSan for FUZZ_TIME seconds, see
+# fuzzing/README.md
+FUZZ_TIME ?= 60
+
+fuzz:
+	$(DOCKER_RUN) --user $(shell id -u):$(shell id -g)	\
+		ledger-app-builder:latest			\
+		bash /app/fuzzing/fuzz.sh $(FUZZ_TIME)
 
 RUN_TEST_DOCKER = ./tests/integration/run_test_docker.sh
 

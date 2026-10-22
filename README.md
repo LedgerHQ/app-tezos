@@ -109,6 +109,14 @@ the Nano device. The basic tests can be run for all devices with:
 
 > Tests can be run for individual devices by appending the device name: e.g. `integration_tests_basic_nanosp`.
 
+The operation parser can also be fuzzed under ASan/UBSan with:
+
+```
+:; make fuzz
+```
+
+See [fuzzing/README.md](fuzzing/README.md) for the details.
+
 Integration tests can be run directly from the command line rather than
 via the Makefile:
 

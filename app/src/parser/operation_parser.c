@@ -1710,7 +1710,7 @@ tz_step_read_int32(tz_parser_state *state)
     int32_t            *value = &op->frame->step_read_int32.value;
     if (op->frame->step_read_int32.ofs < 4) {
         tz_must(tz_parser_read(state, &b));
-        *value = (*value << 8) | b;
+        *value = (int32_t)(((uint32_t)*value << 8) | b);
         op->frame->step_read_int32.ofs++;
     } else {
         snprintf((char *)CAPTURE, sizeof(CAPTURE), "%d", *value);

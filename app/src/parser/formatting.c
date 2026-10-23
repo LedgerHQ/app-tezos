@@ -583,5 +583,9 @@ tz_format_address(const uint8_t *data, size_t size, char *obuf, size_t olen)
     }
     // clang-format on
 
+    // The tag and the padding byte that follows the hash
+    if (size < 2) {
+        return 1;
+    }
     return tz_format_base58check(prefix, data + 1, size - 2, obuf, olen);
 }

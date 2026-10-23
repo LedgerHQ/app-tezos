@@ -139,8 +139,14 @@ dispatch(const command_t *cmd)
         break;
     case INS_GET_PUBLIC_KEY:
     case INS_PROMPT_PUBLIC_KEY: {
+        /* In a swap, global.step is always ST_SWAP_SIGN: it does not tell
+           whether a signing is under way. The public key is written to
+           global.keys, which is a union with the hash and the state of that
+           signing, so it must wait for the signing to be over. */
         TZ_ASSERT(EXC_UNEXPECTED_STATE,
-                  (global.step == ST_IDLE) || (global.step == ST_SWAP_SIGN));
+                  (global.step == ST_IDLE)
+                      || ((global.step == ST_SWAP_SIGN)
+                          && (global.keys.apdu.sign.step == SIGN_ST_IDLE)));
 
         ASSERT_NO_P1(cmd);
         READ_P2_DERIVATION_TYPE(cmd, derivation_type);

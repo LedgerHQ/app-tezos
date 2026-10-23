@@ -1,0 +1,41 @@
+# Tokens for the micheline parser: the tags of an expression, the primitives it
+# prints by name, and the sizes that bound it. See
+# app/src/parser/micheline_state.h.
+
+# Tags
+tag_int="\x00"
+tag_string="\x01"
+tag_seq="\x02"
+tag_prim_0="\x03"
+tag_prim_0_annots="\x04"
+tag_prim_1="\x05"
+tag_prim_1_annots="\x06"
+tag_prim_2="\x07"
+tag_prim_2_annots="\x08"
+tag_prim_n="\x09"
+tag_bytes="\x0a"
+
+# Some primitives, by their code
+prim_unit="\x03\x0b"
+prim_pair="\x07\x07"
+prim_left="\x05\x05"
+prim_right="\x05\x08"
+prim_some="\x05\x09"
+prim_none="\x03\x06"
+prim_elt="\x07\x04"
+
+# Sizes, as four bytes
+size_zero="\x00\x00\x00\x00"
+size_one="\x00\x00\x00\x01"
+size_max="\xff\xff\xff\xff"
+size_big="\x00\x01\x00\x00"
+
+# Integers: zero, a continuation byte, a negative one, too many bytes
+int_zero="\x00\x00"
+int_cont="\x00\xff"
+int_negative="\x00\x45"
+int_long="\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+
+# Strings and annotations
+annot="%a"
+string_abc="abc"

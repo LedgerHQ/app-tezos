@@ -604,6 +604,10 @@ tz_step_size(tz_parser_state *state)
     op->frame->step_size.size = (op->frame->step_size.size << 8) | b;
     op->frame->step_size.size_len--;
     if (op->frame->step_size.size_len == 0) {
+        // The end of what is sized is a 16-bit offset, like its size
+        if ((state->ofs + op->frame->step_size.size) > UINT16_MAX) {
+            tz_raise(TOO_LARGE);
+        }
         op->frame[-1].stop = state->ofs + op->frame->step_size.size;
         tz_must(pop_frame(state));
     }

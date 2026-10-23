@@ -23,6 +23,11 @@ fuzzing/build
 fuzzing/corpus
 fuzzing/crashes
 fuzzing/out
+fuzzing/seeds
+.fuzz-artifacts/
+# Per-build Absolution invariant snapshot, see ledger-secure-sdk
+# fuzzing/doc/invariants.dox ("fuzz_globals.zon is a machine-local artefact").
+app/fuzzing/invariants/*.zon
 *env/
 ledger/
 .vscode/

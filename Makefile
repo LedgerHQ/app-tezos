@@ -108,14 +108,15 @@ unit_tests:	test/samples/micheline/nano/samples.hex	\
 	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/unit
 	$(DOCKER_RUN_APP_BUILDER) bash -c "cd /app/unit-tests && cmake -Bbuild -H. && cmake --build build && CTEST_OUTPUT_ON_FAILURE=1 ctest --test-dir build"
 
-# Fuzz the operation parser under ASan/UBSan for FUZZ_TIME seconds, see
+# Fuzz the parsers and helpers under ASan/UBSan, for FUZZ_TIME seconds in all,
+# or only the FUZZ_TARGETS, e.g. FUZZ_TARGETS="operation_parser amounts". See
 # fuzzing/README.md
 FUZZ_TIME ?= 60
 
 fuzz:
 	$(DOCKER_RUN) --user $(shell id -u):$(shell id -g)	\
 		ledger-app-builder:latest			\
-		bash /app/fuzzing/fuzz.sh $(FUZZ_TIME)
+		bash /app/fuzzing/fuzz.sh $(FUZZ_TIME) $(FUZZ_TARGETS)
 
 RUN_TEST_DOCKER = ./tests/integration/run_test_docker.sh
 

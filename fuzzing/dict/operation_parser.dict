@@ -1,0 +1,57 @@
+# Tokens for the operation parser: bytes it gives a meaning to, that mutation
+# takes long to find by chance. See app/src/parser/operation_state.h.
+
+# Magic byte: a batch of operations, a micheline expression
+magic_operation="\x03"
+magic_micheline="\x05"
+
+# Operation tags
+tag_proposals="\x05"
+tag_ballot="\x06"
+tag_failing_noop="\x11"
+tag_reveal="\x6b"
+tag_transaction="\x6c"
+tag_origination="\x6d"
+tag_delegation="\x6e"
+tag_register_global_constant="\x6f"
+tag_set_deposits_limit="\x70"
+tag_increase_paid_storage="\x71"
+tag_update_consensus_key="\x72"
+tag_update_companion_key="\x73"
+tag_transfer_ticket="\x9e"
+tag_smart_rollup_originate="\xc8"
+tag_smart_rollup_add_messages="\xc9"
+tag_smart_rollup_execute_outbox_message="\xce"
+
+# Entrypoint: a named one, then its length
+entrypoint_named="\xff"
+entrypoint_named_8="\xff\x00\x00\x00\x08"
+
+# Names of entrypoints the parser treats specially
+name_transfer="transfer"
+name_default="default"
+name_root="root"
+name_stake="stake"
+name_unstake="unstake"
+name_finalize_unstake="finalize_unstake"
+name_set_delegate_parameters="set_delegate_parameters"
+
+# Sizes of a field, as four bytes
+size_zero="\x00\x00\x00\x00"
+size_one="\x00\x00\x00\x01"
+size_max="\xff\xff\xff\xff"
+size_big="\x00\x01\x00\x00"
+
+# A micheline parameter: a pair, a sequence, an int, and a unit
+micheline_pair="\x07\x07"
+micheline_seq="\x02\x00\x00\x00"
+micheline_int_zero="\x00\x00"
+micheline_unit="\x03\x0b"
+
+# Options, public key hash and key tags
+none="\x00"
+some="\xff"
+tag_ed25519="\x00"
+tag_secp256k1="\x01"
+tag_p256="\x02"
+tag_bls="\x03"

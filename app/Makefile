@@ -108,8 +108,11 @@ endif
 # below must be set before it.
 ENABLE_SDK_WERROR = 1
 # The SDK sources are compiled with the app CFLAGS too, and are not clean for
-# every warning. To add one anyway, scope it to the app objects:
-#   $(OBJ_DIR)/app/%.o: CFLAGS += -W<name>
+# every warning, so the extra warnings are scoped to the app objects.
+$(OBJ_DIR)/app/%.o: CFLAGS += -Wmissing-prototypes -Wpointer-arith
+$(OBJ_DIR)/app/%.o: CFLAGS += -Wassign-enum -Wcomma -Wstring-conversion
+$(OBJ_DIR)/app/%.o: CFLAGS += -Wcast-align -Wunreachable-code-aggressive
+# -Wcast-qual is not enabled: it fires in the app code and in an SDK header.
 
 ########################################
 #     Application custom permissions   #

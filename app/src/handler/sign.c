@@ -32,6 +32,7 @@
 
 #ifdef HAVE_SWAP
 #include <swap.h>
+#include <swap_error_code_helpers.h>
 #endif
 
 #include "app_format.h"
@@ -83,7 +84,7 @@ static void init_summary_stream(void);
 #endif
 
 #ifdef HAVE_BAGL
-void
+static void
 tz_ui_stream_push_accept_reject(void)
 {
     FUNC_ENTER(("void"));
@@ -99,7 +100,7 @@ tz_ui_stream_push_accept_reject(void)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_ui_stream_push_risky_accept_reject(tz_ui_cb_type_t accept_cb_type,
                                       tz_ui_cb_type_t reject_cb_type)
 {
@@ -137,7 +138,7 @@ tz_ui_stream_push_warning_not_trusted(const char *title_reason,
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_ui_stream_push_learn_more(void)
 {
     FUNC_ENTER(("void"));
@@ -762,15 +763,16 @@ handle_signing_key_setup(buffer_t *cdata, derivation_type_t derivation_type,
        A refused key ends the swap, as a refused operation does in
        swap_check_validity(): the host gets no second try with another key,
        and the device goes back to Exchange instead of staying in this
-       application.
+       application. The answer tells which check refused, see
+       tz_swap_error_t.
      */
     if (G_called_from_swap
         && !swap_signing_key_allowed(
             derivation_type == DERIVATION_TYPE_ED25519,
             global.path_with_curve.bip32_path.components,
             global.path_with_curve.bip32_path.length)) {
-        G_swap_response_ready = true;
-        TZ_FAIL(EXC_WRONG_VALUES);
+        send_swap_error_simple(EXC_WRONG_VALUES, SWAP_EC_ERROR_GENERIC,
+                               TZ_SWAP_ERR_KEY);
     }
 #endif
 
@@ -976,7 +978,7 @@ pass_from_summary_to_blind(void)
 
 static nbgl_layoutTagValueList_t useCaseTagValueList;
 
-void
+static void
 accept_blindsign_cb(void)
 {
     FUNC_ENTER(("void"));

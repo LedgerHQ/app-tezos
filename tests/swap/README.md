@@ -15,6 +15,7 @@ swap/
 ├── cal_helper.py                     # Coin configurations, as the CAL would provide them
 ├── conftest.py                       # Ragger configuration and fixtures
 ├── tezos_transaction.py              # Minimal Tezos operation encoding
+├── test_swap_exchange.py             # The cases of the Exchange application, native tez
 ├── test_swap_fa2.py                  # The test cases
 ├── helper_tool_clone_dependencies.py # Clones Exchange and Ethereum (run on the host)
 ├── helper_tool_build_dependencies.py # Builds them (run inside the Ledger docker image)
@@ -61,6 +62,7 @@ dependencies declared under `[pytest.swap.dependencies]` in `ledger_app.toml`.
 
 | Case | Expectation |
 | --- | --- |
+| `test_tezos` | The swap, sell and fund flows of the Exchange application, with native tez: a valid transaction is signed, a wrong amount, destination or fee is refused. These are the Tezos cases of the Exchange repository, see below. |
 | `test_tezos_native_swap_control` | A native tez swap is signed. Guards the setup itself. |
 | `test_tezos_fa2` | A swap paying with USDt is signed (LIVE-36514). |
 | `test_tezos_fa2_tampered` | A tampered amount, destination or fee is refused. |
@@ -94,3 +96,32 @@ The application cannot refuse it without refusing every real tez swap
 (`test_tezos_native_swap_control` sends exactly that). Closing it needs Exchange
 to pass the ticker of the currency it quoted, or the CAL to give every non-tez
 asset it lists for Tezos a sub-coin configuration.
+
+## The Exchange application cases
+
+`test_swap_exchange.py` and its snapshots were taken from the Exchange
+repository (`test/python/test_tezos.py`, `test/python/snapshots/<device>/test_tezos_*`
+of https://github.com/LedgerHQ/app-exchange-dev, at commit `3016ce50`), so that
+the Tezos application is tested here and not only there. The constants are the
+same, and so are the transactions: `craft_revealed_native_transfer()` builds the
+bytes of the Exchange test, a reveal then a transfer, which is also what Ledger
+Live sends for an account that is not revealed yet.
+
+The cases are those of `ALL_TESTS_EXCEPT_MEMO_AND_THORSWAP` of the Exchange test
+runner, so a case added to the runner has no snapshot here until it is
+generated with `--golden_run`. The snapshots of these cases are the screens of
+the Exchange application: when its UI changes, they are to be updated here as
+they are there.
+
+## Refusal error codes
+
+A swap the application refuses is answered with the status word it has always
+used (`0x6985`, or `0x6A80` when the key is set up), which the tests of the
+Exchange application expect. The data of the answer is a two bytes error code
+sent with the SDK helper `send_swap_error_simple`: the first byte is one of the
+`swap_error_common_code_t` of the SDK (`0x01` wrong amount, `0x02` wrong
+destination, `0x03` wrong fees, `0x04` wrong method, `0xFF` generic), the second
+one tells which check of the application refused, see `tz_swap_error_t` in
+`app/src/handle_swap.h`. The signing key, wrong token and no token configuration
+cases assert it, so they fail if a refusal comes from another check than the one
+they expect.

@@ -42,11 +42,11 @@ blindsign_toggle()
     FUNC_LEAVE();
 }
 
-UX_STEP_CB(ux_expert_mode_step, bn, expert_mode_toggle(),
-           {"Expert mode", G_settings.expert_mode_state});
-UX_STEP_CB(ux_blindsign_step, bn, blindsign_toggle(),
-           {"Allow Blindsigning", G_settings.blindsign_state_desc});
-UX_STEP_CB(ux_back_step, pb, ui_home_init(), {&C_icon_back, "Back"});
+TZ_UX_STEP_CB(ux_expert_mode_step, bn, expert_mode_toggle(),
+              {"Expert mode", G_settings.expert_mode_state});
+TZ_UX_STEP_CB(ux_blindsign_step, bn, blindsign_toggle(),
+              {"Allow Blindsigning", G_settings.blindsign_state_desc});
+TZ_UX_STEP_CB(ux_back_step, pb, ui_home_init(), {&C_icon_back, "Back"});
 
 UX_FLOW(ux_expert_mode_flow, &ux_expert_mode_step, &ux_blindsign_step,
         &ux_back_step, FLOW_LOOP);

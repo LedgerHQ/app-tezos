@@ -125,7 +125,7 @@ switch_to_blindsigning_on_error(void)
     TZ_POSTAMBLE;
 }
 
-void
+static void
 expert_mode_splash(void)
 {
     TZ_PREAMBLE(("void"));
@@ -138,7 +138,7 @@ expert_mode_splash(void)
     TZ_POSTAMBLE;
 }
 
-void
+static void
 handle_expert_mode(bool confirm)
 {
     TZ_PREAMBLE(("void"));
@@ -155,7 +155,7 @@ handle_expert_mode(bool confirm)
     TZ_POSTAMBLE;
 }
 
-void
+static void
 tz_enable_expert_mode_ui(void)
 {
     FUNC_LEAVE();
@@ -169,7 +169,7 @@ tz_enable_expert_mode_ui(void)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_accept_ui(void)
 {
     tz_ui_stream_t *s = &G_stream;
@@ -184,7 +184,7 @@ tz_accept_ui(void)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_choice_ui(bool accept)
 {
     FUNC_ENTER(("accept=%d", accept));
@@ -198,7 +198,7 @@ tz_choice_ui(bool accept)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_ui_continue(void)
 {
     tz_ui_stream_t *s = &G_stream;
@@ -212,7 +212,7 @@ tz_ui_continue(void)
     TZ_POSTAMBLE;
 }
 
-void
+static void
 tz_ui_stream_cb(void)
 {
     FUNC_ENTER(("void"));
@@ -245,7 +245,7 @@ tz_ui_stream(void)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_ui_review_start(void)
 {
     tz_ui_stream_t *s = &G_stream;

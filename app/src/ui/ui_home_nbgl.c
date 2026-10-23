@@ -88,7 +88,7 @@ static const nbgl_genericContents_t tezos_settingContents
 ;
 
 #define HOME_TEXT "This app enables signing transactions on the Tezos Network"
-void
+static void
 initSettings(void)
 {
     switches[EXPERT_MODE_TOKEN_ID].initState

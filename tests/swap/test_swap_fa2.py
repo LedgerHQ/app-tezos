@@ -46,11 +46,16 @@ from .tezos_transaction import (
     P1_LAST,
     P2_ED25519,
     STATUS_OK,
+    SWAP_EC_ERROR_GENERIC,
+    SWAP_EC_ERROR_WRONG_AMOUNT,
+    SWAP_ERR_AMOUNT,
+    SWAP_ERR_TOKEN_TICKER,
     address_bytes,
     blake2_hash_pubkey,
     craft_fa2_transfer,
     craft_native_transfer,
     encode_tz1,
+    swap_error,
 )
 
 
@@ -125,11 +130,15 @@ class TezosFa2Tests(ExchangeTestRunner):
         self.assert_exchange_is_started()
 
     def perform_test_swap_fa2_wrong_token(self):
-        """Transferring a token other than the one quoted must be refused."""
+        """Transferring a token other than the one quoted must be refused.
+
+        Both tokens are known to the application, so what refuses is the ticker.
+        """
         self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         with pytest.raises(ExceptionRAPDU) as e:
             self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         assert e.value.status == self.signature_refusal_error_code
+        assert e.value.data == swap_error(SWAP_EC_ERROR_GENERIC, SWAP_ERR_TOKEN_TICKER)
         self.assert_exchange_is_started()
 
 
@@ -235,10 +244,15 @@ class TezosFa2NoTokenConfigTests(TezosFa2Tests):
     currency_configuration = cal.USDT_NO_TOKEN_CONFIGURATION
 
     def perform_test_swap_fa2_no_config(self):
+        """Without a token configuration the swap is checked as a native one.
+
+        The operation carries no tez, so it is the amount that does not match.
+        """
         self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         with pytest.raises(ExceptionRAPDU) as e:
             self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
         assert e.value.status == self.signature_refusal_error_code
+        assert e.value.data == swap_error(SWAP_EC_ERROR_WRONG_AMOUNT, SWAP_ERR_AMOUNT)
         self.assert_exchange_is_started()
 
 

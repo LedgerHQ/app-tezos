@@ -11,14 +11,3 @@
 [unsigned-integer-overflow]
 fun:tz_format_base58
 fun:tz_format_decimal
-
-# digestif's sha256, from the unit tests, which the host fuzzers link for the
-# formatting of a hash: wrapping arithmetic and rotations by design. The build
-# of the app has the one of the SDK, which the SDK list covers.
-src:*/unit-tests/digestif/*
-
-[unsigned-shift-base]
-src:*/unit-tests/digestif/*
-
-[implicit-conversion]
-src:*/unit-tests/digestif/*

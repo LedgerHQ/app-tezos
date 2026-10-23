@@ -19,11 +19,6 @@ tests/standalone/.parallel-runs
 tests/swap/snapshots-tmp
 tests/swap/.test_dependencies/
 unit-tests/build
-fuzzing/build
-fuzzing/corpus
-fuzzing/crashes
-fuzzing/out
-fuzzing/seeds
 .fuzz-artifacts/
 # Per-build Absolution invariant snapshot, see ledger-secure-sdk
 # fuzzing/doc/invariants.dox ("fuzz_globals.zon is a machine-local artefact").

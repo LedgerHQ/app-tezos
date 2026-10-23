@@ -9,8 +9,7 @@ the CMake API, CI, and how to maintain it) live in the **Fuzzing Framework**
 page of the SDK documentation, published at
 <https://ledgerhq.github.io/ledger-secure-sdk/> (source:
 `$BOLOS_SDK/fuzzing/doc/`). This file only documents what is specific to the
-Tezos app. The faster targets that need none of the SDK are in
-[`../../fuzzing`](../../fuzzing/README.md).
+Tezos app.
 
 ## Quickstart
 
@@ -52,10 +51,9 @@ control byte 1 picks the swap mode, the parser or the helper.
 `fuzz_helpers` checks what the others cannot: not that the app survives the
 input, but that the answer is right. What is formatted must decode back to
 what went in, with a valid checksum, and an amount must match a reference
-built the other way around. The checks are in `checks/`, and the host
-targets of [`../../fuzzing`](../../fuzzing/README.md) run the same ones
-without the SDK. The harness includes `operation_parser.c`, for the helpers
-that are static in it, in place of the copy of the app.
+built the other way around. The checks are in `checks/`. The harness includes
+`operation_parser.c`, for the helpers that are static in it, in place of the
+copy of the app.
 
 ## Why one input is a sequence
 
@@ -103,7 +101,7 @@ each iteration: the sequences of APDUs of the harnesses build them. An override
 that matches no field is an error of the build, so read the generated model
 again after a change to `global`.
 
-`.clusterfuzzlite/build.sh` builds the targets of `../fuzzing` and then
-delegates to the SDK's shared `fuzzing/scripts/cfl-build.sh`. The CFL
+`.clusterfuzzlite/build.sh` is a thin wrapper that delegates to the SDK's shared
+`fuzzing/scripts/cfl-build.sh`, with `APP_DIR` set to `app/`. The CFL
 Dockerfile copies the SDK from the Ledger app development image, and the whole
 repository with its `.git`, which the SDK Makefiles need.

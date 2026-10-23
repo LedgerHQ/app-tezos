@@ -9,6 +9,7 @@ exclude_regexes = [
     '.*ledger-secure-sdk.*',
     '.*fuzzing/mock/.*',
     '.*fuzzing/harness/.*',
+    '.*fuzzing/checks/.*',
     '.*fuzzer\.c',
     '.*src/app_main\.c',
 ]

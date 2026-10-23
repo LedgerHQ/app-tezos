@@ -94,11 +94,16 @@ app/fuzzing/
 
 `fuzz-manifest.toml` is the authoritative list of targets, seeds and
 dictionary. The invariants (`invariants/<target>.zon`) are generated per build
-and not committed. Until the fields of `global` (the state machine of the app)
-are constrained in `domain-overrides.txt`, most inputs are refused by the first
-check of the dispatcher and the coverage stays low: the comments of that file
-say what to name once a first campaign has generated the model.
+and not committed. `domain-overrides.txt` holds the state machine of the app
+(`global.step`) at its start, as the first packet of a signing needs
+`ST_IDLE`, and keeps the key, the curve and the strings of the screens in
+range. `global.ui` and `global.keys`, which hold the parser of the operation
+and point into themselves, are padding to Absolution and zero at the start of
+each iteration: the sequences of APDUs of the harnesses build them. An override
+that matches no field is an error of the build, so read the generated model
+again after a change to `global`.
 
 `.clusterfuzzlite/build.sh` builds the targets of `../fuzzing` and then
-delegates to the SDK's shared `fuzzing/scripts/cfl-build.sh`; the CFL
-Dockerfile copies the SDK from the Ledger app development image.
+delegates to the SDK's shared `fuzzing/scripts/cfl-build.sh`. The CFL
+Dockerfile copies the SDK from the Ledger app development image, and the whole
+repository with its `.git`, which the SDK Makefiles need.

@@ -9,12 +9,9 @@ RUN apt update && apt install -y ninja-build libbsd-dev pkg-config
 
 COPY --from=app-builder /opt/flex-secure-sdk /ledger-secure-sdk
 
-# Copy what the fuzzers are built from.
-COPY app /app/app
-COPY unit-tests/digestif /app/unit-tests/digestif
-COPY unit-tests/shims /app/unit-tests/shims
-COPY unit-tests/strlcpy.c unit-tests/test_operation_parser.c /app/unit-tests/
-COPY fuzzing /app/fuzzing
+# Copy the project's source code, with its .git: the SDK Makefiles must be run
+# inside a git repository.
+COPY . /app
 
 # Working directory for build.sh
 WORKDIR /app

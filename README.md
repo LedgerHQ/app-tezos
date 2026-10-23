@@ -28,6 +28,15 @@ The docker images can be built using the provided Makefile:
 This pulls down following image, `ghcr.io/ledgerhq/ledger-app-dev-tools`. It
 also builds an image via `docker/Dockerfile.ocaml`.
 
+That image, and the OCaml sample generator used by the tests, are built from
+the Octez sources of the `deps/tezos` submodule. It is over a gigabyte, so it
+is not fetched by a recursive clone, nor by CI (`update = none` in
+`.gitmodules`). Fetch it before building them:
+
+```
+:; git submodule update --init --checkout deps/tezos
+```
+
 We do not make the builds of the software conditional on these docker
 images as it can be time consuming to build them, approx 1 hour, and
 `make(1)` does not automatically avoid rebuilds as they do not create

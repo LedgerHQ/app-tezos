@@ -278,6 +278,15 @@ ui_strings_append_last(const char *str, size_t max, char **out)
         max = (size_t)MIN((int)max + 1, s->start - s->end);
     }
 
+    /* No contiguous room left after the current end. Appending in place is
+       impossible here - ui_strings_fit_up_to() reports the space reachable
+       by wrapping to the start of the ring, which this function cannot use.
+       Report nothing appended, as when the ring is full, so the caller moves
+       to the next screen instead of deriving a length from `max - 1`. */
+    if (max == 0) {
+        TZ_SUCCEED();
+    }
+
     *out = s->end - 1;
 
     strlcpy(*out, str, max);

@@ -393,6 +393,7 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     op->fa2_token_id       = 0;
     op->fa2_amount         = 0;
     op->fa2_destination[0] = '\0';
+    op->fa2_source[0]      = '\0';
 #endif  // HAVE_SWAP
     op->total_fee     = 0;
     op->total_amount  = 0;
@@ -438,8 +439,10 @@ tz_manager_entrypoint_set(tz_operation_state *op, const char *name)
 static bool
 tz_implicit_fee_payer_differs_from_dest(const tz_operation_state *op)
 {
+    /* Only an implicit account can be a staker: an originated contract runs
+       its own code under this entrypoint name. */
     if (op->destination[0] != 0x00) {
-        return true;
+        return false;
     }
     return memcmp(op->source, op->destination + 1, 21) != 0;
 }
@@ -676,7 +679,7 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_AMOUNT_VAL      21 /* read varint */
 #define FA2_STEP_VERIFY_END      22 /* verify no extra outer items */
 #define FA2_STEP_EMIT_TO_ADDR    23 /* emit "Transfer tokens to" field */
-#define FA2_STEP_EMIT_TOKEN_ID   25 /* emit "Token ID" (unregistered token) */
+#define FA2_STEP_EMIT_TOKEN_ID   25 /* emit "Token ID" (raw amount only) */
 #define FA2_STEP_EMIT_AMOUNT     24 /* emit amount field */
 
 /* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
@@ -686,6 +689,26 @@ tz_step_tag(tz_parser_state *state)
 
 _Static_assert((TZ_CAPTURE_BUFFER_SIZE % 2U) == 0U,
                "TZ_CAPTURE_BUFFER_SIZE must be even for FA2 CAPTURE split");
+
+/**
+ * @brief Insert a minus sign in front of a decimal magnitude, in place.
+ *
+ * @param str: NUL-terminated decimal magnitude
+ * @param size: capacity of the buffer holding `str`
+ * @return bool: false when the buffer cannot hold the extra character
+ */
+static bool
+tz_prepend_minus(char *str, size_t size)
+{
+    size_t len = strlen(str);
+
+    if ((len + 2) > size) {
+        return false;
+    }
+    memmove(str + 1, str, len + 1);
+    str[0] = '-';
+    return true;
+}
 
 #ifdef HAVE_SWAP
 /**
@@ -986,6 +1009,14 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         }
         /* Address fully read; null-terminate for string case */
         CAPTURE[FA2_FROM_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
+        if (op->frame->step_read_fa2.addr_tag == 0x01) {
+            /* The owner is later compared as a C string. A NUL inside the
+               declared string would cut it short and let a different value
+               pass for the one that is signed. */
+            FA2_REQUIRE(state,
+                        strlen((const char *)(CAPTURE + FA2_FROM_ADDR_OFS))
+                            == (size_t)op->frame->step_read_fa2.addr_ofs);
+        }
         if (op->frame->step_read_fa2.addr_tag == 0x0A) {
             /* Binary address: format it in-place */
             FA2_REQUIRE(state, tz_format_address(
@@ -1054,6 +1085,14 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         }
         /* Address fully read; null-terminate for string case */
         CAPTURE[FA2_TO_ADDR_OFS + op->frame->step_read_fa2.addr_ofs] = 0;
+        if (op->frame->step_read_fa2.addr_tag == 0x01) {
+            /* The recipient is later compared as a C string. A NUL inside the
+               declared string would cut it short and let a different value
+               pass for the one that is signed. */
+            FA2_REQUIRE(state,
+                        strlen((const char *)(CAPTURE + FA2_TO_ADDR_OFS))
+                            == (size_t)op->frame->step_read_fa2.addr_ofs);
+        }
         if (op->frame->step_read_fa2.addr_tag == 0x0A) {
             FA2_REQUIRE(state,
                         tz_format_address(CAPTURE + FA2_TO_ADDR_OFS,
@@ -1131,18 +1170,13 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_continue;
         }
 
+        /* The registry ties a destination and token id to the token the FA2
+           labels name. A pair it does not list is shown as the raw Micheline
+           parameter, never under FA2 labels. */
         token = fa2_find_token(op->destination,
                                op->frame->step_read_fa2.token_id_val);
-
-        if (token != NULL) {
-            op->frame->step_read_fa2.token_idx = fa2_token_index(token);
-        } else {
-            /* Unregistered token: decimals/symbol are unknown. Rather than
-               falling back to raw Micheline, display the decoded fields with
-               the raw (integer) amount. token_idx == -1 selects that path in
-               the emit steps. */
-            op->frame->step_read_fa2.token_idx = -1;
-        }
+        FA2_REQUIRE(state, token != NULL);
+        op->frame->step_read_fa2.token_idx = fa2_token_index(token);
 
         op->frame->step_read_fa2.sub_step = FA2_STEP_AMOUNT_TAG;
         tz_continue;
@@ -1167,6 +1201,19 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (!op->frame->step_read_fa2.num_state.stop) {
             tz_continue;
         }
+        /* The decimal buffer holds the magnitude only, so a negative amount
+         * would be shown as a positive one. A transfer amount is a nat, so
+         * this is never a valid transfer: show it raw, with its sign and
+         * behind the careful-review gate (the token's decimals and symbol
+         * are not applied to it). token_idx == -1 selects that path in the
+         * emit steps. The sign also keeps the amount from being recorded for
+         * swap validation, which only accepts digits. */
+        if (op->frame->step_read_fa2.num_state.sign) {
+            FA2_REQUIRE(state,
+                        tz_prepend_minus((char *)state->buffers.num.decimal,
+                                         sizeof(state->buffers.num.decimal)));
+            op->frame->step_read_fa2.token_idx = -1;
+        }
         op->frame->step_read_fa2.sub_step = FA2_STEP_VERIFY_END;
         tz_continue;
     }
@@ -1184,9 +1231,15 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         if (fa2_decimal_to_u64((const char *)state->buffers.num.decimal,
                                &op->fa2_amount)
             && (strlen((const char *)(CAPTURE + FA2_TO_ADDR_OFS))
-                < sizeof(op->fa2_destination))) {
+                < sizeof(op->fa2_destination))
+            && (strlen((const char *)(CAPTURE + FA2_FROM_ADDR_OFS))
+                < sizeof(op->fa2_source))) {
             STRLCPY(op->fa2_destination,
                     (const char *)(CAPTURE + FA2_TO_ADDR_OFS));
+            /* The owner whose balance is debited. The host picks it, so the
+               swap must check it against the account that signs. */
+            STRLCPY(op->fa2_source,
+                    (const char *)(CAPTURE + FA2_FROM_ADDR_OFS));
             op->fa2_token_id = op->frame->step_read_fa2.token_id_val;
             op->fa2_swap_ok  = 1;
         }
@@ -1201,10 +1254,15 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_stop(IM_FULL);
         }
         STRLCPY(state->field_info.field_name, "Transfer tokens to");
-        state->field_info.is_field_complex = false;
+        /* The destination and token id are in the registry, so these labels
+           are authenticated. The one exception is the raw negative amount
+           (token_idx == -1), which keeps the careful-review gate that a raw
+           Micheline expression would get. */
+        state->field_info.is_field_complex
+            = (op->frame->step_read_fa2.token_idx < 0);
         state->field_info.field_index++;
-        /* For an unregistered token, show the raw token id before the raw
-           amount so the user can tell which token is being moved. */
+        /* For a raw amount, show the token id before it so the user can tell
+           which token is being moved. */
         op->frame->step_read_fa2.sub_step
             = (op->frame->step_read_fa2.token_idx < 0)
                   ? FA2_STEP_EMIT_TOKEN_ID
@@ -1214,7 +1272,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         tz_continue;
 
     case FA2_STEP_EMIT_TOKEN_ID:
-        /* Emit "Token ID" for unregistered tokens. The sender address slot
+        /* Emit "Token ID" before a raw amount. The sender address slot
            (FROM_ADDR half of CAPTURE) is no longer needed and is reused as
            scratch for the formatted id. */
         if (regs->oofs > 0) {
@@ -1226,7 +1284,7 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
             tz_raise(INVALID_STATE);
         }
         STRLCPY(state->field_info.field_name, "Token ID");
-        state->field_info.is_field_complex = false;
+        state->field_info.is_field_complex = true;
         state->field_info.field_index++;
         op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_AMOUNT;
         tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
@@ -1234,9 +1292,9 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         tz_continue;
 
     case FA2_STEP_EMIT_AMOUNT:
-        /* Emit the amount: "Token Amount" (with symbol) for a registered
-           token, or "Amount (raw)" (the on-chain integer, decimals unknown)
-           for an unregistered one. */
+        /* Emit the amount: "Token Amount" (with symbol) normally, or
+           "Amount (raw)" (the signed on-chain integer, no decimals applied)
+           when token_idx == -1. */
         if (regs->oofs > 0) {
             tz_stop(IM_FULL);
         }
@@ -1252,7 +1310,8 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
                 STRLCPY(state->field_info.field_name, "Amount (raw)");
             }
         }
-        state->field_info.is_field_complex = false;
+        state->field_info.is_field_complex
+            = (op->frame->step_read_fa2.token_idx < 0);
         state->field_info.field_index++;
         /* Pop the FA2 frame first, then push PRINT so PRINT pops to parent */
         tz_must(pop_frame(state));
@@ -1356,6 +1415,13 @@ tz_step_read_set_delegate_params(tz_parser_state *state)
         if (!op->frame->step_read_sdp.int_regs.stop) {
             tz_continue;
         }
+        if (op->frame->step_read_sdp.int_regs.sign) {
+            /* This path copies the magnitude only. A signed operand is
+               reparsed by the generic Micheline printer, which renders the
+               sign. */
+            tz_must(sdp_fail_to_micheline(state));
+            tz_continue;
+        }
         strlcpy(op->sdp_limit_decimal, state->buffers.num.decimal,
                 sizeof(op->sdp_limit_decimal));
         op->frame->step_read_sdp.sub_step = SDP_STEP_INNER_PAIR_TAG;
@@ -1392,6 +1458,10 @@ tz_step_read_set_delegate_params(tz_parser_state *state)
         tz_must(tz_parse_int_step(&state->buffers.num,
                                   &op->frame->step_read_sdp.int_regs, b));
         if (!op->frame->step_read_sdp.int_regs.stop) {
+            tz_continue;
+        }
+        if (op->frame->step_read_sdp.int_regs.sign) {
+            tz_must(sdp_fail_to_micheline(state));
             tz_continue;
         }
         strlcpy(op->sdp_edge_decimal, state->buffers.num.decimal,
@@ -1600,6 +1670,14 @@ tz_step_read_num(tz_parser_state *state)
         op->frame->step = TZ_OPERATION_STEP_PRINT;
         switch (op->frame->step_read_num.kind) {
         case TZ_OPERATION_FIELD_INT:
+            /* The magnitude and the sign are parsed into separate places and
+               only the magnitude reaches `decimal`. */
+            if (op->frame->step_read_num.state.sign
+                && !tz_prepend_minus(str,
+                                     sizeof(state->buffers.num.decimal))) {
+                tz_raise(INVALID_DATA);
+            }
+            break;
         case TZ_OPERATION_FIELD_NAT:
             break;
         case TZ_OPERATION_FIELD_FEE:
@@ -2072,8 +2150,13 @@ tz_step_field(tz_parser_state *state)
         break;
     }
     case TZ_OPERATION_FIELD_EXPR: {
-        if (op->is_fa2_candidate && !field->skip) {
-            const fa2_token_metadata_t *token;
+        /* The entrypoint name and the shape of the parameter are chosen by
+           the host, so they cannot give a contract's fields their meaning:
+           only a contract listed in the registry may be decoded as FA2, and
+           set_delegate_parameters only means staking when sent to an implicit
+           account. Any other KT1 gets the generic Micheline review. */
+        if (op->is_fa2_candidate && !field->skip
+            && fa2_contract_is_registered(op->destination)) {
             state->field_info.is_field_complex = false;
             op->frame->step = TZ_OPERATION_STEP_READ_FA2_TRANSFER;
             op->frame->step_read_fa2.sub_step       = FA2_STEP_OUTER_SEQ_TAG;
@@ -2084,14 +2167,10 @@ tz_step_field(tz_parser_state *state)
             op->frame->step_read_fa2.token_id_shift = 0;
             op->frame->step_read_fa2.token_id_val   = 0;
             op->frame->step_read_fa2.token_idx      = -1;
-
-            token = fa2_find_token(op->destination,
-                                   op->frame->step_read_fa2.token_id_val);
-            if (token != NULL) {
-                op->frame->step_read_fa2.token_idx = fa2_token_index(token);
-            }
-        } else if ((strcmp(op->manager_entrypoint, "set_delegate_parameters")
-                    == 0)
+        } else if ((op->destination[0] == 0x00)
+                   && (strcmp(op->manager_entrypoint,
+                              "set_delegate_parameters")
+                       == 0)
                    && !field->skip) {
             op->frame->step = TZ_OPERATION_STEP_READ_SET_DELEGATE_PARAMS;
             op->frame->step_read_sdp.sub_step = SDP_STEP_SAVE_START;

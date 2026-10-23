@@ -569,7 +569,7 @@ test_check_sponsored_finalize_unstake(void **state)
 
 /* finalize_unstake: KT1 (originated) destination.
  * destination[0] = 0x01 ≠ 0x00 → tz_implicit_fee_payer_differs_from_dest
- * returns true (line 409), Note field shown. */
+ * returns false: a contract is not a staker, so no sponsored Note. */
 static void
 test_check_finalize_unstake_kt1_dest(void **state)
 {
@@ -587,7 +587,6 @@ test_check_finalize_unstake_kt1_dest(void **state)
         {"Amount",        false, 4},
         {"Destination",   false, 5},
         {"Entrypoint",    false, 8},
-        {"Note",          false, 9},
         {"Parameter",     false, 9},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
@@ -665,6 +664,32 @@ test_check_set_delegate_parameters_complexity(void **state)
         {"Entrypoint",         false, 8},
         {"Limit (stake/bake)", false, 9},
         {"Edge (bake/stake)",  false, 9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* set_delegate_parameters: KT1 (originated) destination. Same entrypoint and
+ * well-formed parameter as the implicit test above, but a contract runs its
+ * own code under that name, so it must not get the staking labels: generic
+ * complex Parameter instead. */
+static void
+test_check_set_delegate_parameters_kt1_dest(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b80200310200"
+          "01000000000000000000000000000000000000000000ff090000001007070080a4"
+          "e8030707"
+          "0080b48913030b";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -1178,32 +1203,6 @@ test_check_fa2_transfer_clear_signing_fields(void **state)
 }
 
 static void
-test_check_fa2_transfer_fallback_uses_complex_parameter(void **state)
-{
-    operation_parser_data *data = *state;
-    char                   str[]
-        = "030000000000000000000000000000000000000000000000000000000000000000"
-          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
-          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006702"
-          "00000062070701000000244b543151576462415376615458573847576668664e68"
-          "33"
-          "4a4d6a6758766e5a4141544a570200000032070701000000247372314d79437752"
-          "38"
-          "33685a70684353716159535141705078504d65796b734a57576e680707000100a4"
-          "01";
-    const tz_fields_check fields_check[] = {
-        {"Source",        false, 1},
-        {"Fee",           false, 2},
-        {"Storage limit", false, 3},
-        {"Amount",        false, 4},
-        {"Destination",   false, 5},
-        {"Entrypoint",    false, 8},
-        {"Parameter",     true,  9},
-    };
-    check_field_complexity(data, str, fields_check, sizeof(fields_check));
-}
-
-static void
 test_check_fa2_transfer_clear_signing_token_id_gt0(void **state)
 {
     operation_parser_data *data = *state;
@@ -1270,6 +1269,9 @@ test_check_fa2_transfer_swap_fields(void **state)
     assert_int_equal(data->state->operation.fa2_amount, 100106851);
     assert_string_equal(data->state->operation.fa2_destination,
                         "tz1drcp5n9mkJ2eDQQsHBBSDetKJ9s5aKox4");
+    /* The owner is kept for the swap to check against the signer. */
+    assert_string_equal(data->state->operation.fa2_source,
+                        "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
 }
 
 /* A transfer the FA2 decoder cannot handle falls back to raw Micheline. There
@@ -1295,6 +1297,192 @@ test_check_fa2_transfer_swap_fields_unset_on_fallback(void **state)
 
     assert_false(data->state->operation.fa2_swap_ok);
 }
+
+/* The swap operation of test_check_fa2_transfer_swap_fields with the sign bit
+   of the amount set (0xa3 -> 0xe3): -100106851. The amount is kept signed
+   for display, and swap validation only takes digits, so the swap is
+   refused. Unsigned, it would have been validated against 100106851. */
+static void
+test_check_fa2_transfer_swap_fields_unset_on_negative_amount(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000e389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+}
+
+/* A destination that is not in the registry is never decoded as FA2,
+   so a swap has no validated recipient or amount and must refuse it. Same
+   bytes as test_check_fa2_transfer_swap_fields, with the contract hash
+   replaced by one the registry does not list. */
+static void
+test_check_fa2_transfer_swap_fields_unset_on_unregistered_contract(
+    void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01aeb9b0d54623cbf2301c4412e15055922be396f200ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+}
+
+/* The USDt contract is in the registry but token id 1 is not, so the
+   (contract, token id) pair is not authenticated: the transfer falls back to
+   raw Micheline and a swap must refuse it. Same bytes as
+   test_check_fa2_transfer_swap_fields with the token id set to 1. */
+static void
+test_check_fa2_transfer_swap_fields_unset_on_unregistered_token(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000100a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+}
+
+/* The owner is whatever the host wrote as `from_`, and it is not tied
+   to the operation source. The parser must hand the swap the owner as sent,
+   not the source, so that swap_check_validity() can refuse it. Same bytes as
+   test_check_fa2_transfer_swap_fields with `from_` set to another account:
+   the source, token, amount, recipient and fee are all still the valid ones.
+ */
+static void
+test_check_fa2_transfer_swap_owner_is_not_the_source(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3164726370356e396d6b4a3265"
+          "44515173484242534465744b4a397335614b6f78340200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_true(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_source,
+                        "tz1drcp5n9mkJ2eDQQsHBBSDetKJ9s5aKox4");
+}
+
+/* `from_` may also be sent as the 22 bytes of an address. It is read back as
+   the base58 string the swap compares, so both encodings of the same account
+   give the same owner. Same operation as test_check_fa2_transfer_swap_fields
+   with `from_` as bytes. */
+static void
+test_check_fa2_transfer_swap_owner_binary_encoding(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000005b020000005607070a0000001600008be5357b478d9828ede4620a9e"
+          "7ff9f4016693e1020000003407070100000024747a3164726370356e396d6b4a"
+          "326544515173484242534465744b4a397335614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_true(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_source,
+                        "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
+}
+
+/* A string `from_` is compared as a C string, which stops at a NUL. The owner
+   "<signer>\0abc" is 40 bytes on the wire but reads as the signer, so it must
+   not be accepted as the signer's own tokens. It is refused at the parser:
+   the FA2 decoding is dropped and there is no owner for a swap to validate.
+   Same bytes as test_check_fa2_transfer_swap_fields with such a `from_`. */
+static void
+test_check_fa2_transfer_swap_owner_with_embedded_nul(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000028747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390061626302000000340707"
+          "0100000024747a3164726370356e396d6b4a326544515173484242534465744b"
+          "4a397335614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_source, "");
+}
+
+/* The same for the recipient: "<payin>\0abc" is 40 bytes on the wire but
+   reads as the payin address when compared as a C string, so it must not be
+   accepted as the address the swap was quoted for. It is refused at the
+   parser, and there is no recipient for a swap to validate. Same bytes as
+   test_check_fa2_transfer_swap_fields with such a `to_`. */
+static void
+test_check_fa2_transfer_swap_recipient_with_embedded_nul(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000038070701000000"
+          "28747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f7834006162630707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_destination, "");
+}
+
+/* An owner that does not fit the buffer cannot be an address. The transfer is
+   still decoded for display, but a swap has no owner to validate. Same bytes
+   as test_check_fa2_transfer_swap_fields with a 40 byte `from_`. */
+static void
+test_check_fa2_transfer_swap_owner_too_long(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000028747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70396162636402000000340707"
+          "0100000024747a3164726370356e396d6b4a326544515173484242534465744b"
+          "4a397335614b6f78340707000000a389bc5f";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.fa2_swap_ok);
+    assert_string_equal(data->state->operation.fa2_source, "");
+}
 #endif  // HAVE_SWAP
 
 static void
@@ -1313,31 +1501,6 @@ test_check_fa2_transfer_multi_item_fallback(void **state)
           "01070701000000247372314d794377523833685a70684353716159535141705078"
           "50"
           "4d65796b734a57576e6807070000008803";
-    const tz_fields_check fields_check[] = {
-        {"Source",        false, 1},
-        {"Fee",           false, 2},
-        {"Storage limit", false, 3},
-        {"Amount",        false, 4},
-        {"Entrypoint",    false, 8},
-        {"Parameter",     true,  9},
-    };
-    check_field_complexity(data, str, fields_check, sizeof(fields_check));
-}
-
-static void
-test_check_fa2_transfer_negative_amount_fallback(void **state)
-{
-    operation_parser_data *data = *state;
-    char                   str[]
-        = "030000000000000000000000000000000000000000000000000000000000000000"
-          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
-          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006602"
-          "00000061070701000000244b543151576462415376615458573847576668664e68"
-          "33"
-          "4a4d6a6758766e5a4141544a570200000031070701000000247372314d79437752"
-          "38"
-          "33685a70684353716159535141705078504d65796b734a57576e6807070000004"
-          "1";
     const tz_fields_check fields_check[] = {
         {"Source",        false, 1},
         {"Fee",           false, 2},
@@ -1377,11 +1540,12 @@ test_check_fa2_transfer_whole_number_amount(void **state)
 
 /* Parse `str` and concatenate into `out` the full display value of the first
    field whose name matches `field_name` (a value may span several IM_FULL
-   pages). Used to assert the exact rendered string, which
-   check_field_complexity does not verify. */
-static void
-capture_field_value(operation_parser_data *data, char *str,
-                    const char *field_name, char *out, size_t out_size)
+   pages). Returns whether such a field was emitted. Used to assert the exact
+   rendered string, and that a label was never shown, neither of which
+   check_field_complexity verifies. */
+static bool
+find_field_value(operation_parser_data *data, char *str,
+                 const char *field_name, char *out, size_t out_size)
 {
     /* Re-initialize the parser so the helper can be called several times (for
        different fields) on the same test data. */
@@ -1413,21 +1577,47 @@ capture_field_value(operation_parser_data *data, char *str,
             tz_parser_flush(st, data->obuf, data->olen);
             continue;
         case TZ_BLO_DONE:
-            assert_true(seen);
-            return;
+            return seen;
         default:
             fail_msg("%s:%d parsing error: %s", __FILE__, __LINE__,
                      tz_parser_result_name(st->errno));
         }
         break;
     }
+    return seen;
 }
 
-/* An FA2 transfer to a contract/token_id that is not in the registry is
-   decoded into labeled fields with the raw (integer) amount, rather than
-   falling back to a raw Micheline blob. */
 static void
-test_check_fa2_transfer_unregistered_decodes_fields(void **state)
+capture_field_value(operation_parser_data *data, char *str,
+                    const char *field_name, char *out, size_t out_size)
+{
+    assert_true(find_field_value(data, str, field_name, out, out_size));
+}
+
+/* The FA2 labels name a token transfer, so they may only be shown when the
+   destination and token id are in the registry. */
+static void
+assert_no_fa2_labels(operation_parser_data *data, char *str)
+{
+    static const char *const labels[]
+        = {"Transfer tokens to", "Token ID", "Token Amount", "Amount (raw)"};
+    char value[256];
+
+    for (size_t i = 0; i < sizeof(labels) / sizeof(labels[0]); i++) {
+        if (find_field_value(data, str, labels[i], value, sizeof(value))) {
+            fail_msg(
+                "'%s' shown for a destination/token id that is not in "
+                "the registry",
+                labels[i]);
+        }
+    }
+}
+
+/* A registered contract called with a token id the registry does not list
+   gets no FA2 labels: the transfer is shown as the raw Micheline parameter,
+   behind the careful-review gate. */
+static void
+test_check_fa2_transfer_unregistered_token_falls_back(void **state)
 {
     operation_parser_data *data = *state;
     char                   str[]
@@ -1440,20 +1630,193 @@ test_check_fa2_transfer_unregistered_decodes_fields(void **state)
           "38"
           "33685a70684353716159535141705078504d65796b734a57576e680707000100a4"
           "01";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+    assert_no_fa2_labels(data, str);
+}
+
+/* The entrypoint name and the parameter shape come from the host, so a
+   contract that is not in the registry must not get FA2 labels either, even
+   for an exact FA2 `transfer` parameter. Same bytes as
+   test_check_fa2_transfer_clear_signing_fields, with the contract hash
+   replaced by one the registry does not list. */
+static void
+test_check_fa2_transfer_unregistered_contract_falls_back(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e8070164640001aeb9b0d5"
+          "4623cbf2301c4412e15055922be396f20001ff087472616e736665720000006802"
+          "00000063070701000000244b543151576462415376615458573847576668664e68"
+          "334a4d6a6758766e5a4141544a570200000033070701000000247372314d794377"
+          "523833685a70684353716159535141705078504d65796b734a57576e6807070000"
+          "0080b518";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+    assert_no_fa2_labels(data, str);
+}
+
+/* An owner string with a NUL inside is not decoded as FA2 either, so
+   the truncated value is never what the FA2 labels show: the transfer is the
+   raw "Parameter", behind the careful-review gate, in every build. Same bytes
+   as test_check_fa2_transfer_swap_owner_with_embedded_nul. */
+static void
+test_check_fa2_transfer_owner_with_embedded_nul_falls_back(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000028747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390061626302000000340707"
+          "0100000024747a3164726370356e396d6b4a326544515173484242534465744b"
+          "4a397335614b6f78340707000000a389bc5f";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+    assert_no_fa2_labels(data, str);
+}
+
+/* The same for the recipient: a `to_` string with a NUL inside is not decoded
+   as FA2, so "Transfer tokens to" never shows the truncated value. Same bytes
+   as test_check_fa2_transfer_swap_recipient_with_embedded_nul. */
+static void
+test_check_fa2_transfer_recipient_with_embedded_nul_falls_back(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "720000006d020000006807070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000038070701000000"
+          "28747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f7834006162630707000000a389bc5f";
+    const tz_fields_check fields_check[] = {
+        {"Source",        false, 1},
+        {"Fee",           false, 2},
+        {"Storage limit", false, 3},
+        {"Amount",        false, 4},
+        {"Destination",   false, 5},
+        {"Entrypoint",    false, 8},
+        {"Parameter",     true,  9},
+    };
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+    assert_no_fa2_labels(data, str);
+}
+
+/* The amount is a signed Micheline int and `decimal` holds the magnitude
+   only, so -1 used to be shown as "Token Amount" 0.000001 QUIPU. A negative
+   amount can never be a valid transfer: it is shown raw and signed, behind
+   the careful-review gate, even though the token is in the registry. Same
+   bytes as the QUIPU transfer, with the amount byte 0x41 (-1). */
+static void
+test_check_fa2_transfer_negative_amount_shows_sign(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
+          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e736665720000006602"
+          "00000061070701000000244b543151576462415376615458573847576668664e68"
+          "33"
+          "4a4d6a6758766e5a4141544a570200000031070701000000247372314d79437752"
+          "38"
+          "33685a70684353716159535141705078504d65796b734a57576e6807070000004"
+          "1";
+    const tz_fields_check fields_check[] = {
+        {"Source",             false, 1 },
+        {"Fee",                false, 2 },
+        {"Storage limit",      false, 3 },
+        {"Amount",             false, 4 },
+        {"Destination",        false, 5 },
+        {"Entrypoint",         false, 8 },
+        {"Transfer tokens to", true,  10},
+        {"Token ID",           true,  11},
+        {"Amount (raw)",       true,  12},
+    };
     char value[256];
-    capture_field_value(data, str, "Transfer tokens to", value,
-                        sizeof(value));
-    assert_string_equal(value, "sr1MyCwR83hZphCSqaYSQApPxPMeyksJWWnh");
+
+    check_field_complexity(data, str, fields_check, sizeof(fields_check));
+
+    /* Asserted on the rendered text, as the field check above cannot tell a
+       field that was never emitted from one that was. */
     capture_field_value(data, str, "Token ID", value, sizeof(value));
-    assert_string_equal(value, "1");
+    assert_string_equal(value, "0");
     capture_field_value(data, str, "Amount (raw)", value, sizeof(value));
-    assert_string_equal(value, "100");
+    assert_string_equal(value, "-1");
+}
+
+/* increase_paid_storage carries a signed Amount. The sign must reach the
+   review screen: same bytes as the simple transaction, tag 0x71 and bit 6 of
+   the first Zarith byte set. */
+static void
+test_check_inc_paid_storage_negative_amount(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "7100ffdd6102321bc251e4a5190ad5b12b251069d9b4a0c21e020304d04e010000"
+          "00000000000000000000000000000000000000";
+    char value[64];
+
+    capture_field_value(data, str, "Amount", value, sizeof(value));
+    assert_string_equal(value, "-5008");
+}
+
+/* The set_delegate_parameters fast path renders the magnitude only, so a
+   signed operand must be handed to the generic Micheline printer. Same bytes
+   as the working case with bit 6 of the first operand's leading byte set. */
+static void
+test_check_set_delegate_parameters_negative_falls_back(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c01f6552df4f5ff51c3d13347cab045cfdb8b9bd803c0b8020031020000012bad"
+          "922d045c068660fabe19576f8506a1fa8fa3ff0900000010070700c0a4e8030707"
+          "0080b48913030b";
+    char value[256];
+
+    /* The fast path emits "Limit (stake/bake)" / "Edge (bake/stake)" and
+       never a "Parameter" field, so requiring one both proves the fallback
+       happened and lets the rendered sign be asserted. */
+    capture_field_value(data, str, "Parameter", value, sizeof(value));
+    assert_string_equal(value, "Pair -4000000 (Pair 20000000 Unit)");
 }
 
 int
 main(void)
 {
     const struct CMUnitTest tests[] = {
+        OPERATION_PARSER_TEST(test_check_inc_paid_storage_negative_amount),
+        OPERATION_PARSER_TEST(
+            test_check_set_delegate_parameters_negative_falls_back),
         OPERATION_PARSER_TEST(test_check_proposals_complexity),
         OPERATION_PARSER_TEST(test_check_ballot_complexity),
         OPERATION_PARSER_TEST(test_check_failing_noop_complexity),
@@ -1474,6 +1837,7 @@ main(void)
         OPERATION_PARSER_TEST(test_check_finalize_unstake_kt1_dest),
         OPERATION_PARSER_TEST(test_check_print_string_skip),
         OPERATION_PARSER_TEST(test_check_set_delegate_parameters_complexity),
+        OPERATION_PARSER_TEST(test_check_set_delegate_parameters_kt1_dest),
         OPERATION_PARSER_TEST(
             test_check_set_delegate_parameters_sdp_fallback),
         OPERATION_PARSER_TEST(
@@ -1507,19 +1871,38 @@ main(void)
         OPERATION_PARSER_TEST(test_check_sc_rollup_originate_complexity),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_clear_signing_fields),
         OPERATION_PARSER_TEST(
-            test_check_fa2_transfer_fallback_uses_complex_parameter),
+            test_check_fa2_transfer_unregistered_token_falls_back),
         OPERATION_PARSER_TEST(
-            test_check_fa2_transfer_unregistered_decodes_fields),
+            test_check_fa2_transfer_unregistered_contract_falls_back),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_owner_with_embedded_nul_falls_back),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_recipient_with_embedded_nul_falls_back),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_clear_signing_token_id_gt0),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),
         OPERATION_PARSER_TEST(
-            test_check_fa2_transfer_negative_amount_fallback),
+            test_check_fa2_transfer_negative_amount_shows_sign),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_whole_number_amount),
 #ifdef HAVE_SWAP
         OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_fields),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_swap_fields_unset_on_fallback),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_fields_unset_on_negative_amount),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_fields_unset_on_unregistered_contract),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_fields_unset_on_unregistered_token),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_owner_is_not_the_source),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_owner_binary_encoding),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_owner_with_embedded_nul),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_swap_recipient_with_embedded_nul),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_owner_too_long),
 #endif  // HAVE_SWAP
     };
 

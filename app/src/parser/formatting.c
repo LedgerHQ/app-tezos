@@ -575,7 +575,7 @@ tz_format_address(const uint8_t *data, size_t size, char *obuf, size_t olen)
     switch (data[0]) {
     case 1:  prefix = "KT1";  break;
     case 2:  prefix = "txr1"; break;
-    case 3:  prefix = "sr1";  break;
+    case 3:  prefix = "scr1"; break;
     case 4:  prefix = "zkr1"; break;
 
     case 0:  return tz_format_pkh(data+1, size-1, obuf, olen);
@@ -583,9 +583,5 @@ tz_format_address(const uint8_t *data, size_t size, char *obuf, size_t olen)
     }
     // clang-format on
 
-    // The tag and the padding byte that follows the hash
-    if (size < 2) {
-        return 1;
-    }
     return tz_format_base58check(prefix, data + 1, size - 2, obuf, olen);
 }

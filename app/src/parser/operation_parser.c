@@ -604,10 +604,6 @@ tz_step_size(tz_parser_state *state)
     op->frame->step_size.size = (op->frame->step_size.size << 8) | b;
     op->frame->step_size.size_len--;
     if (op->frame->step_size.size_len == 0) {
-        // The end of what is sized is a 16-bit offset, like its size
-        if ((state->ofs + op->frame->step_size.size) > UINT16_MAX) {
-            tz_raise(TOO_LARGE);
-        }
         op->frame[-1].stop = state->ofs + op->frame->step_size.size;
         tz_must(pop_frame(state));
     }
@@ -1714,7 +1710,7 @@ tz_step_read_int32(tz_parser_state *state)
     int32_t            *value = &op->frame->step_read_int32.value;
     if (op->frame->step_read_int32.ofs < 4) {
         tz_must(tz_parser_read(state, &b));
-        *value = (int32_t)(((uint32_t)*value << 8) | b);
+        *value = (*value << 8) | b;
         op->frame->step_read_int32.ofs++;
     } else {
         snprintf((char *)CAPTURE, sizeof(CAPTURE), "%d", *value);

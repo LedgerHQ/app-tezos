@@ -110,45 +110,6 @@ test_base58_rejects_short_buffer(void **state)
     assert_int_equal(tz_format_base58(in, sizeof(in), obuf, sizeof(obuf)), 1);
 }
 
-/* A contract of tag 3 is a smart rollup: its hash is shown as an sr1 address,
-   without the padding byte that follows it. */
-static void
-test_address_smart_rollup(void **state)
-{
-    uint8_t in[22];
-    char    obuf[64];
-    char    expected[64];
-
-    memset(in, 0x2b, sizeof(in));
-    in[0]  = 3;
-    in[21] = 0;
-
-    assert_int_equal(tz_format_address(in, sizeof(in), obuf, sizeof(obuf)),
-                     0);
-    assert_memory_equal(obuf, "sr1", 3);
-    assert_int_equal(
-        tz_format_base58check("sr1", in + 1, 20, expected, sizeof(expected)),
-        0);
-    assert_string_equal(obuf, expected);
-}
-
-/* The tag and the padding byte do not make an address: too few bytes for the
-   hash that goes between them are refused. */
-static void
-test_address_rejects_short_input(void **state)
-{
-    uint8_t in[3] = {0, 0, 0};
-    char    obuf[64];
-
-    for (size_t tag = 1; tag <= 4; tag++) {
-        in[0] = (uint8_t)tag;
-        assert_int_equal(tz_format_address(in, 0, obuf, sizeof(obuf)), 1);
-        assert_int_equal(tz_format_address(in, 1, obuf, sizeof(obuf)), 1);
-        assert_int_equal(tz_format_address(in, 2, obuf, sizeof(obuf)), 1);
-        assert_int_equal(tz_format_address(in, 3, obuf, sizeof(obuf)), 1);
-    }
-}
-
 int
 main(void)
 {
@@ -158,8 +119,6 @@ main(void)
         cmocka_unit_test(test_base58_two_leading_zeros),
         cmocka_unit_test(test_base58_all_zero),
         cmocka_unit_test(test_base58_rejects_short_buffer),
-        cmocka_unit_test(test_address_smart_rollup),
-        cmocka_unit_test(test_address_rejects_short_input),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

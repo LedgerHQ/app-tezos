@@ -20,7 +20,6 @@ from base58 import b58decode, b58encode
 
 CLA = 0x80
 INS_GET_PUBLIC_KEY = 0x02
-INS_PROMPT_PUBLIC_KEY = 0x03
 INS_SIGN = 0x04
 INS_SIGN_WITH_HASH = 0x0F
 P1_FIRST = 0x00
@@ -35,7 +34,6 @@ OPERATION_TAG_TRANSACTION = 0x6C
 STATUS_OK = 0x9000
 EXC_REJECT = 0x6985
 EXC_WRONG_VALUES = 0x6A80
-EXC_UNEXPECTED_STATE = 0x9001
 
 # A refused swap answers with a two bytes error code after the status word. The
 # first byte is a swap_error_common_code_t of the SDK, the second one tells

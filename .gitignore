@@ -13,7 +13,8 @@ app_*.tgz
 integration_tests.json
 integration_tests_log
 pattern_registry
-tests/samples
+# Only the fixtures of tests/samples are tracked, see tests/samples/README.md
+tests/samples/*/*/test_*.sh
 tests/standalone/snapshots-tmp
 tests/standalone/.parallel-runs
 tests/swap/snapshots-tmp

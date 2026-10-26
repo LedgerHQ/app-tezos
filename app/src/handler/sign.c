@@ -903,9 +903,15 @@ handle_data_apdu_clear(buffer_t *cdata, bool last)
     global.keys.apdu.sign.u.clear.total_length += cdata->size;
 
     tz_parser_refill(st, cdata->ptr, cdata->size);
-    if (last) {
+    if (global.keys.apdu.sign.u.clear.total_length > UINT16_MAX) {
+        /* The parser keeps offsets and sizes on 16 bits, and the size of the
+           operation is set from this length with the last packet: a longer
+           operation cannot be parsed. It is a parse error like any other,
+           which the parser reraises as it cannot restart after one. */
+        tz_parser_set_errno(st, TZ_ERR_TOO_LARGE);
+    } else if (last) {
         tz_operation_parser_set_size(
-            st, global.keys.apdu.sign.u.clear.total_length);
+            st, (uint16_t)global.keys.apdu.sign.u.clear.total_length);
     }
 
     switch (global.step) {

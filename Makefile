@@ -49,6 +49,10 @@ docker_ledger_app_builder:
 			ledger-app-builder
 
 docker_ledger_app_ocaml:
+	@test -f deps/tezos/rust-toolchain || { \
+		echo "deps/tezos is not checked out, run:"; \
+		echo "  git submodule update --init --checkout deps/tezos"; \
+		exit 1; }
 	$(DOCKER) build -t ledger-app-tezos-ocaml \
 			-f docker/Dockerfile.ocaml . --platform linux/$(CPU)
 

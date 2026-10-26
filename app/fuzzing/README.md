@@ -40,13 +40,14 @@ local one. If an earlier build of the app left `app/src/glyphs.c` and
 | `fuzz_helpers` | The helpers behind the parsers and the screens (formatting, amounts, token registry, swap key policy, the ring buffer of strings), each held to a reference |
 
 `fuzz_swap`, `fuzz_parser` and `fuzz_helpers` exist because the APDU path
-cannot reach that code, or only through a signing. The callbacks of the swap library are called by Exchange rather than
-through an INS, and a swap runs a signing with no review, validated against
-what Exchange gave. The parsers hold pointers into their own state, which the
-invariant cannot restore, so through `fuzz_app` they are only reached after the
-path of a key and the packets before them. Both still go through the framework
-contract, so they get the prefix-aware mutator and the lane split for free;
-control byte 1 picks the swap mode, the parser or the helper.
+cannot reach that code, or only through a signing. The callbacks of the swap
+library are called by Exchange rather than through an INS, and a swap runs a
+signing with no review, validated against what Exchange gave. The parsers hold
+pointers into their own state, which the invariant cannot restore, so through
+`fuzz_app` they are only reached after the path of a key and the packets before
+them. Both still go through the framework contract, so they get the
+prefix-aware mutator and the lane split for free; control byte 1 picks the swap
+mode, the parser or the helper.
 
 `fuzz_helpers` checks what the others cannot: not that the app survives the
 input, but that the answer is right. What is formatted must decode back to

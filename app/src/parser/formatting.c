@@ -575,7 +575,7 @@ tz_format_address(const uint8_t *data, size_t size, char *obuf, size_t olen)
     switch (data[0]) {
     case 1:  prefix = "KT1";  break;
     case 2:  prefix = "txr1"; break;
-    case 3:  prefix = "scr1"; break;
+    case 3:  prefix = "sr1";  break;
     case 4:  prefix = "zkr1"; break;
 
     case 0:  return tz_format_pkh(data+1, size-1, obuf, olen);

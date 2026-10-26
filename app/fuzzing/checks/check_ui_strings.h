@@ -29,8 +29,6 @@
 #define MAX_ITEMS 64
 #define MAX_OPS   256
 
-bool ui_strings_is_empty(void);
-
 /* A string the ring must hold: where it is, and what it says */
 typedef struct {
     char  *ptr;

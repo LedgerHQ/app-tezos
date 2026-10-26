@@ -38,16 +38,6 @@
 #include "get_version.h"
 #include "sign.h"
 
-#define CLA 0x80  /// The only APDU class that will be used
-
-// Instruction codes
-#define INS_VERSION           0x00
-#define INS_GET_PUBLIC_KEY    0x02
-#define INS_PROMPT_PUBLIC_KEY 0x03
-#define INS_SIGN              0x04
-#define INS_GIT               0x09
-#define INS_SIGN_WITH_HASH    0x0F
-
 /// Packet indexes
 #define P1_FIRST       0x00u  /// First packet
 #define P1_NEXT        0x01u  /// Other packet

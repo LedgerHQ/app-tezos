@@ -5,7 +5,9 @@ FROM gcr.io/oss-fuzz-base/base-builder:v1
 
 # Install additional package dependencies of the SDK fuzzing framework.
 RUN pip3 install --break-system-packages --no-cache-dir "pillow>=3.4.0"
-RUN apt update && apt install -y ninja-build libbsd-dev pkg-config
+RUN apt-get update \
+    && apt-get install -y ninja-build libbsd-dev pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=app-builder /opt/flex-secure-sdk /ledger-secure-sdk
 

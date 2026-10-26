@@ -15,7 +15,9 @@
 
 #include "parser_state.h"
 
-/* The size of an operation is a uint16_t, and 0xFFFF means unknown */
+/* The size of an operation is a uint16_t, and 0xFFFF means unknown. The app
+ * never gives the parser more: handle_data_apdu_clear() raises a parse error
+ * as soon as an operation is longer than 0xFFFF bytes. */
 #define FUZZ_MAX_INPUT_SIZE 0xFFFEu
 
 typedef struct {

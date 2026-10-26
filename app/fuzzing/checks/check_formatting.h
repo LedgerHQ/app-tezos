@@ -77,7 +77,7 @@ static const struct {
 
 #define N_PREFIXES (sizeof(prefixes) / sizeof(prefixes[0]))
 
-static const char *const unknown_prefixes[] = {"", "x", "scr1", "tz5"};
+static const char *const unknown_prefixes[] = {"", "x", "tz5"};
 
 #define N_UNKNOWN (sizeof(unknown_prefixes) / sizeof(unknown_prefixes[0]))
 
@@ -346,8 +346,7 @@ run_formatting(const uint8_t *data, size_t size)
                 // A public key hash, with its own tag
                 payload[1] %= 4;
             }
-            // Tag 3 asks for "scr1", which the prefix table does not have
-            valid = (payload[0] != 3);
+            valid = true;
         }
         break;
     case FN_BASE58CHECK:

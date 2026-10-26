@@ -3,7 +3,8 @@
  * The APDUs of a sequence, dispatched as app_main() dispatches them.
  *
  * To be included after fuzz_harness.h, which it needs for the lane and the
- * clamping of P1 and P2.
+ * clamping of P1 and P2. The class and the instructions are the ones of
+ * apdu/dispatcher.h.
  */
 
 #include <parser.h>
@@ -17,15 +18,6 @@
 #include "fuzz_input.h"
 #include "globals.h"
 #include "ui_home.h"
-
-/* The class and the instructions, as in apdu/dispatcher.c */
-#define CLA                   0x80
-#define INS_VERSION           0x00
-#define INS_GET_PUBLIC_KEY    0x02
-#define INS_PROMPT_PUBLIC_KEY 0x03
-#define INS_SIGN              0x04
-#define INS_GIT               0x09
-#define INS_SIGN_WITH_HASH    0x0F
 
 /* P2 of a command that takes a key is its derivation type: the values 0 to 3
  * are the valid ones */

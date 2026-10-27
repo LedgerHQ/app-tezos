@@ -1,0 +1,8 @@
+# The image copies the whole repository, as the Ethereum one does, but the octez
+# submodule is over a gigabyte in a CI checkout, with its objects in
+# .git/modules, and the runner runs out of disk before the base image is
+# extracted. The fuzzers are built from app/, fuzzing/ and unit-tests/. A
+# repository root .dockerignore would also hide it from docker/Dockerfile.ocaml,
+# so this one is only read for .clusterfuzzlite/Dockerfile.
+deps
+.git/modules

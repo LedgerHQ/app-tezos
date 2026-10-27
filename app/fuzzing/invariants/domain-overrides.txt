@@ -1,0 +1,46 @@
+# Tezos domain overrides. Syntax and how/when to edit this file: see the
+# "Invariants" page of the SDK Fuzzing Framework docs. The lines below are just
+# the globals of this app and of the SDK that it reads, and the values that keep
+# them in range. They apply to every target.
+#
+# Constrain restored state to values a real execution can produce; never
+# constrain restored content. `global.ui` and `global.keys`, which hold the
+# state of the screens and of a signing (with the parser of the operation,
+# which points into itself), are padding to Absolution: they are zero at the
+# start, and the sequences of APDUs of the harnesses build them.
+
+# ── State machine of the app (main_step_t): ST_IDLE=0, ST_CLEAR_SIGN=1,
+# ── ST_BLIND_SIGN=2, ST_SUMMARY_SIGN=3, ST_PROMPT=4, ST_SWAP_SIGN=5,
+# ── ST_ERROR=6. The state of a signing is zero here, so the app can only be at
+# ── the start: the first packet of a signing needs ST_IDLE, and the others are
+# ── reached by the sequence. ST_SWAP_SIGN is set by the swap mode itself. ──
+global.step = values \x00
+
+# ── Key of the last setup (valid curves, and a path of at most MAX_BIP32_LEN
+# ── components, as read_bip32_path() reads it) ──
+global.path_with_curve.derivation_type = values \x00 \x01 \x02 \x03
+global.path_with_curve.bip32_path.length = values \x00 \x01 \x02 \x03 \x04 \x05 \x06 \x07 \x08 \x09 \x0a
+
+# ── Reason of the parse error screen (blindsign_reason_t) ──
+global.blindsign_reason = values \x00 \x01
+
+# ── Strings that the app keeps terminated: the line of the stream is zeroed by
+# ── init_globals() and by each flush, and tz_parser_flush() takes its strlen ──
+global.line_buf = values \x00
+global.error_code = values \x00
+
+# ── Swap OS-handoff flags: force OFF. With G_called_from_swap set, the swap
+# ── path ends in io_send_response_buffers() writing through the OS-provided
+# ── G_swap_signing_return_value_address (NULL here) then handing back via
+# ── os_lib_end(): an OS interaction the app-only build can't satisfy. The swap
+# ── mode is covered by fuzz_swap, which sets these itself after reset.
+# ── G_swap_response_ready is also cleared at startup by lib_standard_app, so
+# ── a restored `true` is a state production cannot present, and
+# ── swap_check_validity() answers it with os_sched_exit(-1), which the
+# ── framework records as a failed assertion. ──
+G_called_from_swap. = values \x00
+G_swap_response_ready. = values \x00
+
+# ── SDK mock toggles, so both the success and failure paths are reachable ──
+fuzz_mock_nbgl_reject. = values \x00 \x01
+fuzz_mock_crypto_fail. = values \x00 \x01

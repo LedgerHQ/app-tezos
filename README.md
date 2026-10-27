@@ -28,6 +28,15 @@ The docker images can be built using the provided Makefile:
 This pulls down following image, `ghcr.io/ledgerhq/ledger-app-dev-tools`. It
 also builds an image via `docker/Dockerfile.ocaml`.
 
+That image, and the OCaml sample generator used by the tests, are built from
+the Octez sources of the `deps/tezos` submodule. It is over a gigabyte, so it
+is not fetched by a recursive clone, nor by CI (`update = none` in
+`.gitmodules`). Fetch it before building them:
+
+```
+:; git submodule update --init --checkout deps/tezos
+```
+
 We do not make the builds of the software conditional on these docker
 images as it can be time consuming to build them, approx 1 hour, and
 `make(1)` does not automatically avoid rebuilds as they do not create
@@ -108,6 +117,9 @@ the Nano device. The basic tests can be run for all devices with:
 ```
 
 > Tests can be run for individual devices by appending the device name: e.g. `integration_tests_basic_nanosp`.
+
+The app can also be fuzzed, on the Ledger SDK fuzzing framework. See
+[app/fuzzing/README.md](app/fuzzing/README.md) for the details.
 
 Integration tests can be run directly from the command line rather than
 via the Makefile:

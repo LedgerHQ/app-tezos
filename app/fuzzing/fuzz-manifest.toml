@@ -1,0 +1,169 @@
+# Tezos app fuzz manifest. Schema, field meanings and how to create/update this
+# file: see the "Manifest" page of the SDK Fuzzing Framework docs. One
+# [[targets]] block per fuzzer built by CMakeLists.txt.
+
+harness_version = "1"
+
+[coverage]
+exclude_regexes = [
+    '.*ledger-secure-sdk.*',
+    '.*fuzzing/mock/.*',
+    '.*fuzzing/harness/.*',
+    '.*fuzzing/checks/.*',
+    '.*fuzzer\.c',
+    '.*src/app_main\.c',
+]
+
+# ── fuzz_app: full-app APDU target ──────────────────────────────────────────
+[[targets]]
+fuzzer = "fuzz_app"
+# One input is a sequence of APDUs, so it reads far past the 235 bytes a single
+# payload can carry: the path of a key, then several packets of an operation.
+tail_budget = 2048
+key_files = [
+    "src/apdu/dispatcher.c",
+    "src/handler/get_pubkey.c",
+    "src/handler/sign.c",
+    "src/keys.c",
+    "src/parser/operation_parser.c",
+    "src/parser/micheline_parser.c",
+    "src/parser/formatting.c",
+    "src/ui/ui_stream_nbgl.c",
+    "src/ui/ui_strings.c",
+]
+# One seed per row of FUZZ_APDU_COMMANDS (mock/fuzz_apdu.h)
+seeds = { ins = [0x00, 0x09, 0x02, 0x03, 0x04, 0x04, 0x04, 0x0F] }
+
+[targets.dictionary]
+tokens = [
+    # A BIP32 path: 44'/1729'/0'/0', then 44'/1729'/0'
+    { name = "path_account_change", value = "\\x04\\x80\\x00\\x00\\x2c\\x80\\x00\\x06\\xc1\\x80\\x00\\x00\\x00\\x80\\x00\\x00\\x00" },
+    { name = "path_account", value = "\\x03\\x80\\x00\\x00\\x2c\\x80\\x00\\x06\\xc1\\x80\\x00\\x00\\x00" },
+    # Magic byte of what is signed: operations, a micheline expression
+    { name = "magic_operation", value = "\\x03" },
+    { name = "magic_micheline", value = "\\x05" },
+    # Operation tags
+    { name = "tag_reveal", value = "\\x6b" },
+    { name = "tag_transaction", value = "\\x6c" },
+    { name = "tag_origination", value = "\\x6d" },
+    { name = "tag_delegation", value = "\\x6e" },
+    { name = "tag_transfer_ticket", value = "\\x9e" },
+    # What the parser treats specially
+    { name = "entrypoint_named", value = "\\xff" },
+    { name = "entrypoint_transfer", value = "transfer" },
+    # P1 of a signing: first, next, and each as the last
+    { name = "p1_first", value = "\\x00" },
+    { name = "p1_next", value = "\\x01" },
+    { name = "p1_last", value = "\\x80" },
+]
+
+# ── fuzz_swap: the app as Exchange calls it ─────────────────────────────────
+[[targets]]
+fuzzer = "fuzz_swap"
+tail_budget = 2048
+key_files = [
+    "src/handle_swap.c",
+    "src/swap_key_policy.c",
+    "src/handler/sign.c",
+    "src/parser/operation_parser.c",
+    "src/parser/fa2_tokens.c",
+]
+# One seed per row of fuzz_commands: swap of tez, of a token, the callbacks
+seeds = { ins = [0x00, 0x01, 0x02] }
+
+[targets.dictionary]
+tokens = [
+    { name = "path_account_change", value = "\\x04\\x80\\x00\\x00\\x2c\\x80\\x00\\x06\\xc1\\x80\\x00\\x00\\x00\\x80\\x00\\x00\\x00" },
+    { name = "path_account", value = "\\x03\\x80\\x00\\x00\\x2c\\x80\\x00\\x06\\xc1\\x80\\x00\\x00\\x00" },
+    { name = "magic_operation", value = "\\x03" },
+    { name = "tag_transaction", value = "\\x6c" },
+    { name = "entrypoint_named", value = "\\xff" },
+    { name = "entrypoint_transfer", value = "transfer" },
+]
+
+# ── fuzz_parser: the parsers at their own entry points ──────────────────────
+[[targets]]
+fuzzer = "fuzz_parser"
+tail_budget = 4096
+key_files = [
+    "src/parser/operation_parser.c",
+    "src/parser/micheline_parser.c",
+    "src/parser/num_parser.c",
+    "src/parser/formatting.c",
+    "src/parser/fa2_tokens.c",
+]
+# One seed per parser: the operations, and the micheline expressions
+seeds = { ins = [0x00, 0x01] }
+
+[targets.dictionary]
+tokens = [
+    { name = "magic_operation", value = "\\x03" },
+    { name = "magic_micheline", value = "\\x05" },
+    { name = "tag_reveal", value = "\\x6b" },
+    { name = "tag_transaction", value = "\\x6c" },
+    { name = "tag_origination", value = "\\x6d" },
+    { name = "tag_delegation", value = "\\x6e" },
+    { name = "tag_transfer_ticket", value = "\\x9e" },
+    { name = "entrypoint_named", value = "\\xff" },
+    { name = "entrypoint_transfer", value = "transfer" },
+    { name = "entrypoint_set_delegate_parameters", value = "set_delegate_parameters" },
+    { name = "micheline_pair", value = "\\x07\\x07" },
+    { name = "micheline_unit", value = "\\x03\\x0b" },
+    { name = "micheline_seq", value = "\\x02\\x00\\x00\\x00" },
+    { name = "size_max", value = "\\xff\\xff\\xff\\xff" },
+    # More operation tags, entrypoints, sizes and key tags
+    { name = "tag_ballot", value = "\\x06" },
+    { name = "tag_failing_noop", value = "\\x11" },
+    { name = "tag_register_global_constant", value = "\\x6f" },
+    { name = "tag_set_deposits_limit", value = "\\x70" },
+    { name = "tag_increase_paid_storage", value = "\\x71" },
+    { name = "tag_update_consensus_key", value = "\\x72" },
+    { name = "tag_update_companion_key", value = "\\x73" },
+    { name = "tag_smart_rollup_originate", value = "\\xc8" },
+    { name = "tag_smart_rollup_add_messages", value = "\\xc9" },
+    { name = "tag_smart_rollup_execute_outbox_message", value = "\\xce" },
+    { name = "entrypoint_named_8", value = "\\xff\\x00\\x00\\x00\\x08" },
+    { name = "name_default", value = "default" },
+    { name = "name_root", value = "root" },
+    { name = "name_stake", value = "stake" },
+    { name = "name_unstake", value = "unstake" },
+    { name = "name_finalize_unstake", value = "finalize_unstake" },
+    { name = "size_zero", value = "\\x00\\x00\\x00\\x00" },
+    { name = "size_one", value = "\\x00\\x00\\x00\\x01" },
+    { name = "size_big", value = "\\x00\\x01\\x00\\x00" },
+    { name = "micheline_int_zero", value = "\\x00\\x00" },
+    { name = "none", value = "\\x00" },
+    { name = "tag_secp256k1", value = "\\x01" },
+    { name = "tag_p256", value = "\\x02" },
+    # Micheline: the tags of an expression, primitives, integers, annotations
+    { name = "micheline_tag_prim_0_annots", value = "\\x04" },
+    { name = "micheline_tag_prim_2", value = "\\x07" },
+    { name = "micheline_tag_prim_2_annots", value = "\\x08" },
+    { name = "micheline_tag_prim_n", value = "\\x09" },
+    { name = "micheline_tag_bytes", value = "\\x0a" },
+    { name = "prim_left", value = "\\x05\\x05" },
+    { name = "prim_right", value = "\\x05\\x08" },
+    { name = "prim_some", value = "\\x05\\x09" },
+    { name = "prim_none", value = "\\x03\\x06" },
+    { name = "prim_elt", value = "\\x07\\x04" },
+    { name = "int_cont", value = "\\x00\\xff" },
+    { name = "int_negative", value = "\\x00\\x45" },
+    { name = "int_long", value = "\\x00\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff\\xff" },
+    { name = "annot", value = "%a" },
+    { name = "string_abc", value = "abc" },
+]
+
+# ── fuzz_helpers: the helpers behind the parsers and the screens ────────────
+[[targets]]
+fuzzer = "fuzz_helpers"
+tail_budget = 1024
+key_files = [
+    "src/parser/formatting.c",
+    "src/parser/num_parser.c",
+    "src/parser/fa2_tokens.c",
+    "src/swap_key_policy.c",
+    "src/ui/ui_strings.c",
+]
+# One seed per helper: formatting, amounts, the token registry, the key policy
+# of swaps, the ring buffer of the strings
+seeds = { ins = [0x00, 0x01, 0x02, 0x03, 0x04] }

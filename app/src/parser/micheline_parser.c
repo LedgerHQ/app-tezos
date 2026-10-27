@@ -277,6 +277,10 @@ tz_micheline_parser_step(tz_parser_state *state)
         }
         m->frame->step_size.size = (m->frame->step_size.size << 8) | b;
         if (m->frame->stop == state->ofs) {
+            // The end of what is sized is a 16-bit offset, like its size
+            if ((state->ofs + m->frame->step_size.size) > UINT16_MAX) {
+                tz_raise(TOO_LARGE);
+            }
             m->frame[-1].stop = state->ofs + m->frame->step_size.size;
             tz_must(pop_frame(state));
         }
@@ -363,7 +367,7 @@ tz_micheline_parser_step(tz_parser_state *state)
                 m->frame->step_annot.first = false;
             }
             tz_must(tz_parser_peek(state, &b));
-            tz_must(parser_put(state, b));
+            tz_must(parser_put(state, (char)b));
             tz_parser_skip(state);
         }
         break;

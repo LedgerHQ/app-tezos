@@ -1,0 +1,39 @@
+# App-local symbols to zero out in the invariant (one per line).
+# These are merged with the framework's default SDK/NBGL zero list. A selector
+# that matches nothing only warns, and leaves the global fuzzable.
+#
+# Only symbols the app never meaningfully reads belong here. The app keeps all
+# of its state in `global` (app/src/globals.h), a single symbol that this file
+# can only keep or drop as a whole: it is kept, as the state machine of the
+# app is in it.
+
+# Pointer globals (8 bytes each, random = ASAN crash). fuzz_swap points this at
+# a variable of its own.
+G_swap_signing_return_value_address
+
+# SDK crypto working memory (Absolution fuzzing this wastes bytes)
+G_cx
+
+# USB/BLE/IO infrastructure (never exercised in the fuzzer)
+G_io_u2f
+io_os_legacy_apdu_type
+need_to_start_io
+ble_ledger_init_data
+ep_in_stall_status
+ep_out_stall_status
+usbd_bcdusb
+usbd_vid
+usbd_pid
+usbd_desc_product_str_len
+usbd_iad
+usbd_ledger_descriptor_size
+ledger_hid_u2f_settings
+ledger_hid_free_cid
+
+# NBGL layout pools (already in the framework list, but be explicit)
+nbTicks
+pos
+
+# BSS markers
+_bss
+_ebss

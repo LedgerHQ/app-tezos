@@ -40,20 +40,20 @@ RUN . ./scripts/version.sh &&                                                   
     opam pin add -ny stdcompat.19                                                  \
       "https://github.com/thierry-martinez/stdcompat/archive/d53390d788027fe0a2282c4745eb3d1626341f99.tar.gz" && \
     sed -i '/^pin-depends:/,/^\]$/d' opam/virtual/octez-deps.opam.locked &&        \
-    opam pin add -ny --locked=locked octez-deps opam/virtual/ &&                   \
+    opam pin add -ny --locked octez-deps opam/virtual/ &&                          \
     opam depext octez-deps &&                                                      \
     opam pin remove -y octez-deps &&                                               \
     opam install opam/virtual/octez-deps.opam.locked                               \
       --deps-only --criteria="-notuptodate,-changed,-removed"
 
-# Build and install Tezos libs
+# Build and install the Tezos libs that tests/generate uses.
+# They are a small part of the Octez workspace: build only their `.install`
+# targets, which builds only what they need, not all of it with `@install`.
 # -j 1: the wasmer C-stubs file is huge and a single gcc invocation can use
 #   several GB of RAM; running anything else at the same time OOM-kills the build.
 COPY --chown=opam:opam deps/tezos /opt/tezos
 ENV CARGO_BUILD_JOBS=2
-RUN eval $(opam env) && dune build -j 1 @install
-
-RUN eval $(opam env) && dune install                        \
+ARG OCTEZ_PACKAGES="                                        \
         octez-internal-libs                                 \
         octez-libs                                          \
         octez-riscv-api                                     \
@@ -72,8 +72,10 @@ RUN eval $(opam env) && dune install                        \
         bls12-381                                           \
         tezos-protocol-023-PtSeouLo                         \
         tezos-benchmarks-proto-023-PtSeouLo                 \
-        octez-shell-libs &&                                 \
-    opam install terminal_size &&                           \
+        octez-shell-libs"
+RUN eval $(opam env) && dune build -j 1 $(printf '%s.install ' $OCTEZ_PACKAGES)
+
+RUN eval $(opam env) && dune install $OCTEZ_PACKAGES &&     \
     dune clean &&                                           \
     rm -rf _opam/.opam-switch/build _opam/.opam-switch/sources
 

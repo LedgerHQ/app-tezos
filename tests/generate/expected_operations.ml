@@ -96,16 +96,28 @@ let to_string
         aux ~kind:"Set deposit limit"
           [ Format.asprintf "%a" (pp_opt_field pp_tz) tez_opt ]
     | Transaction { amount; entrypoint; destination; parameters } ->
+        (* Octez knows nothing of this note: the app shows it, after the
+           entrypoint, when the fee payer finalizes the unstake of another
+           implicit account (see `emit_finalize_note` in operation_parser.c). *)
+        let finalize_note =
+          match destination with
+          | Contract.Implicit staker
+            when Format.asprintf "%a" Entrypoint.pp entrypoint
+                 = "finalize_unstake"
+                 && not (Environment.Signature.Public_key_hash.equal source staker)
+            ->
+              [ "Fee payer is Source; staker is Destination" ]
+          | _ -> []
+        in
         let parameters =
           if
             Protocol.Script_repr.is_unit_parameter parameters
             && Entrypoint.is_default entrypoint
           then []
           else
-            [
-              Format.asprintf "%a" Entrypoint.pp entrypoint;
-              Format.asprintf "%a" pp_lazy_expr parameters;
-            ]
+            [ Format.asprintf "%a" Entrypoint.pp entrypoint ]
+            @ finalize_note
+            @ [ Format.asprintf "%a" pp_lazy_expr parameters ]
         in
         aux ~kind:"Transaction"
           ([

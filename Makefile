@@ -16,7 +16,7 @@ debug: app_nanos_dbg.tgz \
 	app_apex_p_dbg.tgz
 
 .PHONY: clean clean_ocaml all debug format integration_tests unit_tests	\
-	unit_tests_ocaml regen_samples scan-build% integration_tests_basic	\
+	regen_samples scan-build% integration_tests_basic			\
 	integration_tests_basic_% docker_%
 
 DOCKER			= docker
@@ -109,15 +109,6 @@ unit_tests:	unit-tests/CMakeLists.txt	\
 		unit-tests/digestif/*.*
 	$(DOCKER_RUN_APP_BUILDER) bash -c "cd /app/unit-tests && cmake -Bbuild -H. && cmake --build build && CTEST_OUTPUT_ON_FAILURE=1 ctest --test-dir build"
 
-# Cross-check of the C parser against Octez itself, on the committed samples.
-# Needs the `ledger-app-tezos-ocaml` image, see `docker_ledger_app_ocaml`.
-unit_tests_ocaml:	tests/unit/parser/*.ml		\
-			tests/unit/parser/dune		\
-			tests/unit/parser/Makefile	\
-			tests/unit/Makefile
-	@cp app/src/parser/[!g]*.[ch] tests/unit/parser/
-	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/unit
-
 RUN_TEST_DOCKER = ./tests/integration/run_test_docker.sh
 
 integration_tests_basic_%:	app_%.tgz   \
@@ -160,17 +151,14 @@ integration_tests: 	tests/integration/*.sh			\
 			integration_tests_basic_flex 	\
 			integration_tests_basic_apex_p
 
-test/samples/micheline/%/samples.hex:	tests/generate/*.ml*	\
-					tests/generate/dune	\
-					tests/generate/Makefile
+# Regenerates the samples committed in tests/samples, and the integration test
+# scripts that go with them, from Octez. A rare, manual step, see
+# tests/samples/README.md. Needs the `ledger-app-tezos-ocaml` image, see
+# `docker_ledger_app_ocaml`.
+regen_samples:
 	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/generate	\
-	    ../samples/micheline/$*/samples.hex
-
-test/samples/operations/%/samples.hex:	tests/generate/*.ml*	\
-					tests/generate/dune	\
-					tests/generate/Makefile
-	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/generate	\
-	    ../samples/operations/$*/samples.hex
+	    ../samples/micheline/nano/samples.hex		\
+	    ../samples/operations/nano/samples.hex
 
 load_%: app_%.tgz
 	ledgerctl delete "Tezos Wallet"

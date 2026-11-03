@@ -22,25 +22,37 @@ Please use bash shell for uniformity in build environment.
 The docker images can be built using the provided Makefile:
 
 ```
-:; make docker-images
+:; make docker_images
 ```
 
-This pulls down following image, `ghcr.io/ledgerhq/ledger-app-dev-tools`. It
-also builds an image via `docker/Dockerfile.ocaml`.
+This pulls down the images the builds and the tests run in, among them
+`ghcr.io/ledgerhq/ledger-app-dev-tools`.
 
-That image, and the OCaml sample generator used by the tests, are built from
-the Octez sources of the `deps/tezos` submodule. It is over a gigabyte, so it
-is not fetched by a recursive clone, nor by CI (`update = none` in
-`.gitmodules`). Fetch it before building them:
+We do not make the builds of the software conditional on these docker
+images as `make(1)` does not automatically avoid rebuilds as they do not create
+artefacts as files in the current directories.
+
+## Unit tests
+
+```
+:; make unit_tests
+```
+
+The unit tests need neither Octez nor OCaml. The parsers are also checked
+against samples generated from Octez, which are committed in
+[tests/samples](tests/samples/README.md).
+
+Regenerating these samples is a rare, manual step. It needs an extra image,
+built via `docker/Dockerfile.ocaml` from the Octez sources of the `deps/tezos`
+submodule. They are over a gigabyte, so they are not fetched by a recursive
+clone, nor by CI (`update = none` in `.gitmodules`). Fetch them before building
+the image, which takes approx 1 hour:
 
 ```
 :; git submodule update --init --checkout deps/tezos
+:; make docker_ledger_app_ocaml
+:; make regen_samples
 ```
-
-We do not make the builds of the software conditional on these docker
-images as it can be time consuming to build them, approx 1 hour, and
-`make(1)` does not automatically avoid rebuilds as they do not create
-artefacts as files in the current directories.
 
 ## Make the applications
 

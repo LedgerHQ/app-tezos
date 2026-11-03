@@ -234,9 +234,9 @@ static void
 report_mismatch(size_t index, const char *expected, const char *got,
                 tz_parser_result err)
 {
-    print_message("sample %zu: ", index);
+    print_message("sample %zu:\n", index);
     if (err != TZ_BLO_DONE) {
-        print_message("parser stopped on %s\n", tz_parser_result_name(err));
+        print_message("  parser stopped on %s\n", tz_parser_result_name(err));
     }
     print_message("  expected: %s\n  got:      %s\n", expected, got);
 }

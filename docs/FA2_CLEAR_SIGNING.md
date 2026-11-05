@@ -50,6 +50,6 @@ There is no runtime fetch from chain or third-party APIs.
 
 ## Tests
 
-- C unit tests in `tests/unit/ctest/tests_parser.c` (FA2-related cases).
+- C unit tests in `unit-tests/test_operation_parser.c` (FA2-related cases).
 - Hex blobs for those tests can be regenerated with
   `scripts/gen_fa2_ctest_hex.py` (requires `pip install base58`).

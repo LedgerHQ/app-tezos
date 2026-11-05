@@ -856,6 +856,30 @@ test_check_sdp_unit_op_trailing_data(void **state)
     check_parser_error(data, str, TZ_ERR_TOO_LARGE);
 }
 
+/* A size whose end does not fit the 16-bit offsets is refused as soon as it
+ * is read: here 0xffff bytes are declared for a transaction parameter. */
+static void
+test_check_operation_size_end_beyond_16_bits(void **state)
+{
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff090000ffff";
+    check_parser_error(data, str, TZ_ERR_TOO_LARGE);
+}
+
+/* Same for a Micheline size: the string of this small parameter declares
+ * 0xffff bytes. */
+static void
+test_check_micheline_size_end_beyond_16_bits(void **state)
+{
+    operation_parser_data *data  = *state;
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
+        "ff090000000a"
+        "0200000005"
+        "010000ffff";
+    check_parser_error(data, str, TZ_ERR_TOO_LARGE);
+}
+
 /* SDP_STEP_DONE: call parser once without flush after "Edge (bake/stake)"
  * PRINT completes, so oofs>0 when SDP_DONE runs → tz_stop(IM_FULL) line 1285.
  */
@@ -1855,6 +1879,8 @@ main(void)
         OPERATION_PARSER_TEST(
             test_check_set_delegate_parameters_sdp_fallback_unit_prim0),
         OPERATION_PARSER_TEST(test_check_sdp_unit_op_trailing_data),
+        OPERATION_PARSER_TEST(test_check_operation_size_end_beyond_16_bits),
+        OPERATION_PARSER_TEST(test_check_micheline_size_end_beyond_16_bits),
         OPERATION_PARSER_TEST(test_check_sdp_done_oofs),
         OPERATION_PARSER_TEST(test_check_sdp_invalid_sub_step),
         OPERATION_PARSER_TEST(test_check_origination_complexity),

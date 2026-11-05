@@ -2,7 +2,7 @@
 # Copyright 2026 Trilitech <contact@trili.tech>
 #
 # Standalone script to generate hex strings for FA2-related C unit tests in
-# tests/unit/ctest/tests_parser.c. Uses only the standard library plus base58.
+# unit-tests/test_operation_parser.c. Uses only the standard library plus base58.
 #
 # Usage: python3 scripts/gen_fa2_ctest_hex.py
 #

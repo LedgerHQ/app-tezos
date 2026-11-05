@@ -862,8 +862,7 @@ static void
 test_check_operation_size_end_beyond_16_bits(void **state)
 {
     operation_parser_data *data  = *state;
-    char                   str[] = _SDP_FALLBACK_HEX_PREFIX
-        "ff090000ffff";
+    char                   str[] = _SDP_FALLBACK_HEX_PREFIX "ff090000ffff";
     check_parser_error(data, str, TZ_ERR_TOO_LARGE);
 }
 

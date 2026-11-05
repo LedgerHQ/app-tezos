@@ -13,7 +13,6 @@
    limitations under the License. *)
 
 open Tezos_protocol_023_PtSeouLo
-open Test_c_parser_utils
 
 let pp_opt_field pp ppf = function
   | None -> Format.fprintf ppf "Field unset"
@@ -23,7 +22,7 @@ let pp_tz ppf tz = Format.fprintf ppf "%a XTZ" Protocol.Alpha_context.Tez.pp tz
 
 let pp_lazy_expr ppf lazy_expr =
   let expr = Result.get_ok @@ Protocol.Script_repr.force_decode lazy_expr in
-  Format.fprintf ppf "%s" @@ Test_micheline_c_parser.to_string expr
+  Format.fprintf ppf "%s" @@ Expected_micheline.to_string expr
 
 let pp_string_binary ppf s = Format.fprintf ppf "%a" Hex.pp (Hex.of_string s)
 
@@ -97,16 +96,28 @@ let to_string
         aux ~kind:"Set deposit limit"
           [ Format.asprintf "%a" (pp_opt_field pp_tz) tez_opt ]
     | Transaction { amount; entrypoint; destination; parameters } ->
+        (* Octez knows nothing of this note: the app shows it, after the
+           entrypoint, when the fee payer finalizes the unstake of another
+           implicit account (see `emit_finalize_note` in operation_parser.c). *)
+        let finalize_note =
+          match destination with
+          | Contract.Implicit staker
+            when Format.asprintf "%a" Entrypoint.pp entrypoint
+                 = "finalize_unstake"
+                 && not (Environment.Signature.Public_key_hash.equal source staker)
+            ->
+              [ "Fee payer is Source; staker is Destination" ]
+          | _ -> []
+        in
         let parameters =
           if
             Protocol.Script_repr.is_unit_parameter parameters
             && Entrypoint.is_default entrypoint
           then []
           else
-            [
-              Format.asprintf "%a" Entrypoint.pp entrypoint;
-              Format.asprintf "%a" pp_lazy_expr parameters;
-            ]
+            [ Format.asprintf "%a" Entrypoint.pp entrypoint ]
+            @ finalize_note
+            @ [ Format.asprintf "%a" pp_lazy_expr parameters ]
         in
         aux ~kind:"Transaction"
           ([
@@ -217,13 +228,3 @@ let to_string
     | Single op -> operation_to_string op
   in
   operations_to_string contents
-
-let to_bytes op =
-  Data_encoding.Binary.to_bytes_exn
-    Protocol.Alpha_context.Operation.unsigned_encoding op
-
-external cparse_step :
-  cparse_state ->
-  input:bytes * int * int ->
-  output:bytes * int * int ->
-  int * int * st = "operation_cparse_step"

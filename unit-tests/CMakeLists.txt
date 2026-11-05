@@ -134,3 +134,36 @@ target_link_libraries(test_swap_key_policy PRIVATE
 )
 
 add_test(NAME test_swap_key_policy COMMAND test_swap_key_policy)
+
+# Replays the samples committed in tests/samples through the parser. They are
+# generated from Octez (see tests/samples/README.md), running them is not.
+add_executable(test_parser_samples
+  test_parser_samples.c
+  strlcpy.c
+  digestif/sha256.c
+  ${PARSER_SOURCES}
+)
+
+target_compile_definitions(test_parser_samples PRIVATE
+  SAMPLES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../tests/samples"
+)
+
+target_include_directories(test_parser_samples PRIVATE
+  ../app/src/parser
+  digestif
+)
+
+target_compile_options(test_parser_samples PRIVATE
+  -Wall
+  -Wextra
+  -Wconversion
+  -Wredundant-decls
+  -Wshadow
+  -Wno-unused-parameter
+)
+
+target_link_libraries(test_parser_samples PRIVATE
+  cmocka
+)
+
+add_test(NAME test_parser_samples COMMAND test_parser_samples)

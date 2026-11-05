@@ -13,12 +13,21 @@
    See the License for the specific language governing permissions and
    limitations under the License. *)
 
+(* `samples.expected` has one line per line of `samples.hex`: the hex of what the
+   Octez-based printers render for that sample. Hex keeps the quotes and
+   escapes of the rendering out of the line format. *)
+let hex_of_string s = Hex.show (Hex.of_string s)
+
 let () =
   match Sys.argv with
   | [| _; "micheline"; m; "nano"; dir |] ->
       let m = int_of_string m in
       let fp_hex = open_out @@ Format.sprintf "%s/nano/samples.hex" dir in
       let ppf_hex = Format.formatter_of_out_channel fp_hex in
+      let fp_expected =
+        open_out @@ Format.sprintf "%s/nano/samples.expected" dir
+      in
+      let ppf_expected = Format.formatter_of_out_channel fp_expected in
       print_string "Generating Micheline samples";
       Seq.iteri
         (fun i (expr, bin, `Hex txt) ->
@@ -29,17 +38,25 @@ let () =
             print_string ".";
             flush stdout;
             Format.fprintf ppf_hex "%s@\n" txt;
+            Format.fprintf ppf_expected "%s@\n"
+              (hex_of_string
+                 (Expected_micheline.to_string (Gen_micheline.decode bin)));
             let fp = open_out (Format.asprintf "%s/nano/test_%03d.sh" dir i) in
             let ppf = Format.formatter_of_out_channel fp in
             Gen_integration.gen_expect_test_sign_micheline_data ppf bin;
             close_out fp))
         (Seq.take m Gen_micheline.hex);
       Format.fprintf ppf_hex "%!";
+      Format.fprintf ppf_expected "%!";
       print_newline ()
   | [| _; "operations"; m; "nano"; dir |] ->
       let m = int_of_string m in
       let fp_hex = open_out @@ Format.sprintf "%s/nano/samples.hex" dir in
       let ppf_hex = Format.formatter_of_out_channel fp_hex in
+      let fp_expected =
+        open_out @@ Format.sprintf "%s/nano/samples.expected" dir
+      in
+      let ppf_expected = Format.formatter_of_out_channel fp_expected in
       print_string "Generating Operation samples";
       Seq.iteri
         (fun i (op, bin, `Hex txt) ->
@@ -50,12 +67,16 @@ let () =
             print_string ".";
             flush stdout;
             Format.fprintf ppf_hex "%s@\n" txt;
+            Format.fprintf ppf_expected "%s@\n"
+              (hex_of_string
+                 (Expected_operations.to_string (Gen_operations.decode bin)));
             let fp = open_out (Format.asprintf "%s/nano/test_%03d.sh" dir i) in
             let ppf = Format.formatter_of_out_channel fp in
             Gen_integration.gen_expect_test_sign_operation ppf bin;
             close_out fp))
         (Seq.take m Gen_operations.hex);
       Format.fprintf ppf_hex "%!";
+      Format.fprintf ppf_expected "%!";
       print_newline ()
   | [| _; _; _m; "stax"; _dir |] ->
       Format.eprintf "Only nano supported for now.@.";

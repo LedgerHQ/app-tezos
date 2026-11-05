@@ -15,7 +15,6 @@
 
 open Tezos_protocol_023_PtSeouLo
 open Tezos_micheline
-open Test_c_parser_utils
 
 let rec pp_node ~wrap ppf (node : Protocol.Script_repr.node) =
   match node with
@@ -44,12 +43,3 @@ let rec pp_node ~wrap ppf (node : Protocol.Script_repr.node) =
 
 let to_string node =
   Format.asprintf "%a" (pp_node ~wrap:false) (Micheline.root node)
-
-let to_bytes expr =
-  Data_encoding.Binary.to_bytes_exn Protocol.Script_repr.expr_encoding expr
-
-external cparse_step :
-  cparse_state ->
-  input:bytes * int * int ->
-  output:bytes * int * int ->
-  int * int * st = "micheline_cparse_step"

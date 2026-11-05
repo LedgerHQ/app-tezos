@@ -22,5 +22,7 @@ ABS_DIR = generate
 		$< \
 		$(TESTS_ROOT)/samples/operations/
 
+# The samples (`samples.hex`, `samples.expected`) are committed, only the
+# integration test scripts generated next to them are not.
 clean:
-	rm -rf $(TESTS_ROOT)/samples
+	rm -f $(TESTS_ROOT)/samples/*/*/test_*.sh

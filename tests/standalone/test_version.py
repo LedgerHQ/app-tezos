@@ -28,7 +28,7 @@ RUNNING_ON_CI = os.environ.get("CI", "").lower() in ("1", "true")
 
 def test_version(backend: TezosBackend):
     """Test that the app version is the same as the current version."""
-    current_version = Version(Version.AppKind.WALLET, 3, 2, 5)
+    current_version = Version(Version.AppKind.WALLET, 3, 2, 6)
 
     data = backend.version()
 

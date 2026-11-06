@@ -390,6 +390,7 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     op->last_tag           = TZ_OPERATION_TAG_END;
     op->nb_reveal          = 0;
     op->fa2_swap_ok        = 0;
+    op->has_parameters     = 0;
     op->fa2_token_id       = 0;
     op->fa2_amount         = 0;
     op->fa2_destination[0] = '\0';
@@ -636,7 +637,8 @@ tz_step_tag(tz_parser_state *state)
     }
     /* Reset per-operation: a transfer decoded in an earlier operation of the
        batch must not be credited to this one. */
-    op->fa2_swap_ok = 0;
+    op->fa2_swap_ok    = 0;
+    op->has_parameters = 0;
 #endif  // HAVE_SWAP
     op->is_fa2_candidate = 0;
     memset(&op->destination, 0, TZ_OPERATION_DESTINATION_SIZE);
@@ -2153,6 +2155,9 @@ tz_step_field(tz_parser_state *state)
         break;
     }
     case TZ_OPERATION_FIELD_SMART_ENTRYPOINT: {
+#ifdef HAVE_SWAP
+        op->has_parameters = 1;
+#endif
         op->frame->step = TZ_OPERATION_STEP_READ_SMART_ENTRYPOINT;
         op->frame->step_read_string.ofs       = 0;
         op->frame->step_read_string.skip      = field->skip;

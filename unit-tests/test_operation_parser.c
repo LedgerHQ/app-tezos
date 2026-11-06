@@ -1569,6 +1569,54 @@ test_check_fa2_transfer_swap_owner_too_long(void **state)
     assert_false(data->state->operation.fa2_swap_ok);
     assert_string_equal(data->state->operation.fa2_source, "");
 }
+
+/* A swap refuses a transfer of tez that carries an entrypoint and parameters,
+   so the parser has to tell. Here: the entrypoint %default and `Unit`. */
+static void
+test_check_transaction_has_parameters(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464e8070000f42e"
+          "b1f25677dd7b0a94aba3a7aea61e2fd30d00ff0000000002030b";
+
+    parse_to_completion(data, str);
+
+    assert_true(data->state->operation.has_parameters);
+}
+
+static void
+test_check_transaction_without_parameters(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464e8070000f42e"
+          "b1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.has_parameters);
+}
+
+/* The flag is about the operation being parsed: the parameters of an earlier
+   operation of the batch must not be credited to the last one. */
+static void
+test_check_has_parameters_is_per_operation(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464e8070000f42e"
+          "b1f25677dd7b0a94aba3a7aea61e2fd30d00ff0000000002030b6c00ffdd610232"
+          "1bc251e4a5190ad5b12b251069d9b4e807026464e8070000f42eb1f25677dd7b0a"
+          "94aba3a7aea61e2fd30d0000";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.has_parameters);
+}
 #endif  // HAVE_SWAP
 
 static void
@@ -1995,6 +2043,9 @@ main(void)
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_swap_recipient_with_embedded_nul),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_owner_too_long),
+        OPERATION_PARSER_TEST(test_check_transaction_has_parameters),
+        OPERATION_PARSER_TEST(test_check_transaction_without_parameters),
+        OPERATION_PARSER_TEST(test_check_has_parameters_is_per_operation),
 #endif  // HAVE_SWAP
     };
 

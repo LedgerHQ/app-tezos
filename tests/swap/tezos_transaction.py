@@ -42,11 +42,13 @@ EXC_UNEXPECTED_STATE = 0x9001
 # which check of the application refused, see tz_swap_error_t in
 # app/src/handle_swap.h.
 SWAP_EC_ERROR_WRONG_AMOUNT = 0x01
+SWAP_EC_ERROR_WRONG_METHOD = 0x04
 SWAP_EC_ERROR_GENERIC = 0xFF
 SWAP_ERR_KEY = 0x04
 SWAP_ERR_SOURCE = 0x05
 SWAP_ERR_AMOUNT = 0x06
 SWAP_ERR_TOKEN_TICKER = 0x0B
+SWAP_ERR_PARAMETERS = 0x0D
 
 
 def swap_error(common_code: int, application_code: int) -> bytes:
@@ -157,6 +159,17 @@ def craft_native_transfer(source_hash: bytes, destination: str, amount: int, fee
     payload += zarith(amount)
     payload += b"\x00\x00" + decode_tz1(destination)  # implicit tz1 destination
     payload += b"\x00"  # no parameters
+    return payload
+
+
+def craft_native_transfer_with_parameters(source_hash: bytes, destination: str, amount: int, fees: int) -> bytes:
+    """A tez transfer to an implicit account that also calls the %default entrypoint with `Unit`."""
+    payload = _operation_header(source_hash, fees)
+    payload += zarith(amount)
+    payload += b"\x00\x00" + decode_tz1(destination)  # implicit tz1 destination
+    payload += b"\xff"  # parameters present
+    payload += b"\x00"  # builtin entrypoint %default
+    payload += (2).to_bytes(4, "big") + b"\x03\x0b"  # the Micheline `Unit`
     return payload
 
 

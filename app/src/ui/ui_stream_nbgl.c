@@ -107,6 +107,8 @@ switch_to_blindsigning_on_error(void)
     TZ_PREAMBLE(("void"));
     TZ_ASSERT(EXC_UNEXPECTED_STATE, (global.step == ST_CLEAR_SIGN)
                                         || (global.step == ST_SUMMARY_SIGN));
+    // Backstop: never offer "Proceed to Blindsign" while the setting is off.
+    TZ_ASSERT(EXC_UNEXPECTED_STATE, N_settings.blindsigning);
     global.keys.apdu.sign.step = SIGN_ST_WAIT_USER_INPUT;
 
     // copy error code

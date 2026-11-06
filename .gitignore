@@ -12,6 +12,7 @@ app/src/glyphs.h
 app_*.tgz
 integration_tests.json
 integration_tests_log
+build_dry_run_output.txt
 pattern_registry
 # Only the fixtures of tests/samples are tracked, see tests/samples/README.md
 tests/samples/*/*/test_*.sh

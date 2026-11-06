@@ -551,14 +551,20 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         /* This returns the number that can fit. Potentially we could
          * optimistically push all 4 rows, and then try?
          */
-        uint8_t fit = nbgl_useCaseGetNbTagValuesInPage((uint8_t)(idx + 1), &l,
-                                                       0, &push_to_next);
-        PRINTF("[DEBUG] idx=%d fit=%d push_to_next=%d\n", idx, fit,
-               push_to_next);
-        /*
-         * Dont push to next screen if the number of pairs is one.
-         */
-        push_to_next = (fit <= (uint8_t)idx);
+        bool    requires_specific_display = false;
+        uint8_t fit                       = nbgl_useCaseGetNbTagValuesInPage(
+            (uint8_t)(idx + 1), &l, 0, &requires_specific_display);
+        PRINTF("[DEBUG] idx=%d fit=%d requires_specific_display=%d\n", idx,
+               fit, requires_specific_display);
+
+        if (requires_specific_display && !append) {
+            PRINTF("[ERROR] a fragment does not fit a review page\n");
+            THROW(EXC_MEMORY_ERROR);
+        }
+
+        /* A lone pair too tall for a page is shown in part, behind "More".
+           Send the fragment that made it too tall to the next screen. */
+        push_to_next = (fit <= (uint8_t)idx) || requires_specific_display;
 
         if (push_to_next) {
             /* We need to move to the next screen, retry */

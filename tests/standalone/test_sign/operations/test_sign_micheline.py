@@ -693,3 +693,25 @@ def test_sign_micheline(
         tezos_navigator.accept_sign(snap_path=snapshot_dir)
 
     account.check_signature(message=message, with_hash=False, data=result.value)
+
+
+@pytest.mark.use_on_device("touch")
+def test_sign_micheline_long_string_blindsign_enabled(
+    backend: TezosBackend,
+    tezos_navigator: TezosNavigator,
+    account: Account,
+    snapshot_dir: Path,
+):
+    """Check a long value is spread over successive pages, not hidden behind a 'More' button
+
+    With blindsigning enabled the review is skippable, and its pages are shorter.
+    """
+
+    tezos_navigator.toggle_blindsign()
+
+    message = MichelineExpr({"string": (ascii_lowercase + digits) * 17})
+
+    with backend.sign(account, message, with_hash=False) as result:
+        tezos_navigator.accept_sign(snap_path=snapshot_dir)
+
+    account.check_signature(message=message, with_hash=False, data=result.value)

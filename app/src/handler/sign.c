@@ -455,8 +455,8 @@ pass_from_clear_to_summary(void)
     TZ_PREAMBLE(("void"));
 
     APDU_SIGN_ASSERT_STEP(SIGN_ST_WAIT_USER_INPUT);
-    // Backstop: the summary flow is a blindsign flow, never enter it while the
-    // setting is off.
+    // Backstop: the summary flow is a blindsign flow, never enter it while
+    // the setting is off.
     TZ_ASSERT(EXC_UNEXPECTED_STATE, N_settings.blindsigning);
 
     global.step                = ST_SUMMARY_SIGN;

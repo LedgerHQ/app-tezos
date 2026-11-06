@@ -49,6 +49,12 @@ bytes_cases: list[tuple[Micheline, str]] = [
 string_cases: list[tuple[Micheline, str]] = [
     ({"string": ""}, "empty"),
     ({"string": "".join(map(chr, range(0, 256)))}, "first-256-char"),
+    # A byte that is not printable is shown as a backslash and three digits, so
+    # it can not be mistaken for the digits themselves.
+    ({"string": "001"}, "digits-001"),
+    ({"string": "\x01"}, "control-byte-01"),
+    ({"string": "\x011"}, "control-byte-01-then-digit"),
+    ({"string": "\x7f"}, "del-byte"),
 ]
 
 default_view_interface = (

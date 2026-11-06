@@ -1,18 +1,43 @@
-FROM ocaml/opam:ubuntu-24.04-ocaml-5.2
+# The base image is pinned by digest, the one of the multi-arch manifest list of
+# the tag, so that a moved tag is not picked up silently. To update it, check
+# the new image and take its digest from:
+#   docker buildx imagetools inspect ocaml/opam:ubuntu-24.04-ocaml-5.2
+FROM ocaml/opam:ubuntu-24.04-ocaml-5.2@sha256:9c6d9d8b50ebde4f2373d866d093946314b2bc04d4a07cd574bef8bef14b9928
 
 USER opam
 
 # Rust channel must match Octez pin (deps/tezos/rust-toolchain).
 COPY deps/tezos/rust-toolchain /tmp/octez-rust-toolchain
 
+# rustup-init is downloaded as a versioned binary, and its SHA-256 is checked
+# against the one pinned here before it runs: a mismatch stops the build.
+# The checksums are published next to each binary, as
+# https://static.rust-lang.org/rustup/archive/<version>/<target>/rustup-init.sha256
+# To update rustup, change the version and both checksums together.
+ARG RUSTUP_VERSION=1.29.3
+ARG RUSTUP_SHA256_X86_64=b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55
+ARG RUSTUP_SHA256_AARCH64=9f608c142e0e38a78957d0661ba1dfaf0b6fb37184cfaa4b9a0aa57af6184282
+
 # Install system dependencies and Rust
 RUN sudo apt-get update &&                                                       \
     sudo apt-get -y install wget git &&                                          \
-    RUSTUP_TOOLCHAIN=$(tr -d ' \n\r\t' < /tmp/octez-rust-toolchain) &&                                                   \
-    wget https://sh.rustup.rs/rustup-init.sh &&                                  \
-    chmod +x rustup-init.sh &&                                                   \
-    ./rustup-init.sh --profile minimal --default-toolchain $RUSTUP_TOOLCHAIN -y && \
-    rm rustup-init.sh
+    case "$(uname -m)" in                                                        \
+      x86_64)                                                                    \
+        RUSTUP_TARGET=x86_64-unknown-linux-gnu;                                  \
+        RUSTUP_SHA256=$RUSTUP_SHA256_X86_64 ;;                                   \
+      aarch64)                                                                   \
+        RUSTUP_TARGET=aarch64-unknown-linux-gnu;                                 \
+        RUSTUP_SHA256=$RUSTUP_SHA256_AARCH64 ;;                                  \
+      *)                                                                         \
+        echo "unsupported architecture: $(uname -m)" >&2; exit 1 ;;              \
+    esac &&                                                                      \
+    RUSTUP_TOOLCHAIN=$(tr -d ' \n\r\t' < /tmp/octez-rust-toolchain) &&           \
+    wget --https-only -O /tmp/rustup-init                                        \
+      "https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUSTUP_TARGET}/rustup-init" && \
+    echo "${RUSTUP_SHA256}  /tmp/rustup-init" | sha256sum -c - &&                 \
+    chmod 0755 /tmp/rustup-init &&                                               \
+    /tmp/rustup-init --profile minimal --default-toolchain "$RUSTUP_TOOLCHAIN" -y && \
+    rm /tmp/rustup-init
 ENV PATH=/home/opam/.cargo/bin:$PATH
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
 

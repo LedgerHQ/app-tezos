@@ -1229,6 +1229,69 @@ test_check_fa2_transfer_clear_signing_token_id_gt0(void **state)
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
 
+/* The fees and the amounts are summed for the summary screens and the swap
+   check. A sum that does not fit in 64 bits has to be refused, not wrapped
+   to a smaller total: two amounts of 2^63 would wrap to exactly 0. */
+static void
+test_check_total_amount_overflow(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464808080808080"
+          "808080010000f42eb1f25677dd7b0a94aba3a7aea61e2fd30d00006c00ffdd6102"
+          "321bc251e4a5190ad5b12b251069d9b4e807026464808080808080808080010000"
+          "f42eb1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    check_parser_error(data, str, TZ_ERR_TOO_LARGE);
+}
+
+/* Same with two fees of 2^63. */
+static void
+test_check_total_fee_overflow(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b48080808080808080800101"
+          "6464000000f42eb1f25677dd7b0a94aba3a7aea61e2fd30d00006c00ffdd610232"
+          "1bc251e4a5190ad5b12b251069d9b480808080808080808001026464000000f42e"
+          "b1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    check_parser_error(data, str, TZ_ERR_TOO_LARGE);
+}
+
+/* A total of exactly UINT64_MAX (2^63 + 2^63 - 1) is representable, so it is
+   not refused: the bound is not off by one. */
+static void
+test_check_total_amount_up_to_uint64_max(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464808080808080"
+          "808080010000f42eb1f25677dd7b0a94aba3a7aea61e2fd30d00006c00ffdd6102"
+          "321bc251e4a5190ad5b12b251069d9b4e807026464ffffffffffffffff7f0000f4"
+          "2eb1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    check_parser_error(data, str, TZ_BLO_DONE);
+    assert_int_equal(data->state->operation.total_amount, UINT64_MAX);
+    assert_int_equal(data->state->operation.total_fee, 2000);
+}
+
+/* A single amount of 2^64 does not fit in 64 bits either. */
+static void
+test_check_amount_above_uint64(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464808080808080"
+          "808080020000f42eb1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    check_parser_error(data, str, TZ_ERR_INVALID_DATA);
+}
+
 #ifdef HAVE_SWAP
 /* LIVE-36514: a swap paying with an FA2 token signs a `transfer` call, so the
    recipient and the amount are inside the Michelson parameters and the
@@ -1884,6 +1947,10 @@ main(void)
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_negative_amount_shows_sign),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_whole_number_amount),
+        OPERATION_PARSER_TEST(test_check_total_amount_overflow),
+        OPERATION_PARSER_TEST(test_check_total_fee_overflow),
+        OPERATION_PARSER_TEST(test_check_total_amount_up_to_uint64_max),
+        OPERATION_PARSER_TEST(test_check_amount_above_uint64),
 #ifdef HAVE_SWAP
         OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_fields),
         OPERATION_PARSER_TEST(

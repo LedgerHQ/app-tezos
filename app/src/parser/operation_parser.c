@@ -1658,9 +1658,15 @@ tz_step_read_num(tz_parser_state *state)
         }
         switch (op->frame->step_read_num.kind) {
         case TZ_OPERATION_FIELD_AMOUNT:
+            if (value > UINT64_MAX - op->total_amount) {
+                tz_raise(TOO_LARGE);
+            }
             op->total_amount += value;
             break;
         case TZ_OPERATION_FIELD_FEE:
+            if (value > UINT64_MAX - op->total_fee) {
+                tz_raise(TOO_LARGE);
+            }
             op->total_fee += value;
             break;
         default:

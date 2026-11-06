@@ -35,25 +35,57 @@ void        push_str(const char *text, size_t len, char **out);
 void        switch_to_blindsigning_on_error(void);
 static void ui_stream_init(void);
 
-void
-tz_reject(void)
+static void
+reject_with(tz_ui_cb_type_t cb_type)
 {
     tz_ui_stream_t *s = &G_stream;
 
-    FUNC_ENTER(("void"));
+    FUNC_ENTER(("cb_type=%u", cb_type));
 
     // Stax can reject early
     global.keys.apdu.sign.step              = SIGN_ST_WAIT_USER_INPUT;
     global.keys.apdu.sign.received_last_msg = true;
 
-    if (global.step == ST_BLIND_SIGN) {
-        s->cb(TZ_UI_STREAM_CB_BLINDSIGN_REJECT);
-    } else {
-        s->cb(TZ_UI_STREAM_CB_REJECT);
-    }
+    s->cb(cb_type);
 
     global.step = ST_IDLE;
     nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_home_init);
+    FUNC_LEAVE();
+}
+
+void
+tz_reject(void)
+{
+    FUNC_ENTER(("void"));
+
+    if (global.step == ST_BLIND_SIGN) {
+        reject_with(TZ_UI_STREAM_CB_BLINDSIGN_REJECT);
+    } else {
+        reject_with(TZ_UI_STREAM_CB_REJECT);
+    }
+
+    FUNC_LEAVE();
+}
+
+/* The user confirmed the rejection of a transaction that failed to parse. */
+static void
+tz_reject_parse_error(void)
+{
+    FUNC_ENTER(("void"));
+
+    reject_with(TZ_UI_STREAM_CB_BLINDSIGN_REJECT);
+
+    FUNC_LEAVE();
+}
+
+static void
+reject_confirm_ui(nbgl_callback_t on_confirm)
+{
+    FUNC_ENTER(("void"));
+
+    nbgl_useCaseConfirm("Reject transaction?", NULL, REJECT_CONFIRM_BUTTON,
+                        RESUME("transaction"), on_confirm);
+
     FUNC_LEAVE();
 }
 
@@ -62,8 +94,7 @@ tz_reject_ui(void)
 {
     FUNC_ENTER(("void"));
 
-    nbgl_useCaseConfirm("Reject transaction?", NULL, REJECT_CONFIRM_BUTTON,
-                        RESUME("transaction"), tz_reject);
+    reject_confirm_ui(tz_reject);
 
     FUNC_LEAVE();
 }
@@ -88,8 +119,9 @@ blindsign_choice(bool confirm)
 {
     TZ_PREAMBLE(("void"));
     if (confirm) {
-        global.step = ST_BLIND_SIGN;
-        tz_reject_ui();
+        // The modal can be dismissed, and this choice stays active under it:
+        // global.step must not change until the rejection is confirmed.
+        reject_confirm_ui(tz_reject_parse_error);
     } else {
         tz_ui_stream_t *s = &G_stream;
 

@@ -495,6 +495,35 @@ def test_blindsign_too_large(
     account.check_signature(message=message, with_hash=True, data=result.value)
 
 
+@pytest.mark.use_on_device("touch")
+def test_blindsign_too_large_reject_dismissed(
+    backend: TezosBackend, tezos_navigator: TezosNavigator, account: Account, snapshot_dir: Path
+):
+    """Check blindsigning still works after backing out of the rejection
+
+    'Reject transaction' on the parse error warning opens a confirmation that can be dismissed.
+    The warning is then active again, and 'Proceed to Blindsign' must still be accepted.
+    """
+
+    tezos_navigator.toggle_blindsign()
+
+    message = MichelineExpr({"int": 12345678901234567890123456789012345678901234567890123456789012345678901234567890})
+
+    with backend.sign(account, message, with_hash=True) as result:
+        tezos_navigator.refuse_sign_error_risk_then_return(
+            snap_path=snapshot_dir / "reject_dismissed",
+            screen_change_after_last_instruction=True,
+        )
+        tezos_navigator.accept_sign_error_risk(
+            snap_path=snapshot_dir / "clear",
+            screen_change_before_first_instruction=False,
+        )
+        tezos_navigator.accept_sign_blindsign_risk(snap_path=snapshot_dir / "blindsigning_warning")
+        tezos_navigator.accept_sign(snap_path=snapshot_dir / "blind")
+
+    account.check_signature(message=message, with_hash=True, data=result.value)
+
+
 def test_blindsign_reject_from_clear(
     backend: TezosBackend, tezos_navigator: TezosNavigator, account: Account, snapshot_dir: Path
 ):

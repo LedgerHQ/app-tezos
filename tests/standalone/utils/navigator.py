@@ -604,6 +604,20 @@ class TezosNavigator(metaclass=MetaScreen):
             ]
         self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
 
+    def refuse_sign_error_risk_then_return(self, **kwargs) -> None:
+        """Tap on 'Reject transaction' in the signing risk warning, then go back from the confirmation.
+        Only available for Touch devices, fail otherwise.
+        """
+        assert not self._device.is_nano, "The reject confirmation is available only on Touch devices"
+        self._navigate_review(
+            text="^Proceed to Blindsign$",
+            validation_instructions=[
+                TezosNavInsID.WARNING_CHOICE_SAFETY,
+                TezosNavInsID.REJECT_CHOICE_RETURN,
+            ],
+            **kwargs,
+        )
+
     def accept_sign_blindsign_risk(self, **kwargs) -> None:
         """Navigate through signing risk warning flow and accept risk."""
         if self._device.is_nano:

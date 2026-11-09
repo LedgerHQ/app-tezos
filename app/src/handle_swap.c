@@ -365,8 +365,6 @@ swap_check_validity(void)
         /* Tez: reached when no coin configuration was given, which is all we
          * know of the currency. See swap_copy_transaction_parameters() for
          * what that does and does not guarantee. */
-        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_METHOD, TZ_SWAP_ERR_PARAMETERS,
-                    !op->has_parameters);
         SWAP_ASSERT(SWAP_EC_ERROR_WRONG_AMOUNT, TZ_SWAP_ERR_AMOUNT,
                     op->total_amount == G_swap_params.amount);
 
@@ -377,6 +375,8 @@ swap_check_validity(void)
                G_swap_params.destination_address);
         SWAP_ASSERT(SWAP_EC_ERROR_WRONG_DESTINATION, TZ_SWAP_ERR_DESTINATION,
                     !strcmp(dstaddr, G_swap_params.destination_address));
+        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_METHOD, TZ_SWAP_ERR_PARAMETERS,
+                    !op->has_parameters);
     }
 
     TZ_POSTAMBLE;

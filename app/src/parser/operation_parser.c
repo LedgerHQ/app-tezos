@@ -687,6 +687,7 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_EMIT_TO_ADDR    23 /* emit "Transfer tokens to" field */
 #define FA2_STEP_EMIT_TOKEN_ID   25 /* emit "Token ID" (raw amount only) */
 #define FA2_STEP_EMIT_AMOUNT     24 /* emit amount field */
+#define FA2_STEP_EMIT_FROM_ADDR  26 /* emit "Transfer tokens from" field */
 
 /* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
 #define FA2_FROM_ADDR_OFS 0
@@ -1251,7 +1252,21 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         }
 #endif  // HAVE_SWAP
 
+        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_FROM_ADDR;
+        tz_continue;
+
+    case FA2_STEP_EMIT_FROM_ADDR:
+        /* Emit the owner whose balance is debited, before the receiver */
+        if (regs->oofs > 0) {
+            tz_stop(IM_FULL);
+        }
+        STRLCPY(state->field_info.field_name, "Transfer tokens from");
+        state->field_info.is_field_complex
+            = (op->frame->step_read_fa2.token_idx < 0);
+        state->field_info.field_index++;
         op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TO_ADDR;
+        tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
+        op->frame->step_print.str = (char *)(CAPTURE + FA2_FROM_ADDR_OFS);
         tz_continue;
 
     case FA2_STEP_EMIT_TO_ADDR:

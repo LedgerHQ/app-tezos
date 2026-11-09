@@ -1211,16 +1211,17 @@ test_check_fa2_transfer_clear_signing_fields(void **state)
           "77523833685a70684353716159535141705078504d65796b734a57576e68070700"
           "000080b518";
     const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
+        {"Source",               false, 1 },
+        {"Fee",                  false, 2 },
+        {"Storage limit",        false, 3 },
+        {"Amount",               false, 4 },
         // Destination omitted from review for registered FA2 contracts
         //     {"Option",        _,     5},
         //    {"Tuple",         _,     6},
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", false, 10},
-        {"Token Amount",       false, 11},
+        {"Entrypoint",           false, 8 },
+        {"Transfer tokens from", false, 10},
+        {"Transfer tokens to",   false, 11},
+        {"Token Amount",         false, 12},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -1238,16 +1239,17 @@ test_check_fa2_transfer_clear_signing_token_id_gt0(void **state)
           "523833685a70684353716159535141705078504d65796b734a57576e6807070001"
           "00a0843d";
     const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
-        {"Destination",        false, 5 },
+        {"Source",               false, 1 },
+        {"Fee",                  false, 2 },
+        {"Storage limit",        false, 3 },
+        {"Amount",               false, 4 },
+        {"Destination",          false, 5 },
         //     {"Option",        _,     6},
         //    {"Tuple",         _,     7},
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", false, 10},
-        {"Token Amount",       false, 11},
+        {"Entrypoint",           false, 8 },
+        {"Transfer tokens from", false, 10},
+        {"Transfer tokens to",   false, 11},
+        {"Token Amount",         false, 12},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -1661,13 +1663,14 @@ test_check_fa2_transfer_whole_number_amount(void **state)
           "523833685a70684353716159535141705078504d65796b734a57576e6807070000"
           "008092f401";
     const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", false, 10},
-        {"Token Amount",       false, 11},
+        {"Source",               false, 1 },
+        {"Fee",                  false, 2 },
+        {"Storage limit",        false, 3 },
+        {"Amount",               false, 4 },
+        {"Entrypoint",           false, 8 },
+        {"Transfer tokens from", false, 10},
+        {"Transfer tokens to",   false, 11},
+        {"Token Amount",         false, 12},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -1734,7 +1737,8 @@ static void
 assert_no_fa2_labels(operation_parser_data *data, char *str)
 {
     static const char *const labels[]
-        = {"Transfer tokens to", "Token ID", "Token Amount", "Amount (raw)"};
+        = {"Transfer tokens from", "Transfer tokens to", "Token ID",
+           "Token Amount", "Amount (raw)"};
     char value[256];
 
     for (size_t i = 0; i < sizeof(labels) / sizeof(labels[0]); i++) {
@@ -1884,15 +1888,16 @@ test_check_fa2_transfer_negative_amount_shows_sign(void **state)
           "33685a70684353716159535141705078504d65796b734a57576e6807070000004"
           "1";
     const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
-        {"Destination",        false, 5 },
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", true,  10},
-        {"Token ID",           true,  11},
-        {"Amount (raw)",       true,  12},
+        {"Source",               false, 1 },
+        {"Fee",                  false, 2 },
+        {"Storage limit",        false, 3 },
+        {"Amount",               false, 4 },
+        {"Destination",          false, 5 },
+        {"Entrypoint",           false, 8 },
+        {"Transfer tokens from", true,  10},
+        {"Transfer tokens to",   true,  11},
+        {"Token ID",             true,  12},
+        {"Amount (raw)",         true,  13},
     };
     char value[256];
 
@@ -1904,6 +1909,47 @@ test_check_fa2_transfer_negative_amount_shows_sign(void **state)
     assert_string_equal(value, "0");
     capture_field_value(data, str, "Amount (raw)", value, sizeof(value));
     assert_string_equal(value, "-1");
+}
+
+/* The owner whose balance is debited is shown, here not the operation
+   source: an operator moving the tokens of another account. */
+static void
+test_check_fa2_transfer_shows_owner(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
+          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e7366657200000068"
+          "0200000063070701000000244b543151576462415376615458573847576668664e"
+          "68334a4d6a6758766e5a4141544a570200000033070701000000247372314d7943"
+          "77523833685a70684353716159535141705078504d65796b734a57576e68070700"
+          "000080b518";
+    char value[64];
+
+    capture_field_value(data, str, "Transfer tokens from", value,
+                        sizeof(value));
+    assert_string_equal(value, "KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW");
+}
+
+/* It is shown too when it is the source of the operation. */
+static void
+test_check_fa2_transfer_shows_owner_when_it_is_the_source(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000a389bc5f";
+    char value[64];
+
+    capture_field_value(data, str, "Transfer tokens from", value,
+                        sizeof(value));
+    assert_string_equal(value, "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
 }
 
 /* increase_paid_storage carries a signed Amount. The sign must reach the
@@ -2019,6 +2065,9 @@ main(void)
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_negative_amount_shows_sign),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_shows_owner),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_shows_owner_when_it_is_the_source),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_whole_number_amount),
         OPERATION_PARSER_TEST(test_check_total_amount_overflow),
         OPERATION_PARSER_TEST(test_check_total_fee_overflow),

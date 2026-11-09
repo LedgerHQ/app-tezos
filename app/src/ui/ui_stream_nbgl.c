@@ -146,8 +146,12 @@ switch_to_blindsigning_on_error(void)
     // copy error code
     PRINTF("[DEBUG] refill_error: global.step = %d\n %s", global.step,
            global.error_code);
-    char blindsign_msg[60] = "Learn More: bit.ly/ledger-tez\nERROR: ";
+    // The SDK redraws this text after a dialog is dismissed: keep it alive
+    static char blindsign_msg[60];
 
+    memset(blindsign_msg, '\0', sizeof(blindsign_msg));
+    strncpy(blindsign_msg, "Learn More: bit.ly/ledger-tez\nERROR: ",
+            sizeof(blindsign_msg) - 1);
     strncpy(blindsign_msg + strlen(blindsign_msg), global.error_code,
             ERROR_CODE_SIZE);
 

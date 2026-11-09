@@ -79,8 +79,12 @@ def test_many_operations(backend: TezosBackend, tezos_navigator: TezosNavigator,
 
     assert len(pages) - 2 > HISTORY_PAGES, pages
     texts = [text.strip() for page in pages for text in page]
-    for label in ("Source", "Fee", "Storage limit", "Amount", "Destination"):
-        assert texts.count(label) == len(amounts), (label, pages)
+    labels = ("Source", "Fee", "Storage limit", "Amount", "Destination")
+    titles = [text for text in texts if text in labels or text.startswith("Operation (")]
+    # A value that does not fit a page goes on the next one under the same label
+    fields = [title for i, title in enumerate(titles) if i == 0 or title != titles[i - 1]]
+    for label in labels:
+        assert fields.count(label) == len(amounts), (label, pages)
     for amount in amounts:
         shown = f"{amount // 10**6}.{amount % 10**6:06d} XTZ"
         assert texts.count(shown) == 1, (shown, pages)

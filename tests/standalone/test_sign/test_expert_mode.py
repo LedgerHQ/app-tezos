@@ -48,13 +48,18 @@ def test_enable_expert_mode_in_review(
     account: Account,
     snapshot_dir: Path,
 ):
-    """Check that expert mode can be activated from review on touch devices."""
+    """Check that expert mode can be allowed from review on touch devices, for that transaction only."""
 
     with backend.sign(account, EXPERT_OPERATION):
         tezos_navigator.expert_accept_sign(snap_path=snapshot_dir / "review_expert")
         tezos_navigator.accept_sign(snap_path=snapshot_dir / "review")
 
-    # To ensure that expert mode is ON
+    # The next transaction asks again: it would not if the setting was saved
+    with backend.sign(account, EXPERT_OPERATION):
+        tezos_navigator.expert_accept_sign(snap_path=snapshot_dir / "second_review_expert")
+        tezos_navigator.accept_sign(snap_path=snapshot_dir / "second_review")
+
+    # To ensure that expert mode is still OFF
     tezos_navigator.navigate_to_settings(screen_change_before_first_instruction=True, snap_path=snapshot_dir / "check")
 
 

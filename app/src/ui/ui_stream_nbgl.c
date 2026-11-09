@@ -177,11 +177,8 @@ handle_expert_mode(bool confirm)
 {
     TZ_PREAMBLE(("void"));
     if (confirm) {
-        if (!N_settings.expert_mode) {
-            toggle_expert_mode();
-        }
-
-        nbgl_useCaseStatus("EXPERT MODE\nENABLED", true, tz_ui_stream_start);
+        nbgl_useCaseStatus("EXPERT MODE\nFOR THIS TX", true,
+                           tz_ui_stream_start);
 
     } else {
         tz_reject_ui();

@@ -15,6 +15,7 @@
 
 """Tezos app backend."""
 
+import re
 import time
 from collections.abc import Callable
 from enum import auto
@@ -500,6 +501,31 @@ class TezosNavigator(metaclass=MetaScreen):
                 NavInsID.USE_CASE_STATUS_DISMISS,
             ]
         self._navigate_review(text=text, validation_instructions=validation_instructions, **kwargs)
+
+    def read_review_pages(self, last_page: str = "^Hold to sign$", max_pages: int = 200) -> list[list[str]]:
+        """Step through a review and return the texts on each page, in the order they are shown.
+
+        The first page is the one the signing request opens, the last one is the first that matches
+        `last_page`, and it is left as it is so that the flow can be ended.
+        Only available for Touch devices on Speculos, fail otherwise.
+        """
+        assert not self._device.is_nano, "Reading the pages is available only on Touch devices"
+        assert isinstance(self._backend, SpeculosBackend), "The text of a screen is only read on Speculos"
+
+        pages: list[list[str]] = []
+        # Wait for the first page, as the first instruction of a navigation does
+        self.navigate(instructions=[], screen_change_before_first_instruction=True, screen_change_after_last_instruction=False)
+        while len(pages) < max_pages:
+            texts = [event["text"] for event in self._backend.get_current_screen_content()["events"]]
+            pages.append(texts)
+            if any(re.match(last_page, text) for text in texts):
+                return pages
+            self.navigate(
+                instructions=[TezosNavInsID.REVIEW_TX_NEXT],
+                screen_change_before_first_instruction=False,
+                screen_change_after_last_instruction=True,
+            )
+        raise AssertionError(f"No page matches {last_page!r} in {max_pages} pages")
 
     def accept_sign(self, **kwargs) -> None:
         """Navigate through signing flow and accept to sign"""

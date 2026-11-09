@@ -427,6 +427,11 @@ has_final_screen(void)
 {
     tz_ui_stream_t *s  = &G_stream;
     size_t last_bucket = (s->total + 1) % TZ_UI_STREAM_HISTORY_SCREENS;
+
+    /* With every place held, this one is still the oldest screen's. */
+    if ((s->total + 1 - s->last) >= TZ_UI_STREAM_HISTORY_SCREENS) {
+        return false;
+    }
     return s->screens[last_bucket].nb_pairs > 0;
 }
 
@@ -454,6 +459,19 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         THROW(EXC_UNKNOWN);
     }
 
+    /* The screen under construction takes the place of the oldest one when
+       all the places are held: free it before anything is written. */
+    while ((s->total + 1 - s->last) >= TZ_UI_STREAM_HISTORY_SCREENS) {
+        if (s->last >= s->current) {
+            PRINTF("[ERROR] the oldest screen has not been left\n");
+            THROW(EXC_UNKNOWN);
+        }
+        drop_last_screen();
+        if (global.step == ST_ERROR) {
+            return 0;
+        }
+    }
+
 #ifdef TEZOS_DEBUG
     int    prev_total   = s->total;
     int    prev_current = s->current;
@@ -479,15 +497,10 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         && (idx > 0)) {
         PRINTF("[DEBUG] PUSH_TO_NEXT: %x\n", cb_type);
         s->total++;
-        if ((s->total % TZ_UI_STREAM_HISTORY_SCREENS)
-            == (s->last % TZ_UI_STREAM_HISTORY_SCREENS)) {
-            drop_last_screen();
-        }
         offset = tz_ui_stream_pushl(cb_type, title, value, max, layout_type,
                                     icon);
-        push_to_next = false;
-        // Will be update later
-        s->screens[bucket].nb_pairs--;
+        FUNC_LEAVE();
+        return offset;
     } else {
         /* Are we continuing to construct or starting from scratch? */
         if (idx >= NB_MAX_DISPLAYED_PAIRS_IN_REVIEW) {
@@ -585,10 +598,8 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         || (!append && (++(s->screens[bucket].nb_pairs) == max_pairs))
         || (append && (offset == 0))) {
         s->total++;
-        if ((s->total > 0)
-            && ((s->total % TZ_UI_STREAM_HISTORY_SCREENS)
-                == (s->last % TZ_UI_STREAM_HISTORY_SCREENS))) {
-            drop_last_screen();
+        if ((s->total - s->last) >= TZ_UI_STREAM_HISTORY_SCREENS) {
+            THROW(EXC_UNKNOWN);
         }
     }
 

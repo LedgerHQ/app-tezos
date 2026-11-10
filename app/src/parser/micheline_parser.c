@@ -145,6 +145,23 @@ print_escaped(tz_parser_state *state, uint8_t b)
 }
 
 /**
+ * @brief Tell whether a byte can be part of an annotation
+ *
+ * The characters the protocol accepts in annotations, and the space that
+ * separates them. A NUL would end the text of the review early.
+ *
+ * @param b: byte of the annotation
+ * @return bool: true if the byte is allowed
+ */
+static bool
+is_annotation_byte(uint8_t b)
+{
+    return (b == ' ') || (b == '@') || (b == ':') || (b == '%') || (b == '_')
+           || (b == '.') || ((b >= '0') && (b <= '9'))
+           || ((b >= 'a') && (b <= 'z')) || ((b >= 'A') && (b <= 'Z'));
+}
+
+/**
  * @brief Print a character
  *
  * @param state: parser state
@@ -373,6 +390,9 @@ tz_micheline_parser_step(tz_parser_state *state)
                 m->frame->step_annot.first = false;
             }
             tz_must(tz_parser_peek(state, &b));
+            if (!is_annotation_byte(b)) {
+                tz_raise(INVALID_DATA);
+            }
             tz_must(parser_put(state, (char)b));
             tz_parser_skip(state);
         }

@@ -879,6 +879,148 @@ test_check_micheline_size_end_beyond_16_bits(void **state)
     check_parser_error(data, str, TZ_ERR_TOO_LARGE);
 }
 
+/* Parse the Micheline expression { Unit <annot>; 1 } given `chunk` bytes at a
+ * time, and check how the parse ends. */
+static void
+check_annotated_unit(operation_parser_data *data, const uint8_t *annot,
+                     size_t alen, size_t chunk, tz_parser_result expected)
+{
+    uint8_t          msg[128];
+    size_t           len     = 0;
+    size_t           ofs     = 0;
+    uint32_t         seq_len = (uint32_t)(alen + 8);
+    tz_parser_state *st      = data->state;
+
+    assert_true(alen + 14 <= sizeof(msg));
+    msg[len++] = 0x05;  // Micheline expression
+    msg[len++] = 0x02;  // sequence
+    for (int shift = 24; shift >= 0; shift -= 8) {
+        msg[len++] = (uint8_t)(seq_len >> shift);
+    }
+    msg[len++] = 0x04;  // primitive with an annotation
+    msg[len++] = 0x0b;  // Unit
+    for (int shift = 24; shift >= 0; shift -= 8) {
+        msg[len++] = (uint8_t)(alen >> shift);
+    }
+    memcpy(msg + len, annot, alen);
+    len += alen;
+    msg[len++] = 0x00;  // integer
+    msg[len++] = 0x01;  // 1
+
+    memset(st, 0, sizeof(*st));
+    tz_operation_parser_init(st, TZ_UNKNOWN_SIZE, false);
+    tz_parser_refill(st, NULL, 0);
+    tz_parser_flush(st, data->obuf, data->olen);
+    tz_operation_parser_set_size(st, (uint16_t)len);
+
+    while (true) {
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+        }
+        switch (st->errno) {
+        case TZ_BLO_FEED_ME: {
+            size_t n = ((len - ofs) < chunk) ? (len - ofs) : chunk;
+            assert_true(n > 0);
+            tz_parser_refill(st, msg + ofs, n);
+            ofs += n;
+            continue;
+        }
+        case TZ_BLO_IM_FULL:
+            tz_parser_flush(st, data->obuf, data->olen);
+            continue;
+        default:
+            assert_int_equal(st->errno, expected);
+            return;
+        }
+    }
+}
+
+static const size_t annotation_chunks[] = {1, 2, 7, 235};
+
+/* The annotation "}\0" followed by 1: the review used to stop at the NUL and
+ * never show the integer, which the signature covers. A NUL is refused at
+ * every position of an annotation, whatever the size of the chunks it arrives
+ * in. */
+static void
+test_check_annotation_with_nul_is_refused(void **state)
+{
+    operation_parser_data *data        = *state;
+    static const uint8_t   annots[][3] = {
+        {'}',  0x00, 0   },
+        {0x00, 'a',  'b' },
+        {'a',  0x00, 'b' },
+        {'a',  'b',  0x00}
+    };
+    static const size_t alens[] = {2, 3, 3, 3};
+
+    for (size_t i = 0; i < sizeof(alens) / sizeof(alens[0]); i++) {
+        for (size_t c = 0;
+             c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]);
+             c++) {
+            check_annotated_unit(data, annots[i], alens[i],
+                                 annotation_chunks[c], TZ_ERR_INVALID_DATA);
+        }
+    }
+}
+
+/* The other bytes that are not in an annotation: control and non-ASCII bytes,
+ * and the delimiters of a Micheline value, which could pass for its
+ * structure. */
+static void
+test_check_annotation_with_invalid_byte_is_refused(void **state)
+{
+    operation_parser_data *data = *state;
+    static const uint8_t   invalid[]
+        = {0x01, 0x0a, '"', ';', '{', '}', '\\', 0x7f, 0xff};
+
+    for (size_t i = 0; i < sizeof(invalid); i++) {
+        for (size_t c = 0;
+             c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]);
+             c++) {
+            check_annotated_unit(data, &invalid[i], 1, annotation_chunks[c],
+                                 TZ_ERR_INVALID_DATA);
+        }
+    }
+}
+
+/* The output buffer holds 50 bytes. An annotation that does not fit is
+ * flushed before it ends: it is still parsed, and a NUL after the flush is
+ * still refused. */
+static void
+test_check_annotation_longer_than_the_output_buffer(void **state)
+{
+    operation_parser_data *data = *state;
+    uint8_t                annot[60];
+
+    memset(annot, 'a', sizeof(annot));
+    for (size_t c = 0;
+         c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]); c++) {
+        check_annotated_unit(data, annot, sizeof(annot), annotation_chunks[c],
+                             TZ_BLO_DONE);
+    }
+
+    annot[sizeof(annot) - 1] = 0x00;
+    for (size_t c = 0;
+         c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]); c++) {
+        check_annotated_unit(data, annot, sizeof(annot), annotation_chunks[c],
+                             TZ_ERR_INVALID_DATA);
+    }
+}
+
+/* Every character the protocol accepts in annotations, and the space between
+ * annotations, is still parsed. */
+static void
+test_check_annotation_alphabet_is_accepted(void **state)
+{
+    operation_parser_data *data    = *state;
+    static const uint8_t   annot[] = "@az %AZ :09_.%@";
+
+    for (size_t c = 0;
+         c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]); c++) {
+        check_annotated_unit(data, annot, sizeof(annot) - 1,
+                             annotation_chunks[c], TZ_BLO_DONE);
+    }
+}
+
 /* SDP_STEP_DONE: call parser once without flush after "Edge (bake/stake)"
  * PRINT completes, so oofs>0 when SDP_DONE runs → tz_stop(IM_FULL) line 1285.
  */
@@ -2037,6 +2179,12 @@ main(void)
         OPERATION_PARSER_TEST(test_check_sdp_unit_op_trailing_data),
         OPERATION_PARSER_TEST(test_check_operation_size_end_beyond_16_bits),
         OPERATION_PARSER_TEST(test_check_micheline_size_end_beyond_16_bits),
+        OPERATION_PARSER_TEST(test_check_annotation_with_nul_is_refused),
+        OPERATION_PARSER_TEST(
+            test_check_annotation_with_invalid_byte_is_refused),
+        OPERATION_PARSER_TEST(test_check_annotation_alphabet_is_accepted),
+        OPERATION_PARSER_TEST(
+            test_check_annotation_longer_than_the_output_buffer),
         OPERATION_PARSER_TEST(test_check_sdp_done_oofs),
         OPERATION_PARSER_TEST(test_check_sdp_invalid_sub_step),
         OPERATION_PARSER_TEST(test_check_origination_complexity),

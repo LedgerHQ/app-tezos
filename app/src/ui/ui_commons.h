@@ -49,6 +49,16 @@ typedef void (*action_validate_cb)(bool confirm);
     UX_WAKE_UP();                                                \
     UX_REDISPLAY();
 
+/**
+ * @brief UX_STEP_CB, with the prototype of the function it defines.
+ *
+ * UX_STEP_CB defines a `<stepname>_validateinit()` function with external
+ * linkage and no prior prototype, which -Wmissing-prototypes rejects.
+ */
+#define TZ_UX_STEP_CB(stepname, layoutkind, validate_cb, ...) \
+    void stepname##_validateinit(unsigned int stack_slot);    \
+    UX_STEP_CB(stepname, layoutkind, validate_cb, __VA_ARGS__)
+
 #define REGULAR BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER
 #define BOLD    BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER
 #endif  // HAVE_BAGL

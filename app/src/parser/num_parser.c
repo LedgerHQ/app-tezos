@@ -41,7 +41,7 @@ tz_parse_num_step(tz_num_parser_buffer *buffers, tz_num_parser_regs *regs,
         v = b & 0x7F;
         s = 7;
     }
-    uint8_t lo     = v << (regs->size & 7);
+    uint8_t lo     = (uint8_t)(v << (regs->size & 7));
     uint8_t hi     = v >> (8 - (regs->size & 7));
     int     lo_idx = regs->size / 8;
     int     hi_idx = lo_idx + 1;

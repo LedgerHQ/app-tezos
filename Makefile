@@ -15,8 +15,9 @@ debug: app_nanos_dbg.tgz \
 	app_flex_dbg.tgz \
 	app_apex_p_dbg.tgz
 
-.PHONY: clean all debug format integration_tests unit_tests scan-build%	\
-	integration_tests_basic integration_tests_basic_% docker_%
+.PHONY: clean clean_ocaml all debug format integration_tests unit_tests	\
+	regen_samples scan-build% integration_tests_basic			\
+	integration_tests_basic_% docker_%
 
 DOCKER			= docker
 DOCKER_RUN		= $(DOCKER) run --rm -i -v "$(realpath .):/app"
@@ -49,6 +50,10 @@ docker_ledger_app_builder:
 			ledger-app-builder
 
 docker_ledger_app_ocaml:
+	@test -f deps/tezos/rust-toolchain || { \
+		echo "deps/tezos is not checked out, run:"; \
+		echo "  git submodule update --init --checkout deps/tezos"; \
+		exit 1; }
 	$(DOCKER) build -t ledger-app-tezos-ocaml \
 			-f docker/Dockerfile.ocaml . --platform linux/$(CPU)
 
@@ -57,9 +62,10 @@ docker_ledger_app_integration_tests:
 	$(DOCKER) image tag $(LEDGERHQ)/ledger-app-builder/ledger-app-dev-tools:latest \
 			ledger-app-tezos-integration-tests
 
+# The OCaml image is not part of it: it is only needed to regenerate the test
+# samples, see `regen_samples` and tests/samples/README.md.
 docker_images: docker_speculos		\
 	docker_ledger_app_builder	\
-	docker_ledger_app_ocaml		\
 	docker_ledger_app_integration_tests
 
 scan-build-%:
@@ -91,21 +97,16 @@ app_%.tgz:	app/src/*.[ch]		\
 clean:
 	rm -rf bin app_*.tgz
 	$(DOCKER_RUN_APP_BUILDER) make -C app mrproper
+
+# Needs the `ledger-app-tezos-ocaml` image, so it is not part of `clean`.
+clean_ocaml:
 	$(DOCKER_RUN_APP_OCAML) bash -c "make -C /app/tests/generate clean && cd /app && rm -rf **/_build"
 
-unit_tests:	test/samples/micheline/nano/samples.hex	\
-		test/samples/operations/nano/samples.hex	\
-		tests/unit/parser/*.ml				\
-		tests/unit/parser/*.[ch]			\
-		tests/unit/parser/dune				\
-		tests/unit/parser/Makefile			\
-		tests/unit/Makefile				\
-		unit-tests/CMakeLists.txt			\
-		unit-tests/*.c				\
+# Needs neither Octez nor OCaml: the parser samples it replays are committed in
+# tests/samples.
+unit_tests:	unit-tests/CMakeLists.txt	\
+		unit-tests/*.c			\
 		unit-tests/digestif/*.*
-	@cp app/src/parser/[!g]*.[ch] tests/unit/parser/
-
-	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/unit
 	$(DOCKER_RUN_APP_BUILDER) bash -c "cd /app/unit-tests && cmake -Bbuild -H. && cmake --build build && CTEST_OUTPUT_ON_FAILURE=1 ctest --test-dir build"
 
 RUN_TEST_DOCKER = ./tests/integration/run_test_docker.sh
@@ -135,9 +136,8 @@ integration_tests_basic:	integration_tests_basic_nanos	\
 				integration_tests_basic_flex	\
 				integration_tests_basic_apex_p
 
-integration_tests_%:	integration_tests_basic_%		\
-			test/samples/operations/nano/samples.hex\
-			test/samples/micheline/nano/samples.hex	\
+integration_tests_%:	integration_tests_basic_%	\
+			regen_samples			\
 			tests/integration/*.sh
 	$(RUN_TEST_DOCKER) $* 				\
 			tests/samples/micheline/nano	\
@@ -151,17 +151,14 @@ integration_tests: 	tests/integration/*.sh			\
 			integration_tests_basic_flex 	\
 			integration_tests_basic_apex_p
 
-test/samples/micheline/%/samples.hex:	tests/generate/*.ml*	\
-					tests/generate/dune	\
-					tests/generate/Makefile
+# Regenerates the samples committed in tests/samples, and the integration test
+# scripts that go with them, from Octez. A rare, manual step, see
+# tests/samples/README.md. Needs the `ledger-app-tezos-ocaml` image, see
+# `docker_ledger_app_ocaml`.
+regen_samples:
 	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/generate	\
-	    ../samples/micheline/$*/samples.hex
-
-test/samples/operations/%/samples.hex:	tests/generate/*.ml*	\
-					tests/generate/dune	\
-					tests/generate/Makefile
-	$(DOCKER_RUN_APP_OCAML) make -C /app/tests/generate	\
-	    ../samples/operations/$*/samples.hex
+	    ../samples/micheline/nano/samples.hex		\
+	    ../samples/operations/nano/samples.hex
 
 load_%: app_%.tgz
 	ledgerctl delete "Tezos Wallet"

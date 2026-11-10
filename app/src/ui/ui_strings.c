@@ -36,7 +36,6 @@ void   ui_strings_drop(char **str);
 void   ui_strings_drop_last(char **str);
 size_t ui_strings_fit_up_to(size_t len, char **write_start);
 void   ui_strings_can_fit(size_t len, bool *can_fit);
-bool   ui_strings_is_empty(void);
 size_t ui_strings_append_last(const char *str, size_t max, char **out);
 
 #ifdef TEZOS_DEBUG
@@ -314,7 +313,7 @@ ui_strings_is_empty(void)
 }
 
 #ifdef TEZOS_DEBUG
-void
+static void
 ui_strings_next(char **p)
 {
     tz_ui_strings_t *s = UI_STRINGS;

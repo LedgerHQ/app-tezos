@@ -1,3 +1,9 @@
 [submodule "tezos"]
 	path = deps/tezos
 	url = https://gitlab.com/tezos/tezos.git
+	# Over a gigabyte, and only the OCaml sample generator and
+	# docker/Dockerfile.ocaml use it. `update = none` keeps it out of recursive
+	# clones, so CI and ClusterFuzzLite do not fetch it. To fetch it:
+	# git submodule update --init --checkout deps/tezos
+	update = none
+	shallow = true

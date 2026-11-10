@@ -1,0 +1,13 @@
+# Compile-time sanitizer carve-outs of the Tezos app fuzzers, on top of the ones
+# of the SDK (LLVM SanitizerSpecialCaseList format). See "ubsan-ignorelist.txt"
+# of $BOLOS_SDK/fuzzing/sanitizers for the SDK ones and the way to word one.
+#
+# Each entry is a benign wrap, with its reason. A function is named rather than
+# its file, so the rest of the file stays checked.
+
+# tz_format_base58 and tz_format_decimal write their digits from the end of a
+# buffer down, and stop when the unsigned index wraps, which the `(int)j >= 0`
+# of their loop condition detects. The wrap is the end of the loop, by design.
+[unsigned-integer-overflow]
+fun:tz_format_base58
+fun:tz_format_decimal

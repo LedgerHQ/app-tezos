@@ -125,18 +125,40 @@ print_escaped(tz_parser_state *state, uint8_t b)
     switch (b) {
     case '\\': strncpy(buf,"\\\\",TZ_CAPTURE_BUFFER_SIZE); break;
     case '"':  strncpy(buf,"\\\"",TZ_CAPTURE_BUFFER_SIZE); break;
+    case '\b': strncpy(buf,"\\b",TZ_CAPTURE_BUFFER_SIZE);  break;
     case '\r': strncpy(buf,"\\r",TZ_CAPTURE_BUFFER_SIZE);  break;
     case '\n': strncpy(buf,"\\n",TZ_CAPTURE_BUFFER_SIZE);  break;
     case '\t': strncpy(buf,"\\t",TZ_CAPTURE_BUFFER_SIZE);  break;
     default:
-        buf[0] = '0' + (b/100);
-        buf[1] = '0' + ((b/10)%10);
-        buf[2] = '0' + (b%10);
-        buf[3] = 0;
+        /* A backslash and three decimal digits, like the Octez printer.
+           Without the backslash, the byte 0x01 would read as the three
+           characters "001". Five bytes with the NUL. */
+        buf[0] = '\\';
+        buf[1] = '0' + (b/100);
+        buf[2] = '0' + ((b/10)%10);
+        buf[3] = '0' + (b%10);
+        buf[4] = 0;
         break;
     }
     // clang-format on
     tz_continue;
+}
+
+/**
+ * @brief Tell whether a byte can be part of an annotation
+ *
+ * The characters the protocol accepts in annotations, and the space that
+ * separates them. A NUL would end the text of the review early.
+ *
+ * @param b: byte of the annotation
+ * @return bool: true if the byte is allowed
+ */
+static bool
+is_annotation_byte(uint8_t b)
+{
+    return (b == ' ') || (b == '@') || (b == ':') || (b == '%') || (b == '_')
+           || (b == '.') || ((b >= '0') && (b <= '9'))
+           || ((b >= 'a') && (b <= 'z')) || ((b >= 'A') && (b <= 'Z'));
 }
 
 /**
@@ -277,6 +299,10 @@ tz_micheline_parser_step(tz_parser_state *state)
         }
         m->frame->step_size.size = (m->frame->step_size.size << 8) | b;
         if (m->frame->stop == state->ofs) {
+            // The end of what is sized is a 16-bit offset, like its size
+            if ((state->ofs + m->frame->step_size.size) > UINT16_MAX) {
+                tz_raise(TOO_LARGE);
+            }
             m->frame[-1].stop = state->ofs + m->frame->step_size.size;
             tz_must(pop_frame(state));
         }
@@ -340,7 +366,8 @@ tz_micheline_parser_step(tz_parser_state *state)
             tz_must(pop_frame(state));
         } else {
             tz_must(tz_parser_peek(state, &b));
-            if ((b >= 0x20) && (b < 0x80) && (b != '\"') && (b != '\\')) {
+            // 0x7f (DEL) is not printable either
+            if ((b >= 0x20) && (b < 0x7f) && (b != '\"') && (b != '\\')) {
                 tz_must(parser_put(state, b));
                 tz_parser_skip(state);
             } else {
@@ -363,7 +390,10 @@ tz_micheline_parser_step(tz_parser_state *state)
                 m->frame->step_annot.first = false;
             }
             tz_must(tz_parser_peek(state, &b));
-            tz_must(parser_put(state, b));
+            if (!is_annotation_byte(b)) {
+                tz_raise(INVALID_DATA);
+            }
+            tz_must(parser_put(state, (char)b));
             tz_parser_skip(state);
         }
         break;

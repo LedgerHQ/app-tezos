@@ -48,6 +48,7 @@ typedef enum {
     TZ_SWAP_ERR_TOKEN_UNKNOWN  = 0x0A,  /// Contract is not a known token
     TZ_SWAP_ERR_TOKEN_TICKER   = 0x0B,  /// Not the token of the swap
     TZ_SWAP_ERR_TOKEN_DECIMALS = 0x0C,  /// Not the decimals of the swap
+    TZ_SWAP_ERR_PARAMETERS     = 0x0D,  /// A tez transfer with parameters
 } tz_swap_error_t;
 
 /**

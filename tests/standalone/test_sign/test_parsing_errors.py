@@ -89,6 +89,29 @@ def test_parsing_error_blindsign_disabled(backend: TezosBackend, account: Accoun
             pass
 
 
+@pytest.mark.parametrize("with_hash", [True, False], ids=["with_hash", "without_hash"])
+@pytest.mark.parametrize(
+    "raw_msg",
+    [
+        # { Unit "}\0"; 1 }
+        "05020000000a040b000000027d000001",
+        # { Unit "%a\0"; 1 }: the NUL is the only byte an annotation cannot hold
+        "05020000000b040b000000032561000001",
+    ],
+    ids=["brace_and_nul", "nul_only"],
+)
+def test_annotation_with_nul_is_refused(backend: TezosBackend, account: Account, raw_msg: str, with_hash: bool):
+    """An annotation holding a NUL is a parsing error.
+
+    The review used to stop at the NUL: the integer after the annotated Unit was never shown, but
+    the signature covered it.
+    """
+
+    with StatusCode.PARSE_ERROR.expected():
+        with backend.sign(account, RawMessage(raw_msg), with_hash=with_hash):
+            pass
+
+
 @pytest.mark.parametrize(
     "raw_msg",
     [

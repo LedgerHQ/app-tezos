@@ -111,6 +111,38 @@ target_link_libraries(test_ui_strings PRIVATE
 
 add_test(NAME test_ui_strings COMMAND test_ui_strings)
 
+# The history of screens of the NBGL review: the application files are linked
+# as they are, against the stand-ins of the SDK in shims/nbgl.
+add_executable(test_ui_stream_nbgl
+  test_ui_stream_nbgl.c
+  strlcpy.c
+  ../app/src/ui/ui_strings.c
+  ../app/src/ui/ui_stream_common.c
+  ../app/src/ui/ui_stream_nbgl.c
+)
+
+target_include_directories(test_ui_stream_nbgl PRIVATE
+  shims/nbgl
+  shims
+  ../app/src
+  ../app/src/ui
+  ../app/src/parser
+)
+
+target_compile_definitions(test_ui_stream_nbgl PRIVATE HAVE_NBGL)
+
+target_compile_options(test_ui_stream_nbgl PRIVATE
+  -Wall
+  -Wextra
+  -Wno-unused-parameter
+)
+
+target_link_libraries(test_ui_stream_nbgl PRIVATE
+  cmocka
+)
+
+add_test(NAME test_ui_stream_nbgl COMMAND test_ui_stream_nbgl)
+
 add_executable(test_swap_key_policy
   test_swap_key_policy.c
   ../app/src/swap_key_policy.c

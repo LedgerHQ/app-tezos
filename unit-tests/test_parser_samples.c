@@ -332,6 +332,78 @@ check_samples(samples_kind kind, const char *dir)
     assert_true(ok * 2 >= total);
 }
 
+/* Render the Micheline expression `hex` and compare it with `want`. */
+static void
+check_micheline_rendering(const char *hex, const char *want)
+{
+    uint32_t         seed = 0x2545F491u;
+    size_t           in_len;
+    uint8_t         *in  = hex_decode(hex, strlen(hex), &in_len);
+    string_buffer    out = {0};
+    tz_parser_result err;
+
+    assert_non_null(in);
+    assert_int_equal(
+        run_sample(SAMPLES_MICHELINE, in, in_len, &seed, &out, &err), RUN_OK);
+    assert_string_equal(out.data != NULL ? out.data : "", want);
+    free(out.data);
+    free(in);
+}
+
+/* A string byte that is not printable is shown as a backslash and three
+   decimal digits. It used to be shown as the digits alone, so the byte 0x01
+   looked like the three characters "001": the text approved on the device
+   could differ from the bytes that are signed. */
+static void
+test_micheline_string_escapes(void **state)
+{
+    (void)state;
+    // The three characters "001" and the single byte 0x01 look different
+    check_micheline_rendering(
+        "0100000003"
+        "303031",
+        "\"001\"");
+    check_micheline_rendering(
+        "0100000001"
+        "01",
+        "\"\\001\"");
+    // The escape has a fixed width: a digit after it is a digit
+    check_micheline_rendering(
+        "0100000002"
+        "0131",
+        "\"\\0011\"");
+    // NUL, DEL and the bytes above 0x7e
+    check_micheline_rendering(
+        "0100000001"
+        "00",
+        "\"\\000\"");
+    check_micheline_rendering(
+        "0100000001"
+        "7f",
+        "\"\\127\"");
+    check_micheline_rendering(
+        "0100000002"
+        "80ff",
+        "\"\\128\\255\"");
+    // The printable range, bounds included, is shown as it is
+    check_micheline_rendering(
+        "0100000003"
+        "207e41",
+        "\" ~A\"");
+    // The quote, the backslash and the named escapes keep their short form
+    check_micheline_rendering(
+        "0100000006"
+        "5c2208090a0d",
+        "\""
+        "\\\\"
+        "\\\""
+        "\\b"
+        "\\t"
+        "\\n"
+        "\\r"
+        "\"");
+}
+
 static void
 test_micheline_samples(void **state)
 {
@@ -351,6 +423,7 @@ main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_micheline_samples),
+        cmocka_unit_test(test_micheline_string_escapes),
         cmocka_unit_test(test_operations_samples),
     };
 

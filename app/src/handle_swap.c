@@ -375,6 +375,8 @@ swap_check_validity(void)
                G_swap_params.destination_address);
         SWAP_ASSERT(SWAP_EC_ERROR_WRONG_DESTINATION, TZ_SWAP_ERR_DESTINATION,
                     !strcmp(dstaddr, G_swap_params.destination_address));
+        SWAP_ASSERT(SWAP_EC_ERROR_WRONG_METHOD, TZ_SWAP_ERR_PARAMETERS,
+                    !op->has_parameters);
     }
 
     TZ_POSTAMBLE;

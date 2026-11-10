@@ -123,6 +123,6 @@ sent with the SDK helper `send_swap_error_simple`: the first byte is one of the
 `swap_error_common_code_t` of the SDK (`0x01` wrong amount, `0x02` wrong
 destination, `0x03` wrong fees, `0x04` wrong method, `0xFF` generic), the second
 one tells which check of the application refused, see `tz_swap_error_t` in
-`app/src/handle_swap.h`. The signing key, wrong token and no token configuration
-cases assert it, so they fail if a refusal comes from another check than the one
-they expect.
+`app/src/handle_swap.h`. The signing key, wrong token, no token configuration and
+tez transfer with parameters cases assert it, so they fail if a refusal comes from
+another check than the one they expect.

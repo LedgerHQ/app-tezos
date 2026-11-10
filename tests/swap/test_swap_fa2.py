@@ -48,12 +48,15 @@ from .tezos_transaction import (
     STATUS_OK,
     SWAP_EC_ERROR_GENERIC,
     SWAP_EC_ERROR_WRONG_AMOUNT,
+    SWAP_EC_ERROR_WRONG_METHOD,
     SWAP_ERR_AMOUNT,
+    SWAP_ERR_PARAMETERS,
     SWAP_ERR_TOKEN_TICKER,
     address_bytes,
     blake2_hash_pubkey,
     craft_fa2_transfer,
     craft_native_transfer,
+    craft_native_transfer_with_parameters,
     encode_tz1,
     swap_error,
 )
@@ -276,6 +279,27 @@ class TezosNativeSwapTests(TezosFa2Tests):
         self.assert_exchange_is_started()
 
 
+class TezosNativeSwapWithParametersTests(TezosNativeSwapTests):
+    """A tez swap whose transfer also calls an entrypoint with parameters.
+
+    The key, the amount, the fee and the recipient are the quoted ones. Only the
+    entrypoint and the parameters are added, which the host chooses and nothing
+    on the device would show, so the application must refuse it.
+    """
+
+    def perform_final_tx(self, destination, send_amount, fees, memo):
+        _, source_hash = self._get_device_address()
+        self._sign(craft_native_transfer_with_parameters(source_hash, destination, send_amount, fees))
+
+    def perform_test_swap_native_with_parameters(self):
+        self.perform_valid_swap_from_custom(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
+        with pytest.raises(ExceptionRAPDU) as e:
+            self.perform_coin_specific_final_tx(self.valid_destination_1, self.valid_send_amount_1, self.valid_fees_1, "")
+        assert e.value.status == self.signature_refusal_error_code
+        assert e.value.data == swap_error(SWAP_EC_ERROR_WRONG_METHOD, SWAP_ERR_PARAMETERS)
+        self.assert_exchange_is_started()
+
+
 class TezosNativeTransferForTokenSwapTests(TezosNativeSwapTests):
     """Known limitation (app-tezos-dev#66): a tez transfer is signed for a swap quoted in USDt.
 
@@ -300,6 +324,11 @@ class TestsTezosSwap:
     def test_tezos_native_swap_control(self, backend, exchange_navigation_helper, test_to_run):
         """Sanity check: a native tez swap goes through with this exact setup."""
         TezosNativeSwapTests(backend, exchange_navigation_helper).run_test(test_to_run)
+
+    @pytest.mark.parametrize("test_to_run", ["swap_native_with_parameters"])
+    def test_tezos_native_swap_with_parameters(self, backend, exchange_navigation_helper, test_to_run):
+        """A tez transfer that also calls an entrypoint must not be signed."""
+        TezosNativeSwapWithParametersTests(backend, exchange_navigation_helper).run_test(test_to_run)
 
     @pytest.mark.parametrize("test_to_run", ["swap_fa2_valid_1"])
     def test_tezos_fa2(self, backend, exchange_navigation_helper, test_to_run):

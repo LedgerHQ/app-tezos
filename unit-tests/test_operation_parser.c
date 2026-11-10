@@ -879,6 +879,148 @@ test_check_micheline_size_end_beyond_16_bits(void **state)
     check_parser_error(data, str, TZ_ERR_TOO_LARGE);
 }
 
+/* Parse the Micheline expression { Unit <annot>; 1 } given `chunk` bytes at a
+ * time, and check how the parse ends. */
+static void
+check_annotated_unit(operation_parser_data *data, const uint8_t *annot,
+                     size_t alen, size_t chunk, tz_parser_result expected)
+{
+    uint8_t          msg[128];
+    size_t           len     = 0;
+    size_t           ofs     = 0;
+    uint32_t         seq_len = (uint32_t)(alen + 8);
+    tz_parser_state *st      = data->state;
+
+    assert_true(alen + 14 <= sizeof(msg));
+    msg[len++] = 0x05;  // Micheline expression
+    msg[len++] = 0x02;  // sequence
+    for (int shift = 24; shift >= 0; shift -= 8) {
+        msg[len++] = (uint8_t)(seq_len >> shift);
+    }
+    msg[len++] = 0x04;  // primitive with an annotation
+    msg[len++] = 0x0b;  // Unit
+    for (int shift = 24; shift >= 0; shift -= 8) {
+        msg[len++] = (uint8_t)(alen >> shift);
+    }
+    memcpy(msg + len, annot, alen);
+    len += alen;
+    msg[len++] = 0x00;  // integer
+    msg[len++] = 0x01;  // 1
+
+    memset(st, 0, sizeof(*st));
+    tz_operation_parser_init(st, TZ_UNKNOWN_SIZE, false);
+    tz_parser_refill(st, NULL, 0);
+    tz_parser_flush(st, data->obuf, data->olen);
+    tz_operation_parser_set_size(st, (uint16_t)len);
+
+    while (true) {
+        while (!TZ_IS_BLOCKED(tz_operation_parser_step(st))) {
+        }
+        switch (st->errno) {
+        case TZ_BLO_FEED_ME: {
+            size_t n = ((len - ofs) < chunk) ? (len - ofs) : chunk;
+            assert_true(n > 0);
+            tz_parser_refill(st, msg + ofs, n);
+            ofs += n;
+            continue;
+        }
+        case TZ_BLO_IM_FULL:
+            tz_parser_flush(st, data->obuf, data->olen);
+            continue;
+        default:
+            assert_int_equal(st->errno, expected);
+            return;
+        }
+    }
+}
+
+static const size_t annotation_chunks[] = {1, 2, 7, 235};
+
+/* The annotation "}\0" followed by 1: the review used to stop at the NUL and
+ * never show the integer, which the signature covers. A NUL is refused at
+ * every position of an annotation, whatever the size of the chunks it arrives
+ * in. */
+static void
+test_check_annotation_with_nul_is_refused(void **state)
+{
+    operation_parser_data *data        = *state;
+    static const uint8_t   annots[][3] = {
+        {'}',  0x00, 0   },
+        {0x00, 'a',  'b' },
+        {'a',  0x00, 'b' },
+        {'a',  'b',  0x00}
+    };
+    static const size_t alens[] = {2, 3, 3, 3};
+
+    for (size_t i = 0; i < sizeof(alens) / sizeof(alens[0]); i++) {
+        for (size_t c = 0;
+             c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]);
+             c++) {
+            check_annotated_unit(data, annots[i], alens[i],
+                                 annotation_chunks[c], TZ_ERR_INVALID_DATA);
+        }
+    }
+}
+
+/* The other bytes that are not in an annotation: control and non-ASCII bytes,
+ * and the delimiters of a Micheline value, which could pass for its
+ * structure. */
+static void
+test_check_annotation_with_invalid_byte_is_refused(void **state)
+{
+    operation_parser_data *data = *state;
+    static const uint8_t   invalid[]
+        = {0x01, 0x0a, '"', ';', '{', '}', '\\', 0x7f, 0xff};
+
+    for (size_t i = 0; i < sizeof(invalid); i++) {
+        for (size_t c = 0;
+             c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]);
+             c++) {
+            check_annotated_unit(data, &invalid[i], 1, annotation_chunks[c],
+                                 TZ_ERR_INVALID_DATA);
+        }
+    }
+}
+
+/* The output buffer holds 50 bytes. An annotation that does not fit is
+ * flushed before it ends: it is still parsed, and a NUL after the flush is
+ * still refused. */
+static void
+test_check_annotation_longer_than_the_output_buffer(void **state)
+{
+    operation_parser_data *data = *state;
+    uint8_t                annot[60];
+
+    memset(annot, 'a', sizeof(annot));
+    for (size_t c = 0;
+         c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]); c++) {
+        check_annotated_unit(data, annot, sizeof(annot), annotation_chunks[c],
+                             TZ_BLO_DONE);
+    }
+
+    annot[sizeof(annot) - 1] = 0x00;
+    for (size_t c = 0;
+         c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]); c++) {
+        check_annotated_unit(data, annot, sizeof(annot), annotation_chunks[c],
+                             TZ_ERR_INVALID_DATA);
+    }
+}
+
+/* Every character the protocol accepts in annotations, and the space between
+ * annotations, is still parsed. */
+static void
+test_check_annotation_alphabet_is_accepted(void **state)
+{
+    operation_parser_data *data    = *state;
+    static const uint8_t   annot[] = "@az %AZ :09_.%@";
+
+    for (size_t c = 0;
+         c < sizeof(annotation_chunks) / sizeof(annotation_chunks[0]); c++) {
+        check_annotated_unit(data, annot, sizeof(annot) - 1,
+                             annotation_chunks[c], TZ_BLO_DONE);
+    }
+}
+
 /* SDP_STEP_DONE: call parser once without flush after "Edge (bake/stake)"
  * PRINT completes, so oofs>0 when SDP_DONE runs → tz_stop(IM_FULL) line 1285.
  */
@@ -1211,16 +1353,17 @@ test_check_fa2_transfer_clear_signing_fields(void **state)
           "77523833685a70684353716159535141705078504d65796b734a57576e68070700"
           "000080b518";
     const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
+        {"Source",               false, 1 },
+        {"Fee",                  false, 2 },
+        {"Storage limit",        false, 3 },
+        {"Amount",               false, 4 },
         // Destination omitted from review for registered FA2 contracts
         //     {"Option",        _,     5},
         //    {"Tuple",         _,     6},
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", false, 10},
-        {"Token Amount",       false, 11},
+        {"Entrypoint",           false, 8 },
+        {"Transfer tokens from", false, 10},
+        {"Transfer tokens to",   false, 11},
+        {"Token Amount",         false, 12},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -1238,18 +1381,82 @@ test_check_fa2_transfer_clear_signing_token_id_gt0(void **state)
           "523833685a70684353716159535141705078504d65796b734a57576e6807070001"
           "00a0843d";
     const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
-        {"Destination",        false, 5 },
+        {"Source",               false, 1 },
+        {"Fee",                  false, 2 },
+        {"Storage limit",        false, 3 },
+        {"Amount",               false, 4 },
+        {"Destination",          false, 5 },
         //     {"Option",        _,     6},
         //    {"Tuple",         _,     7},
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", false, 10},
-        {"Token Amount",       false, 11},
+        {"Entrypoint",           false, 8 },
+        {"Transfer tokens from", false, 10},
+        {"Transfer tokens to",   false, 11},
+        {"Token Amount",         false, 12},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
+}
+
+/* The fees and the amounts are summed for the summary screens and the swap
+   check. A sum that does not fit in 64 bits has to be refused, not wrapped
+   to a smaller total: two amounts of 2^63 would wrap to exactly 0. */
+static void
+test_check_total_amount_overflow(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464808080808080"
+          "808080010000f42eb1f25677dd7b0a94aba3a7aea61e2fd30d00006c00ffdd6102"
+          "321bc251e4a5190ad5b12b251069d9b4e807026464808080808080808080010000"
+          "f42eb1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    check_parser_error(data, str, TZ_ERR_TOO_LARGE);
+}
+
+/* Same with two fees of 2^63. */
+static void
+test_check_total_fee_overflow(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b48080808080808080800101"
+          "6464000000f42eb1f25677dd7b0a94aba3a7aea61e2fd30d00006c00ffdd610232"
+          "1bc251e4a5190ad5b12b251069d9b480808080808080808001026464000000f42e"
+          "b1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    check_parser_error(data, str, TZ_ERR_TOO_LARGE);
+}
+
+/* A total of exactly UINT64_MAX (2^63 + 2^63 - 1) is representable, so it is
+   not refused: the bound is not off by one. */
+static void
+test_check_total_amount_up_to_uint64_max(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464808080808080"
+          "808080010000f42eb1f25677dd7b0a94aba3a7aea61e2fd30d00006c00ffdd6102"
+          "321bc251e4a5190ad5b12b251069d9b4e807026464ffffffffffffffff7f0000f4"
+          "2eb1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    check_parser_error(data, str, TZ_BLO_DONE);
+    assert_int_equal(data->state->operation.total_amount, UINT64_MAX);
+    assert_int_equal(data->state->operation.total_fee, 2000);
+}
+
+/* A single amount of 2^64 does not fit in 64 bits either. */
+static void
+test_check_amount_above_uint64(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464808080808080"
+          "808080020000f42eb1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    check_parser_error(data, str, TZ_ERR_INVALID_DATA);
 }
 
 #ifdef HAVE_SWAP
@@ -1506,6 +1713,54 @@ test_check_fa2_transfer_swap_owner_too_long(void **state)
     assert_false(data->state->operation.fa2_swap_ok);
     assert_string_equal(data->state->operation.fa2_source, "");
 }
+
+/* A swap refuses a transfer of tez that carries an entrypoint and parameters,
+   so the parser has to tell. Here: the entrypoint %default and `Unit`. */
+static void
+test_check_transaction_has_parameters(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464e8070000f42e"
+          "b1f25677dd7b0a94aba3a7aea61e2fd30d00ff0000000002030b";
+
+    parse_to_completion(data, str);
+
+    assert_true(data->state->operation.has_parameters);
+}
+
+static void
+test_check_transaction_without_parameters(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464e8070000f42e"
+          "b1f25677dd7b0a94aba3a7aea61e2fd30d0000";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.has_parameters);
+}
+
+/* The flag is about the operation being parsed: the parameters of an earlier
+   operation of the batch must not be credited to the last one. */
+static void
+test_check_has_parameters_is_per_operation(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464e8070000f42e"
+          "b1f25677dd7b0a94aba3a7aea61e2fd30d00ff0000000002030b6c00ffdd610232"
+          "1bc251e4a5190ad5b12b251069d9b4e807026464e8070000f42eb1f25677dd7b0a"
+          "94aba3a7aea61e2fd30d0000";
+
+    parse_to_completion(data, str);
+
+    assert_false(data->state->operation.has_parameters);
+}
 #endif  // HAVE_SWAP
 
 static void
@@ -1550,13 +1805,14 @@ test_check_fa2_transfer_whole_number_amount(void **state)
           "523833685a70684353716159535141705078504d65796b734a57576e6807070000"
           "008092f401";
     const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", false, 10},
-        {"Token Amount",       false, 11},
+        {"Source",               false, 1 },
+        {"Fee",                  false, 2 },
+        {"Storage limit",        false, 3 },
+        {"Amount",               false, 4 },
+        {"Entrypoint",           false, 8 },
+        {"Transfer tokens from", false, 10},
+        {"Transfer tokens to",   false, 11},
+        {"Token Amount",         false, 12},
     };
     check_field_complexity(data, str, fields_check, sizeof(fields_check));
 }
@@ -1623,7 +1879,8 @@ static void
 assert_no_fa2_labels(operation_parser_data *data, char *str)
 {
     static const char *const labels[]
-        = {"Transfer tokens to", "Token ID", "Token Amount", "Amount (raw)"};
+        = {"Transfer tokens from", "Transfer tokens to", "Token ID",
+           "Token Amount", "Amount (raw)"};
     char value[256];
 
     for (size_t i = 0; i < sizeof(labels) / sizeof(labels[0]); i++) {
@@ -1773,15 +2030,16 @@ test_check_fa2_transfer_negative_amount_shows_sign(void **state)
           "33685a70684353716159535141705078504d65796b734a57576e6807070000004"
           "1";
     const tz_fields_check fields_check[] = {
-        {"Source",             false, 1 },
-        {"Fee",                false, 2 },
-        {"Storage limit",      false, 3 },
-        {"Amount",             false, 4 },
-        {"Destination",        false, 5 },
-        {"Entrypoint",         false, 8 },
-        {"Transfer tokens to", true,  10},
-        {"Token ID",           true,  11},
-        {"Amount (raw)",       true,  12},
+        {"Source",               false, 1 },
+        {"Fee",                  false, 2 },
+        {"Storage limit",        false, 3 },
+        {"Amount",               false, 4 },
+        {"Destination",          false, 5 },
+        {"Entrypoint",           false, 8 },
+        {"Transfer tokens from", true,  10},
+        {"Transfer tokens to",   true,  11},
+        {"Token ID",             true,  12},
+        {"Amount (raw)",         true,  13},
     };
     char value[256];
 
@@ -1793,6 +2051,47 @@ test_check_fa2_transfer_negative_amount_shows_sign(void **state)
     assert_string_equal(value, "0");
     capture_field_value(data, str, "Amount (raw)", value, sizeof(value));
     assert_string_equal(value, "-1");
+}
+
+/* The owner whose balance is debited is shown, here not the operation
+   source: an operator moving the tokens of another account. */
+static void
+test_check_fa2_transfer_shows_owner(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c00ffdd6102321bc251e4a5190ad5b12b251069d9b4e807016464000105001a8a"
+          "f813094ee8bf162ac2093a8937e8ba830001ff087472616e7366657200000068"
+          "0200000063070701000000244b543151576462415376615458573847576668664e"
+          "68334a4d6a6758766e5a4141544a570200000033070701000000247372314d7943"
+          "77523833685a70684353716159535141705078504d65796b734a57576e68070700"
+          "000080b518";
+    char value[64];
+
+    capture_field_value(data, str, "Transfer tokens from", value,
+                        sizeof(value));
+    assert_string_equal(value, "KT1QWdbASvaTXW8GWfhfNh3JMjgXvnZAATJW");
+}
+
+/* It is shown too when it is the source of the operation. */
+static void
+test_check_fa2_transfer_shows_owner_when_it_is_the_source(void **state)
+{
+    operation_parser_data *data = *state;
+    char                   str[]
+        = "030000000000000000000000000000000000000000000000000000000000000000"
+          "6c008be5357b478d9828ede4620a9e7ff9f4016693e1d00fa3caa853df1b0000"
+          "01fe810959c3d6127a41cbd471e7cb4e91a61b780b00ffff087472616e736665"
+          "7200000069020000006407070100000024747a3159506a43567167696d544150"
+          "6d785a583965674465544652436d725452716d70390200000034070701000000"
+          "24747a3164726370356e396d6b4a326544515173484242534465744b4a397335"
+          "614b6f78340707000000a389bc5f";
+    char value[64];
+
+    capture_field_value(data, str, "Transfer tokens from", value,
+                        sizeof(value));
+    assert_string_equal(value, "tz1YPjCVqgimTAPmxZX9egDeTFRCmrTRqmp9");
 }
 
 /* increase_paid_storage carries a signed Amount. The sign must reach the
@@ -1880,6 +2179,12 @@ main(void)
         OPERATION_PARSER_TEST(test_check_sdp_unit_op_trailing_data),
         OPERATION_PARSER_TEST(test_check_operation_size_end_beyond_16_bits),
         OPERATION_PARSER_TEST(test_check_micheline_size_end_beyond_16_bits),
+        OPERATION_PARSER_TEST(test_check_annotation_with_nul_is_refused),
+        OPERATION_PARSER_TEST(
+            test_check_annotation_with_invalid_byte_is_refused),
+        OPERATION_PARSER_TEST(test_check_annotation_alphabet_is_accepted),
+        OPERATION_PARSER_TEST(
+            test_check_annotation_longer_than_the_output_buffer),
         OPERATION_PARSER_TEST(test_check_sdp_done_oofs),
         OPERATION_PARSER_TEST(test_check_sdp_invalid_sub_step),
         OPERATION_PARSER_TEST(test_check_origination_complexity),
@@ -1908,7 +2213,14 @@ main(void)
         OPERATION_PARSER_TEST(test_check_fa2_transfer_multi_item_fallback),
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_negative_amount_shows_sign),
+        OPERATION_PARSER_TEST(test_check_fa2_transfer_shows_owner),
+        OPERATION_PARSER_TEST(
+            test_check_fa2_transfer_shows_owner_when_it_is_the_source),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_whole_number_amount),
+        OPERATION_PARSER_TEST(test_check_total_amount_overflow),
+        OPERATION_PARSER_TEST(test_check_total_fee_overflow),
+        OPERATION_PARSER_TEST(test_check_total_amount_up_to_uint64_max),
+        OPERATION_PARSER_TEST(test_check_amount_above_uint64),
 #ifdef HAVE_SWAP
         OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_fields),
         OPERATION_PARSER_TEST(
@@ -1928,6 +2240,9 @@ main(void)
         OPERATION_PARSER_TEST(
             test_check_fa2_transfer_swap_recipient_with_embedded_nul),
         OPERATION_PARSER_TEST(test_check_fa2_transfer_swap_owner_too_long),
+        OPERATION_PARSER_TEST(test_check_transaction_has_parameters),
+        OPERATION_PARSER_TEST(test_check_transaction_without_parameters),
+        OPERATION_PARSER_TEST(test_check_has_parameters_is_per_operation),
 #endif  // HAVE_SWAP
     };
 

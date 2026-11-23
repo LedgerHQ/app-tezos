@@ -22,16 +22,37 @@ Please use bash shell for uniformity in build environment.
 The docker images can be built using the provided Makefile:
 
 ```
-:; make docker-images
+:; make docker_images
 ```
 
-This pulls down following image, `ghcr.io/ledgerhq/ledger-app-dev-tools`. It
-also builds an image via `docker/Dockerfile.ocaml`.
+This pulls down the images the builds and the tests run in, among them
+`ghcr.io/ledgerhq/ledger-app-dev-tools`.
 
 We do not make the builds of the software conditional on these docker
-images as it can be time consuming to build them, approx 1 hour, and
-`make(1)` does not automatically avoid rebuilds as they do not create
+images as `make(1)` does not automatically avoid rebuilds as they do not create
 artefacts as files in the current directories.
+
+## Unit tests
+
+```
+:; make unit_tests
+```
+
+The unit tests need neither Octez nor OCaml. The parsers are also checked
+against samples generated from Octez, which are committed in
+[tests/samples](tests/samples/README.md).
+
+Regenerating these samples is a rare, manual step. It needs an extra image,
+built via `docker/Dockerfile.ocaml` from the Octez sources of the `deps/tezos`
+submodule. They are over a gigabyte, so they are not fetched by a recursive
+clone, nor by CI (`update = none` in `.gitmodules`). Fetch them before building
+the image, which takes approx 1 hour:
+
+```
+:; git submodule update --init --checkout deps/tezos
+:; make docker_ledger_app_ocaml
+:; make regen_samples
+```
 
 ## Make the applications
 
@@ -109,6 +130,9 @@ the Nano device. The basic tests can be run for all devices with:
 
 > Tests can be run for individual devices by appending the device name: e.g. `integration_tests_basic_nanosp`.
 
+The app can also be fuzzed, on the Ledger SDK fuzzing framework. See
+[app/fuzzing/README.md](app/fuzzing/README.md) for the details.
+
 Integration tests can be run directly from the command line rather than
 via the Makefile:
 
@@ -174,11 +198,12 @@ You can reset/set goldimages using the `--golden-run` option
 
 ### Requirement
 
-Our swap tests are located in the https://github.com/functori/app-exchange repository.
+The Exchange application tests of the Tezos swap are located in the https://github.com/LedgerHQ/app-exchange-dev repository.
 You must have a clone of this repository. In the commands below, it must be referenced in the `APP_EXCHANGE_REPO` variable.
+The swap tests that live in this repository are described in [tests/swap/README.md](tests/swap/README.md).
 
 In some of the commands below, other variables will be required:
-- `APP_TEZOS_REPO`: your clone of the https://github.com/trilitech/ledger-app-tezos-wallet repository
+- `APP_TEZOS_REPO`: your clone of the https://github.com/LedgerHQ/app-tezos-dev repository
 - `APP_ETH_REPO`: your clone of the https://github.com/LedgerHQ/app-ethereum repository
 The commands below will consider the version of the current branch of each repository.
 

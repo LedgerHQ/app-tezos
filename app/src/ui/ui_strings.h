@@ -102,3 +102,9 @@ void ui_strings_can_fit(size_t len, bool *can_fit);
  * @return size_t Number of chars appended.
  */
 size_t ui_strings_append_last(const char *str, size_t max, char **out);
+/**
+ * @brief Checks if the ring buffer holds no string.
+ *
+ * @return true if there is no string in the buffer.
+ */
+bool ui_strings_is_empty(void);

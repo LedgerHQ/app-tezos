@@ -289,8 +289,9 @@ typedef struct {
                                                      /// dispatch
     uint16_t batch_index;  /// to print a sequence number
 #ifdef HAVE_SWAP
-    tz_operation_tag last_tag;   /// last operations tag encountered
-    uint16_t         nb_reveal;  /// number of reveal encountered
+    tz_operation_tag last_tag;            /// last operations tag encountered
+    uint16_t         nb_reveal;           /// number of reveal encountered
+    uint8_t          has_parameters : 1;  /// transaction has _Parameters
     /// A single FA2 `transfer` was decoded in full. The four fields below
     /// are meaningful only then. They are kept here, and not in the parser
     /// frame, because swap validation reads them once parsing is over: see

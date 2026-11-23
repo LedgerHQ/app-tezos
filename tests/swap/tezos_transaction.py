@@ -20,6 +20,7 @@ from base58 import b58decode, b58encode
 
 CLA = 0x80
 INS_GET_PUBLIC_KEY = 0x02
+INS_PROMPT_PUBLIC_KEY = 0x03
 INS_SIGN = 0x04
 INS_SIGN_WITH_HASH = 0x0F
 P1_FIRST = 0x00
@@ -28,11 +29,32 @@ P2_ED25519 = 0x00
 P2_SECP256K1 = 0x01
 
 MAGIC_BYTE_UNSAFE = 0x03
+OPERATION_TAG_REVEAL = 0x6B
 OPERATION_TAG_TRANSACTION = 0x6C
 
 STATUS_OK = 0x9000
 EXC_REJECT = 0x6985
 EXC_WRONG_VALUES = 0x6A80
+EXC_UNEXPECTED_STATE = 0x9001
+
+# A refused swap answers with a two bytes error code after the status word. The
+# first byte is a swap_error_common_code_t of the SDK, the second one tells
+# which check of the application refused, see tz_swap_error_t in
+# app/src/handle_swap.h.
+SWAP_EC_ERROR_WRONG_AMOUNT = 0x01
+SWAP_EC_ERROR_WRONG_METHOD = 0x04
+SWAP_EC_ERROR_GENERIC = 0xFF
+SWAP_ERR_KEY = 0x04
+SWAP_ERR_SOURCE = 0x05
+SWAP_ERR_AMOUNT = 0x06
+SWAP_ERR_TOKEN_TICKER = 0x0B
+SWAP_ERR_PARAMETERS = 0x0D
+
+
+def swap_error(common_code: int, application_code: int) -> bytes:
+    """The data of the answer to a refused swap."""
+    return bytes([common_code, application_code])
+
 
 # Micheline "prim with 2 arguments, no annotation" (0x07) applied to Pair (0x07)
 MICHELINE_PAIR = b"\x07\x07"
@@ -134,6 +156,44 @@ def _operation_header(source_hash: bytes, fees: int) -> bytes:
 def craft_native_transfer(source_hash: bytes, destination: str, amount: int, fees: int) -> bytes:
     """A plain tez transfer to an implicit account."""
     payload = _operation_header(source_hash, fees)
+    payload += zarith(amount)
+    payload += b"\x00\x00" + decode_tz1(destination)  # implicit tz1 destination
+    payload += b"\x00"  # no parameters
+    return payload
+
+
+def craft_native_transfer_with_parameters(source_hash: bytes, destination: str, amount: int, fees: int) -> bytes:
+    """A tez transfer to an implicit account that also calls the %default entrypoint with `Unit`."""
+    payload = _operation_header(source_hash, fees)
+    payload += zarith(amount)
+    payload += b"\x00\x00" + decode_tz1(destination)  # implicit tz1 destination
+    payload += b"\xff"  # parameters present
+    payload += b"\x00"  # builtin entrypoint %default
+    payload += (2).to_bytes(4, "big") + b"\x03\x0b"  # the Micheline `Unit`
+    return payload
+
+
+def craft_revealed_native_transfer(public_key: bytes, destination: str, amount: int, fees: int) -> bytes:
+    """A reveal of the key, then a tez transfer to an implicit account.
+
+    This is what the Exchange application tests sign, and what Ledger Live
+    sends for an account whose key is not revealed yet. The reveal is free, so
+    the fee of the group is the one of the transfer. The counter, the gas and
+    the storage limits are not checked by the application, so they are left at 0.
+    """
+    source_hash = blake2_hash_pubkey(public_key)
+    payload = bytes([MAGIC_BYTE_UNSAFE])
+    payload += bytes(32)  # branch, not checked by the application
+
+    payload += bytes([OPERATION_TAG_REVEAL])
+    payload += b"\x00" + source_hash  # implicit tz1 source
+    payload += zarith(0) + zarith(0) + zarith(0) + zarith(0)  # fees, counter, gas limit, storage limit
+    payload += b"\x00" + public_key  # ed25519 public key
+    payload += b"\x00"  # no proof
+
+    payload += bytes([OPERATION_TAG_TRANSACTION])
+    payload += b"\x00" + source_hash  # implicit tz1 source
+    payload += zarith(fees) + zarith(0) + zarith(0) + zarith(0)  # fees, counter, gas limit, storage limit
     payload += zarith(amount)
     payload += b"\x00\x00" + decode_tz1(destination)  # implicit tz1 destination
     payload += b"\x00"  # no parameters

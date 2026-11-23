@@ -88,7 +88,7 @@ app_main(void)
         if (G_called_from_swap) {
             global.step = ST_SWAP_SIGN;
         }
-        PRINTF("[SWAP] : G_called_from_swap = %d , global.step = %d",
+        PRINTF("[SWAP] : G_called_from_swap = %d , global.step = %d\n",
                G_called_from_swap, global.step);
 #endif
         if (global.step == ST_ERROR) {

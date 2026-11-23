@@ -334,7 +334,7 @@ int tz_format_bh(const uint8_t *ibuf, size_t ilen, char *obuf, size_t olen);
  *        tag 0: tag(1) + pkh(20) (tz1, tz2, tz3, tz4, see format_pkh)
  *        tag 1: txrolluph(20) + padding(1), KT1(36)
  *        tag 2: txrolluph(20) + padding(1), txr1(36)
- *        tag 3: rolluph(20) + padding(1), scr1(36)
+ *        tag 3: rolluph(20) + padding(1), sr1(36)
  *        tag 4: zkrolluph(20) + padding(1), zkr1(36)
  *
  * @param ibuf: input buffer

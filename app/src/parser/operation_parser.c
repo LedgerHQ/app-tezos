@@ -390,6 +390,7 @@ tz_operation_parser_init(tz_parser_state *state, uint16_t size,
     op->last_tag           = TZ_OPERATION_TAG_END;
     op->nb_reveal          = 0;
     op->fa2_swap_ok        = 0;
+    op->has_parameters     = 0;
     op->fa2_token_id       = 0;
     op->fa2_amount         = 0;
     op->fa2_destination[0] = '\0';
@@ -604,6 +605,10 @@ tz_step_size(tz_parser_state *state)
     op->frame->step_size.size = (op->frame->step_size.size << 8) | b;
     op->frame->step_size.size_len--;
     if (op->frame->step_size.size_len == 0) {
+        // The end of what is sized is a 16-bit offset, like its size
+        if ((state->ofs + op->frame->step_size.size) > UINT16_MAX) {
+            tz_raise(TOO_LARGE);
+        }
         op->frame[-1].stop = state->ofs + op->frame->step_size.size;
         tz_must(pop_frame(state));
     }
@@ -632,7 +637,8 @@ tz_step_tag(tz_parser_state *state)
     }
     /* Reset per-operation: a transfer decoded in an earlier operation of the
        batch must not be credited to this one. */
-    op->fa2_swap_ok = 0;
+    op->fa2_swap_ok    = 0;
+    op->has_parameters = 0;
 #endif  // HAVE_SWAP
     op->is_fa2_candidate = 0;
     memset(&op->destination, 0, TZ_OPERATION_DESTINATION_SIZE);
@@ -681,6 +687,7 @@ tz_step_tag(tz_parser_state *state)
 #define FA2_STEP_EMIT_TO_ADDR    23 /* emit "Transfer tokens to" field */
 #define FA2_STEP_EMIT_TOKEN_ID   25 /* emit "Token ID" (raw amount only) */
 #define FA2_STEP_EMIT_AMOUNT     24 /* emit amount field */
+#define FA2_STEP_EMIT_FROM_ADDR  26 /* emit "Transfer tokens from" field */
 
 /* Saved FA2 addresses: from_ in first half, to_ in second half of CAPTURE */
 #define FA2_FROM_ADDR_OFS 0
@@ -1245,7 +1252,21 @@ tz_step_read_fa2_transfer(tz_parser_state *state)
         }
 #endif  // HAVE_SWAP
 
+        op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_FROM_ADDR;
+        tz_continue;
+
+    case FA2_STEP_EMIT_FROM_ADDR:
+        /* Emit the owner whose balance is debited, before the receiver */
+        if (regs->oofs > 0) {
+            tz_stop(IM_FULL);
+        }
+        STRLCPY(state->field_info.field_name, "Transfer tokens from");
+        state->field_info.is_field_complex
+            = (op->frame->step_read_fa2.token_idx < 0);
+        state->field_info.field_index++;
         op->frame->step_read_fa2.sub_step = FA2_STEP_EMIT_TO_ADDR;
+        tz_must(push_frame(state, TZ_OPERATION_STEP_PRINT));
+        op->frame->step_print.str = (char *)(CAPTURE + FA2_FROM_ADDR_OFS);
         tz_continue;
 
     case FA2_STEP_EMIT_TO_ADDR:
@@ -1654,9 +1675,15 @@ tz_step_read_num(tz_parser_state *state)
         }
         switch (op->frame->step_read_num.kind) {
         case TZ_OPERATION_FIELD_AMOUNT:
+            if (value > UINT64_MAX - op->total_amount) {
+                tz_raise(TOO_LARGE);
+            }
             op->total_amount += value;
             break;
         case TZ_OPERATION_FIELD_FEE:
+            if (value > UINT64_MAX - op->total_fee) {
+                tz_raise(TOO_LARGE);
+            }
             op->total_fee += value;
             break;
         default:
@@ -1710,7 +1737,7 @@ tz_step_read_int32(tz_parser_state *state)
     int32_t            *value = &op->frame->step_read_int32.value;
     if (op->frame->step_read_int32.ofs < 4) {
         tz_must(tz_parser_read(state, &b));
-        *value = (*value << 8) | b;
+        *value = (int32_t)(((uint32_t)*value << 8) | b);
         op->frame->step_read_int32.ofs++;
     } else {
         snprintf((char *)CAPTURE, sizeof(CAPTURE), "%d", *value);
@@ -2143,6 +2170,9 @@ tz_step_field(tz_parser_state *state)
         break;
     }
     case TZ_OPERATION_FIELD_SMART_ENTRYPOINT: {
+#ifdef HAVE_SWAP
+        op->has_parameters = 1;
+#endif
         op->frame->step = TZ_OPERATION_STEP_READ_SMART_ENTRYPOINT;
         op->frame->step_read_string.ofs       = 0;
         op->frame->step_read_string.skip      = field->skip;

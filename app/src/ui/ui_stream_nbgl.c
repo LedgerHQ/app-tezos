@@ -35,25 +35,57 @@ void        push_str(const char *text, size_t len, char **out);
 void        switch_to_blindsigning_on_error(void);
 static void ui_stream_init(void);
 
-void
-tz_reject(void)
+static void
+reject_with(tz_ui_cb_type_t cb_type)
 {
     tz_ui_stream_t *s = &G_stream;
 
-    FUNC_ENTER(("void"));
+    FUNC_ENTER(("cb_type=%u", cb_type));
 
     // Stax can reject early
     global.keys.apdu.sign.step              = SIGN_ST_WAIT_USER_INPUT;
     global.keys.apdu.sign.received_last_msg = true;
 
-    if (global.step == ST_BLIND_SIGN) {
-        s->cb(TZ_UI_STREAM_CB_BLINDSIGN_REJECT);
-    } else {
-        s->cb(TZ_UI_STREAM_CB_REJECT);
-    }
+    s->cb(cb_type);
 
     global.step = ST_IDLE;
     nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_home_init);
+    FUNC_LEAVE();
+}
+
+void
+tz_reject(void)
+{
+    FUNC_ENTER(("void"));
+
+    if (global.step == ST_BLIND_SIGN) {
+        reject_with(TZ_UI_STREAM_CB_BLINDSIGN_REJECT);
+    } else {
+        reject_with(TZ_UI_STREAM_CB_REJECT);
+    }
+
+    FUNC_LEAVE();
+}
+
+/* The user confirmed the rejection of a transaction that failed to parse. */
+static void
+tz_reject_parse_error(void)
+{
+    FUNC_ENTER(("void"));
+
+    reject_with(TZ_UI_STREAM_CB_BLINDSIGN_REJECT);
+
+    FUNC_LEAVE();
+}
+
+static void
+reject_confirm_ui(nbgl_callback_t on_confirm)
+{
+    FUNC_ENTER(("void"));
+
+    nbgl_useCaseConfirm("Reject transaction?", NULL, REJECT_CONFIRM_BUTTON,
+                        RESUME("transaction"), on_confirm);
+
     FUNC_LEAVE();
 }
 
@@ -62,8 +94,7 @@ tz_reject_ui(void)
 {
     FUNC_ENTER(("void"));
 
-    nbgl_useCaseConfirm("Reject transaction?", NULL, REJECT_CONFIRM_BUTTON,
-                        RESUME("transaction"), tz_reject);
+    reject_confirm_ui(tz_reject);
 
     FUNC_LEAVE();
 }
@@ -88,8 +119,9 @@ blindsign_choice(bool confirm)
 {
     TZ_PREAMBLE(("void"));
     if (confirm) {
-        global.step = ST_BLIND_SIGN;
-        tz_reject_ui();
+        // The modal can be dismissed, and this choice stays active under it:
+        // global.step must not change until the rejection is confirmed.
+        reject_confirm_ui(tz_reject_parse_error);
     } else {
         tz_ui_stream_t *s = &G_stream;
 
@@ -107,13 +139,19 @@ switch_to_blindsigning_on_error(void)
     TZ_PREAMBLE(("void"));
     TZ_ASSERT(EXC_UNEXPECTED_STATE, (global.step == ST_CLEAR_SIGN)
                                         || (global.step == ST_SUMMARY_SIGN));
+    // Backstop: never offer "Proceed to Blindsign" while the setting is off.
+    TZ_ASSERT(EXC_UNEXPECTED_STATE, N_settings.blindsigning);
     global.keys.apdu.sign.step = SIGN_ST_WAIT_USER_INPUT;
 
     // copy error code
     PRINTF("[DEBUG] refill_error: global.step = %d\n %s", global.step,
            global.error_code);
-    char blindsign_msg[60] = "Learn More: bit.ly/ledger-tez\nERROR: ";
+    // The SDK redraws this text after a dialog is dismissed: keep it alive
+    static char blindsign_msg[60];
 
+    memset(blindsign_msg, '\0', sizeof(blindsign_msg));
+    strncpy(blindsign_msg, "Learn More: bit.ly/ledger-tez\nERROR: ",
+            sizeof(blindsign_msg) - 1);
     strncpy(blindsign_msg + strlen(blindsign_msg), global.error_code,
             ERROR_CODE_SIZE);
 
@@ -125,7 +163,7 @@ switch_to_blindsigning_on_error(void)
     TZ_POSTAMBLE;
 }
 
-void
+static void
 expert_mode_splash(void)
 {
     TZ_PREAMBLE(("void"));
@@ -138,16 +176,13 @@ expert_mode_splash(void)
     TZ_POSTAMBLE;
 }
 
-void
+static void
 handle_expert_mode(bool confirm)
 {
     TZ_PREAMBLE(("void"));
     if (confirm) {
-        if (!N_settings.expert_mode) {
-            toggle_expert_mode();
-        }
-
-        nbgl_useCaseStatus("EXPERT MODE\nENABLED", true, tz_ui_stream_start);
+        nbgl_useCaseStatus("EXPERT MODE\nFOR THIS TX", true,
+                           tz_ui_stream_start);
 
     } else {
         tz_reject_ui();
@@ -155,7 +190,7 @@ handle_expert_mode(bool confirm)
     TZ_POSTAMBLE;
 }
 
-void
+static void
 tz_enable_expert_mode_ui(void)
 {
     FUNC_LEAVE();
@@ -169,7 +204,7 @@ tz_enable_expert_mode_ui(void)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_accept_ui(void)
 {
     tz_ui_stream_t *s = &G_stream;
@@ -184,7 +219,7 @@ tz_accept_ui(void)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_choice_ui(bool accept)
 {
     FUNC_ENTER(("accept=%d", accept));
@@ -198,7 +233,7 @@ tz_choice_ui(bool accept)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_ui_continue(void)
 {
     tz_ui_stream_t *s = &G_stream;
@@ -212,7 +247,7 @@ tz_ui_continue(void)
     TZ_POSTAMBLE;
 }
 
-void
+static void
 tz_ui_stream_cb(void)
 {
     FUNC_ENTER(("void"));
@@ -245,7 +280,7 @@ tz_ui_stream(void)
     FUNC_LEAVE();
 }
 
-void
+static void
 tz_ui_review_start(void)
 {
     tz_ui_stream_t *s = &G_stream;
@@ -393,6 +428,11 @@ has_final_screen(void)
 {
     tz_ui_stream_t *s  = &G_stream;
     size_t last_bucket = (s->total + 1) % TZ_UI_STREAM_HISTORY_SCREENS;
+
+    /* With every place held, this one is still the oldest screen's. */
+    if ((s->total + 1 - s->last) >= TZ_UI_STREAM_HISTORY_SCREENS) {
+        return false;
+    }
     return s->screens[last_bucket].nb_pairs > 0;
 }
 
@@ -420,6 +460,19 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         THROW(EXC_UNKNOWN);
     }
 
+    /* The screen under construction takes the place of the oldest one when
+       all the places are held: free it before anything is written. */
+    while ((s->total + 1 - s->last) >= TZ_UI_STREAM_HISTORY_SCREENS) {
+        if (s->last >= s->current) {
+            PRINTF("[ERROR] the oldest screen has not been left\n");
+            THROW(EXC_UNKNOWN);
+        }
+        drop_last_screen();
+        if (global.step == ST_ERROR) {
+            return 0;
+        }
+    }
+
 #ifdef TEZOS_DEBUG
     int    prev_total   = s->total;
     int    prev_current = s->current;
@@ -445,15 +498,10 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         && (idx > 0)) {
         PRINTF("[DEBUG] PUSH_TO_NEXT: %x\n", cb_type);
         s->total++;
-        if ((s->total % TZ_UI_STREAM_HISTORY_SCREENS)
-            == (s->last % TZ_UI_STREAM_HISTORY_SCREENS)) {
-            drop_last_screen();
-        }
         offset = tz_ui_stream_pushl(cb_type, title, value, max, layout_type,
                                     icon);
-        push_to_next = false;
-        // Will be update later
-        s->screens[bucket].nb_pairs--;
+        FUNC_LEAVE();
+        return offset;
     } else {
         /* Are we continuing to construct or starting from scratch? */
         if (idx >= NB_MAX_DISPLAYED_PAIRS_IN_REVIEW) {
@@ -517,14 +565,20 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         /* This returns the number that can fit. Potentially we could
          * optimistically push all 4 rows, and then try?
          */
-        uint8_t fit = nbgl_useCaseGetNbTagValuesInPage((uint8_t)(idx + 1), &l,
-                                                       0, &push_to_next);
-        PRINTF("[DEBUG] idx=%d fit=%d push_to_next=%d\n", idx, fit,
-               push_to_next);
-        /*
-         * Dont push to next screen if the number of pairs is one.
-         */
-        push_to_next = (fit <= (uint8_t)idx);
+        bool    requires_specific_display = false;
+        uint8_t fit                       = nbgl_useCaseGetNbTagValuesInPage(
+            (uint8_t)(idx + 1), &l, 0, &requires_specific_display);
+        PRINTF("[DEBUG] idx=%d fit=%d requires_specific_display=%d\n", idx,
+               fit, requires_specific_display);
+
+        if (requires_specific_display && !append) {
+            PRINTF("[ERROR] a fragment does not fit a review page\n");
+            THROW(EXC_MEMORY_ERROR);
+        }
+
+        /* A lone pair too tall for a page is shown in part, behind "More".
+           Send the fragment that made it too tall to the next screen. */
+        push_to_next = (fit <= (uint8_t)idx) || requires_specific_display;
 
         if (push_to_next) {
             /* We need to move to the next screen, retry */
@@ -545,10 +599,8 @@ tz_ui_stream_pushl(tz_ui_cb_type_t cb_type, const char *title,
         || (!append && (++(s->screens[bucket].nb_pairs) == max_pairs))
         || (append && (offset == 0))) {
         s->total++;
-        if ((s->total > 0)
-            && ((s->total % TZ_UI_STREAM_HISTORY_SCREENS)
-                == (s->last % TZ_UI_STREAM_HISTORY_SCREENS))) {
-            drop_last_screen();
+        if ((s->total - s->last) >= TZ_UI_STREAM_HISTORY_SCREENS) {
+            THROW(EXC_UNKNOWN);
         }
     }
 
